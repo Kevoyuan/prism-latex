@@ -49,9 +49,11 @@ The Client half inlines Prism 1.29's minified core and its LaTeX/TeX grammar so 
 highlights `.tex` correctly without a network fetch or a build step. Prism is loaded in manual mode
 and only used for `Prism.tokenize()`; it never touches the page DOM.
 
-The Source view's colors follow the **One Dark** palette (Atom One Dark, MIT), the same palette
-Open-Prism's CodeMirror editor uses through `@codemirror/theme-one-dark` — `#61afef` commands,
-`#c678dd` environment names, `#56b6c2` math, `#7d8799` comments, `#abb2bf` text on `#282c34`.
+The Source view's colors were sampled from the Codex LaTeX preview this plugin is modelled on
+(a screenshot of Codex rendering a `.tex` file): `#a892e8` for commands, `#e0a575` for optional
+arguments, near-white `#e6e8ea` for brace content and section titles, dim italic `#6b7481` for
+comments, on a `#0f1113` surface. Prism's grammar is used for tokenization; the optional-argument
+run is a post-pass because Prism's `lookbehind` support needs a fixed-length prefix.
 
 ```
 MIT License

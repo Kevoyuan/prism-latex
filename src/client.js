@@ -875,12 +875,12 @@ window.__ModuleLoader__.load({
  * ------------------------------------------------------------------------- */
 .oprilx-tabroot,
 .oprilx-root {
-  --opr-bg: #0b0b0d;
-  --opr-canvas: #08080a;
-  --opr-surface: #17171b;
-  --opr-surface-2: #232329;
-  --opr-border: #26262c;
-  --opr-text: #e8e8ea;
+  --opr-bg: #0c0e0f;
+  --opr-canvas: #0b0d0e;
+  --opr-surface: #16181a;
+  --opr-surface-2: #22262a;
+  --opr-border: #24282c;
+  --opr-text: #e6e8ea;
   --opr-muted: #9aa0a6;
   --opr-accent: #3f8efc;
   --opr-ready: #3fb950;
@@ -935,7 +935,7 @@ window.__ModuleLoader__.load({
   background: var(--opr-canvas);
 }
 .oprilx-pane[data-pane="source"] {
-  background: #0e0e11;
+  background: #0f1113;
 }
 .oprilx-page {
   background: #fff;
@@ -1018,36 +1018,43 @@ window.__ModuleLoader__.load({
   color: #e5c07b;
 }
 .oprilx-gutter {
-  background: #0e0e11;
-  color: #4d5560;
+  background: #0f1113;
+  color: #4b545e;
 }
 .oprilx-source {
-  background: #0e0e11;
-  color: #d6d6da;
+  background: #0f1113;
+  color: #e6e8ea;
 }
+/* Sampled from the Codex preview the plugin is modelled on: lavender commands,
+   orange optional arguments, near-white brace content, dim italic comments. */
 .oprilx-tok[data-type="comment"],
 .oprilx-tok[data-type="cdata"] {
   color: #6b7481;
+  font-style: italic;
 }
 .oprilx-tok[data-type="function"] {
-  color: #61afef;
+  color: #a892e8;
+}
+.oprilx-tok[data-type="option"] {
+  color: #e0a575;
 }
 .oprilx-tok[data-type="keyword"] {
-  color: #c678dd;
+  color: #e6e8ea;
 }
 .oprilx-tok[data-type="equation"],
 .oprilx-tok[data-type="equation-command"],
 .oprilx-tok[data-type="regex"] {
-  color: #56b6c2;
+  color: #dbe2ea;
 }
 .oprilx-tok[data-type="headline"] {
-  color: #e5c07b;
+  color: #e6e8ea;
+  font-weight: 600;
 }
 .oprilx-tok[data-type="url"] {
-  color: #d19a66;
+  color: #e0a575;
 }
 .oprilx-tok[data-type="punctuation"] {
-  color: #a9b0ba;
+  color: #8b929a;
 }
 `
 
@@ -1383,6 +1390,46 @@ window.__ModuleLoader__.load({
       }
     }
 
+    /**
+     * Re-type the runs of an optional argument (`[11pt,a4paper]`) that follows a
+     * command, which Codex colours separately from the command and its braces.
+     *
+     * A Prism rule cannot do this: its `lookbehind` support needs a fixed-length
+     * prefix and the command before the bracket varies in length.
+     */
+    function markOptionRuns(runs) {
+      let pending = false
+      let inside = false
+      for (const run of runs) {
+        const text = String(run.text)
+        if (text.includes('\n')) {
+          pending = false
+          inside = false
+          continue
+        }
+        if (inside) {
+          run.type = 'option'
+          if (text.includes(']')) inside = false
+          continue
+        }
+        if (run.type === 'function') {
+          pending = true
+          continue
+        }
+        if (pending) {
+          if (text.trim() === '') continue
+          if (text.trimStart().startsWith('[')) {
+            run.type = 'option'
+            inside = !text.includes(']')
+            pending = false
+            continue
+          }
+          pending = false
+        }
+      }
+      return runs
+    }
+
     /** Split typed runs into one array of runs per source line. */
     function runsToLines(runs) {
       const lines = [[]]
@@ -1412,7 +1459,7 @@ window.__ModuleLoader__.load({
       try {
         const runs = []
         tokenRuns(window.Prism.tokenize(text, grammar), 'plain', runs)
-        lines = runsToLines(runs)
+        lines = runsToLines(markOptionRuns(runs))
       } catch {
         lines = undefined
       }

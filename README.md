@@ -47,10 +47,10 @@ the built-in plain-text viewer; the tab chip carries a prism glyph before the fi
 The tab has a **Preview / Source / Side by side** switch in its header — an eye, a pair of code
 chevrons and a split-pane symbol, each with an English tooltip — and the rest of the pane follows
 the same rule: fit-width, download, refresh and retry are symbols, values stay as short English
-text (`3 pages · 0.7 s`). The copy is English only, deliberately terse, like an IDE: Preview shows the compiled pages, Source is an editor in a One Dark code surface — the palette Open-Prism's CodeMirror editor uses
-(`@codemirror/theme-one-dark`): `#61afef` control sequences, `#c678dd` environment names,
-`#56b6c2` math, `#7d8799` comments on `#282c34` — tokenized by an inlined Prism 1.29 LaTeX grammar
-with tabular line numbers (read from the plugin's own route, no editor service needed), and Side by side puts the source and
+text (`3 pages · 0.7 s`). The copy is English only, deliberately terse, like an IDE: Preview shows the compiled pages, Source is an editor on a near-black surface with the palette sampled from the Codex LaTeX preview
+this plugin mirrors: lavender `#a892e8` commands, orange `#e0a575` optional arguments, near-white
+arguments and section titles, dim italic comments — tokenized by an inlined Prism 1.29 LaTeX
+grammar with tabular line numbers (read from the plugin's own route, no editor service needed), and Side by side puts the source and
 the pages in two independently scrolling halves.
 
 **2. The LaTeX workspace panel.** A prism icon in the far-left rail opens a

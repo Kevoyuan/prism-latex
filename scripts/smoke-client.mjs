@@ -696,7 +696,7 @@ section('right sidebar tab body: preview state')
 
 section('right sidebar tab body: source mode')
 {
-  const text = '\\documentclass{article}\nhello'
+  const text = '\\documentclass[11pt]{article}\nhello'
   const source = { status: 'ready', path: 'demo/example.tex', text, version: '12-345', truncated: false }
   const { slots, en } = mount(makeTabReact({ mode: 'source', source }))
   const entry = slots.find(candidate => candidate.options?.name === 'sidebar.right.pane.tab')
@@ -717,6 +717,10 @@ section('right sidebar tab body: source mode')
   const codeLines = nodes.filter(node => node.props?.className === 'oprilx-codeline')
   check('highlight layer per line', codeLines.length === 2, String(codeLines.length))
   check('prism tokens in the layer', nodes.some(node => node.props?.className === 'oprilx-tok'))
+  const tokenTypes = new Set(nodes.filter(node => node.props?.className === 'oprilx-tok')
+    .map(node => node.props?.['data-type']))
+  check('commands tokenized', tokenTypes.has('function'), [...tokenTypes].join(','))
+  check('optional arguments tokenized like Codex', tokenTypes.has('option'), [...tokenTypes].join(','))
   const gutter = nodes.filter(node => node.props?.className === 'oprilx-gutter')
   check('gutter column', gutter.length === 1, String(gutter.length))
   check('gutter numbers', flatten(gutter[0]).filter(node => typeof node.text === 'string' && node.text === '1').length >= 1)
