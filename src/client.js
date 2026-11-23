@@ -1647,13 +1647,23 @@ window.__ModuleLoader__.load({
      * otherwise be invisible through the transparent textarea.
      */
     function SourceEditor(props) {
-      const { t, text, onInput, onSave, onScrollSync } = props
+      const { t, text, resetToken, onInput, onSave } = props
       const [composing, setComposing] = useState(false)
       const areaRef = useRef(null)
       const codeRef = useRef(null)
       const gutterRef = useRef(null)
       const lines = text.split('\n')
       const highlighted = highlightLatexLines(text)
+
+      // The textarea is uncontrolled on purpose: a controlled one loses the browser's
+      // native undo stack (⌘Z) because React rewrites `value` on every keystroke. The
+      // file text is adopted only when a new file version arrives.
+      useEffect(() => {
+        const area = areaRef.current
+        if (area === null || area === undefined) return
+        if (area.value !== text) area.value = text
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, [resetToken])
 
       const sync = () => {
         const area = areaRef.current
@@ -1665,7 +1675,6 @@ window.__ModuleLoader__.load({
           code.scrollLeft = area.scrollLeft
         }
         if (gutter !== null && gutter !== undefined) gutter.scrollTop = area.scrollTop
-        if (typeof onScrollSync === 'function') onScrollSync(area.scrollTop)
       }
 
       const handleKeyDown = event => {
@@ -1676,18 +1685,24 @@ window.__ModuleLoader__.load({
         }
         if (event.key === 'Tab') {
           event.preventDefault()
-          const area = event.currentTarget
-          const start = area.selectionStart
-          const end = area.selectionEnd
-          const next = `${text.slice(0, start)}  ${text.slice(end)}`
-          onInput(next)
-          // Restore the caret after React writes the value back.
-          requestAnimationFrame(() => {
-            if (areaRef.current !== null && areaRef.current !== undefined) {
-              areaRef.current.selectionStart = start + 2
-              areaRef.current.selectionEnd = start + 2
-            }
-          })
+          // execCommand participates in the native undo stack; a sliced assignment
+          // would reset it.
+          let inserted = false
+          try {
+            inserted = document.execCommand('insertText', false, '  ')
+          } catch {
+            inserted = false
+          }
+          if (!inserted) {
+            const area = event.currentTarget
+            const start = area.selectionStart
+            const end = area.selectionEnd
+            const next = `${area.value.slice(0, start)}  ${area.value.slice(end)}`
+            area.value = next
+            area.selectionStart = start + 2
+            area.selectionEnd = start + 2
+            onInput(next)
+          }
         }
       }
 
@@ -1707,7 +1722,7 @@ window.__ModuleLoader__.load({
             className: 'oprilx-code-input',
             key: 'input',
             ref: areaRef,
-            value: text,
+            defaultValue: text,
             spellCheck: false,
             autoCapitalize: 'off',
             autoCorrect: 'off',
@@ -2199,6 +2214,7 @@ window.__ModuleLoader__.load({
           key: 'editor',
           t,
           text: editedText,
+          resetToken: source.version,
           onInput: value => setDraft(value),
           onSave: saveText,
         }))

@@ -707,7 +707,11 @@ section('right sidebar tab body: source mode')
   const nodes = flatten(tree)
   const area = nodes.find(node => node.type === 'textarea')
   check('editor textarea', area !== undefined)
-  check('editor holds the source', area?.props?.value === text, JSON.stringify(area?.props?.value))
+  check('editor holds the source', area?.props?.defaultValue === text,
+    JSON.stringify(area?.props?.defaultValue))
+  // Uncontrolled textarea: a `value` prop would make React rewrite the DOM on every
+  // keystroke and drop the browser's native undo stack (⌘Z).
+  check('editor stays uncontrolled', area?.props?.value === undefined, String(area?.props?.value))
   check('editor is labelled', typeof area?.props?.['aria-label'] === 'string'
     && area.props['aria-label'].length > 0)
   const codeLines = nodes.filter(node => node.props?.className === 'oprilx-codeline')
@@ -732,7 +736,7 @@ section('right sidebar tab body: dirty draft')
     useTabInfo: () => ({ tab: { contentId: ADDRESS, signal: new AbortController().signal } }),
   })
   const nodes = flatten(tree)
-  check('draft is shown', nodes.find(node => node.type === 'textarea')?.props?.value === 'one two')
+  check('draft is shown', nodes.find(node => node.type === 'textarea')?.props?.defaultValue === 'one two')
   check('save appears for unsaved changes', nodes.some(node => node.props?.className === 'oprilx-save-button'
     && node.props['aria-label'].startsWith('Save')))
 }
