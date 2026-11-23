@@ -716,11 +716,12 @@ section('right sidebar tab body: source mode')
     && area.props['aria-label'].length > 0)
   const codeLines = nodes.filter(node => node.props?.className === 'oprilx-codeline')
   check('highlight layer per line', codeLines.length === 2, String(codeLines.length))
-  check('prism tokens in the layer', nodes.some(node => node.props?.className === 'oprilx-tok'))
+  check('tokens in the layer', nodes.some(node => node.props?.className === 'oprilx-tok'))
   const tokenTypes = new Set(nodes.filter(node => node.props?.className === 'oprilx-tok')
     .map(node => node.props?.['data-type']))
-  check('commands tokenized', tokenTypes.has('function'), [...tokenTypes].join(','))
-  check('optional arguments tokenized like Codex', tokenTypes.has('option'), [...tokenTypes].join(','))
+  check('control sequences tokenized', tokenTypes.has('command'), [...tokenTypes].join(','))
+  check('optional arguments tokenized', tokenTypes.has('option'), [...tokenTypes].join(','))
+  check('braces tokenized', tokenTypes.has('bracket'), [...tokenTypes].join(','))
   const gutter = nodes.filter(node => node.props?.className === 'oprilx-gutter')
   check('gutter column', gutter.length === 1, String(gutter.length))
   check('gutter numbers', flatten(gutter[0]).filter(node => typeof node.text === 'string' && node.text === '1').length >= 1)
@@ -728,6 +729,31 @@ section('right sidebar tab body: source mode')
   check('save hidden without edits', !nodes.some(node => node.props?.className === 'oprilx-save-button'))
   check('compile control present', nodes.some(node => node.type === 'button'
     && String(node.props['aria-label']).startsWith('Compile')))
+}
+
+section('right sidebar tab body: latex token classes')
+{
+  const text = [
+    '\\usepackage[utf8]{inputenc}',
+    '\\begin{itemize}',
+    '  % a comment',
+    '  \\item $x^2 + \\frac{1}{2}$',
+    '\\end{itemize}',
+    '\\section{Heading}',
+  ].join('\n')
+  const source = { status: 'ready', path: 'demo/example.tex', text, version: '9-9', truncated: false }
+  const { slots, en } = mount(makeTabReact({ mode: 'source', source }))
+  const entry = slots.find(candidate => candidate.options?.name === 'sidebar.right.pane.tab')
+  const tree = entry.body({
+    t: key => en.get(key) ?? key,
+    useTabInfo: () => ({ tab: { contentId: ADDRESS, signal: new AbortController().signal } }),
+  })
+  const types = new Set(flatten(tree)
+    .filter(node => node.props?.className === 'oprilx-tok')
+    .map(node => node.props['data-type']))
+  for (const type of ['command', 'option', 'bracket', 'environment', 'comment', 'math', 'section']) {
+    check(`token class ${type}`, types.has(type), [...types].join(','))
+  }
 }
 
 section('right sidebar tab body: dirty draft')

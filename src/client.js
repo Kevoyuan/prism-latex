@@ -7,10 +7,6 @@ window.__ModuleLoader__.load({
 
     /** Shown in the panel header: which client bundle the page actually loaded. */
     const CLIENT_BUILD = '0.1.0+latex-tab'
-    /** Prism.js 1.29 core (MIT) inlined so the bundle stays a single classic script. */
-    const PRISM_CORE = "var _self=\"undefined\"!=typeof window?window:\"undefined\"!=typeof WorkerGlobalScope&&self instanceof WorkerGlobalScope?self:{},Prism=function(e){var n=/(?:^|\\s)lang(?:uage)?-([\\w-]+)(?=\\s|$)/i,t=0,r={},a={manual:e.Prism&&e.Prism.manual,disableWorkerMessageHandler:e.Prism&&e.Prism.disableWorkerMessageHandler,util:{encode:function e(n){return n instanceof i?new i(n.type,e(n.content),n.alias):Array.isArray(n)?n.map(e):n.replace(/&/g,\"&amp;\").replace(/</g,\"&lt;\").replace(/\\u00a0/g,\" \")},type:function(e){return Object.prototype.toString.call(e).slice(8,-1)},objId:function(e){return e.__id||Object.defineProperty(e,\"__id\",{value:++t}),e.__id},clone:function e(n,t){var r,i;switch(t=t||{},a.util.type(n)){case\"Object\":if(i=a.util.objId(n),t[i])return t[i];for(var l in r={},t[i]=r,n)n.hasOwnProperty(l)&&(r[l]=e(n[l],t));return r;case\"Array\":return i=a.util.objId(n),t[i]?t[i]:(r=[],t[i]=r,n.forEach((function(n,a){r[a]=e(n,t)})),r);default:return n}},getLanguage:function(e){for(;e;){var t=n.exec(e.className);if(t)return t[1].toLowerCase();e=e.parentElement}return\"none\"},setLanguage:function(e,t){e.className=e.className.replace(RegExp(n,\"gi\"),\"\"),e.classList.add(\"language-\"+t)},currentScript:function(){if(\"undefined\"==typeof document)return null;if(\"currentScript\"in document)return document.currentScript;try{throw new Error}catch(r){var e=(/at [^(\\r\\n]*\\((.*):[^:]+:[^:]+\\)$/i.exec(r.stack)||[])[1];if(e){var n=document.getElementsByTagName(\"script\");for(var t in n)if(n[t].src==e)return n[t]}return null}},isActive:function(e,n,t){for(var r=\"no-\"+n;e;){var a=e.classList;if(a.contains(n))return!0;if(a.contains(r))return!1;e=e.parentElement}return!!t}},languages:{plain:r,plaintext:r,text:r,txt:r,extend:function(e,n){var t=a.util.clone(a.languages[e]);for(var r in n)t[r]=n[r];return t},insertBefore:function(e,n,t,r){var i=(r=r||a.languages)[e],l={};for(var o in i)if(i.hasOwnProperty(o)){if(o==n)for(var s in t)t.hasOwnProperty(s)&&(l[s]=t[s]);t.hasOwnProperty(o)||(l[o]=i[o])}var u=r[e];return r[e]=l,a.languages.DFS(a.languages,(function(n,t){t===u&&n!=e&&(this[n]=l)})),l},DFS:function e(n,t,r,i){i=i||{};var l=a.util.objId;for(var o in n)if(n.hasOwnProperty(o)){t.call(n,o,n[o],r||o);var s=n[o],u=a.util.type(s);\"Object\"!==u||i[l(s)]?\"Array\"!==u||i[l(s)]||(i[l(s)]=!0,e(s,t,o,i)):(i[l(s)]=!0,e(s,t,null,i))}}},plugins:{},highlightAll:function(e,n){a.highlightAllUnder(document,e,n)},highlightAllUnder:function(e,n,t){var r={callback:t,container:e,selector:'code[class*=\"language-\"], [class*=\"language-\"] code, code[class*=\"lang-\"], [class*=\"lang-\"] code'};a.hooks.run(\"before-highlightall\",r),r.elements=Array.prototype.slice.apply(r.container.querySelectorAll(r.selector)),a.hooks.run(\"before-all-elements-highlight\",r);for(var i,l=0;i=r.elements[l++];)a.highlightElement(i,!0===n,r.callback)},highlightElement:function(n,t,r){var i=a.util.getLanguage(n),l=a.languages[i];a.util.setLanguage(n,i);var o=n.parentElement;o&&\"pre\"===o.nodeName.toLowerCase()&&a.util.setLanguage(o,i);var s={element:n,language:i,grammar:l,code:n.textContent};function u(e){s.highlightedCode=e,a.hooks.run(\"before-insert\",s),s.element.innerHTML=s.highlightedCode,a.hooks.run(\"after-highlight\",s),a.hooks.run(\"complete\",s),r&&r.call(s.element)}if(a.hooks.run(\"before-sanity-check\",s),(o=s.element.parentElement)&&\"pre\"===o.nodeName.toLowerCase()&&!o.hasAttribute(\"tabindex\")&&o.setAttribute(\"tabindex\",\"0\"),!s.code)return a.hooks.run(\"complete\",s),void(r&&r.call(s.element));if(a.hooks.run(\"before-highlight\",s),s.grammar)if(t&&e.Worker){var c=new Worker(a.filename);c.onmessage=function(e){u(e.data)},c.postMessage(JSON.stringify({language:s.language,code:s.code,immediateClose:!0}))}else u(a.highlight(s.code,s.grammar,s.language));else u(a.util.encode(s.code))},highlight:function(e,n,t){var r={code:e,grammar:n,language:t};if(a.hooks.run(\"before-tokenize\",r),!r.grammar)throw new Error('The language \"'+r.language+'\" has no grammar.');return r.tokens=a.tokenize(r.code,r.grammar),a.hooks.run(\"after-tokenize\",r),i.stringify(a.util.encode(r.tokens),r.language)},tokenize:function(e,n){var t=n.rest;if(t){for(var r in t)n[r]=t[r];delete n.rest}var a=new s;return u(a,a.head,e),o(e,a,n,a.head,0),function(e){for(var n=[],t=e.head.next;t!==e.tail;)n.push(t.value),t=t.next;return n}(a)},hooks:{all:{},add:function(e,n){var t=a.hooks.all;t[e]=t[e]||[],t[e].push(n)},run:function(e,n){var t=a.hooks.all[e];if(t&&t.length)for(var r,i=0;r=t[i++];)r(n)}},Token:i};function i(e,n,t,r){this.type=e,this.content=n,this.alias=t,this.length=0|(r||\"\").length}function l(e,n,t,r){e.lastIndex=n;var a=e.exec(t);if(a&&r&&a[1]){var i=a[1].length;a.index+=i,a[0]=a[0].slice(i)}return a}function o(e,n,t,r,s,g){for(var f in t)if(t.hasOwnProperty(f)&&t[f]){var h=t[f];h=Array.isArray(h)?h:[h];for(var d=0;d<h.length;++d){if(g&&g.cause==f+\",\"+d)return;var v=h[d],p=v.inside,m=!!v.lookbehind,y=!!v.greedy,k=v.alias;if(y&&!v.pattern.global){var x=v.pattern.toString().match(/[imsuy]*$/)[0];v.pattern=RegExp(v.pattern.source,x+\"g\")}for(var b=v.pattern||v,w=r.next,A=s;w!==n.tail&&!(g&&A>=g.reach);A+=w.value.length,w=w.next){var E=w.value;if(n.length>e.length)return;if(!(E instanceof i)){var P,L=1;if(y){if(!(P=l(b,A,e,m))||P.index>=e.length)break;var S=P.index,O=P.index+P[0].length,j=A;for(j+=w.value.length;S>=j;)j+=(w=w.next).value.length;if(A=j-=w.value.length,w.value instanceof i)continue;for(var C=w;C!==n.tail&&(j<O||\"string\"==typeof C.value);C=C.next)L++,j+=C.value.length;L--,E=e.slice(A,j),P.index-=A}else if(!(P=l(b,0,E,m)))continue;S=P.index;var N=P[0],_=E.slice(0,S),M=E.slice(S+N.length),W=A+E.length;g&&W>g.reach&&(g.reach=W);var z=w.prev;if(_&&(z=u(n,z,_),A+=_.length),c(n,z,L),w=u(n,z,new i(f,p?a.tokenize(N,p):N,k,N)),M&&u(n,w,M),L>1){var I={cause:f+\",\"+d,reach:W};o(e,n,t,w.prev,A,I),g&&I.reach>g.reach&&(g.reach=I.reach)}}}}}}function s(){var e={value:null,prev:null,next:null},n={value:null,prev:e,next:null};e.next=n,this.head=e,this.tail=n,this.length=0}function u(e,n,t){var r=n.next,a={value:t,prev:n,next:r};return n.next=a,r.prev=a,e.length++,a}function c(e,n,t){for(var r=n.next,a=0;a<t&&r!==e.tail;a++)r=r.next;n.next=r,r.prev=n,e.length-=a}if(e.Prism=a,i.stringify=function e(n,t){if(\"string\"==typeof n)return n;if(Array.isArray(n)){var r=\"\";return n.forEach((function(n){r+=e(n,t)})),r}var i={type:n.type,content:e(n.content,t),tag:\"span\",classes:[\"token\",n.type],attributes:{},language:t},l=n.alias;l&&(Array.isArray(l)?Array.prototype.push.apply(i.classes,l):i.classes.push(l)),a.hooks.run(\"wrap\",i);var o=\"\";for(var s in i.attributes)o+=\" \"+s+'=\"'+(i.attributes[s]||\"\").replace(/\"/g,\"&quot;\")+'\"';return\"<\"+i.tag+' class=\"'+i.classes.join(\" \")+'\"'+o+\">\"+i.content+\"</\"+i.tag+\">\"},!e.document)return e.addEventListener?(a.disableWorkerMessageHandler||e.addEventListener(\"message\",(function(n){var t=JSON.parse(n.data),r=t.language,i=t.code,l=t.immediateClose;e.postMessage(a.highlight(i,a.languages[r],r)),l&&e.close()}),!1),a):a;var g=a.util.currentScript();function f(){a.manual||a.highlightAll()}if(g&&(a.filename=g.src,g.hasAttribute(\"data-manual\")&&(a.manual=!0)),!a.manual){var h=document.readyState;\"loading\"===h||\"interactive\"===h&&g&&g.defer?document.addEventListener(\"DOMContentLoaded\",f):window.requestAnimationFrame?window.requestAnimationFrame(f):window.setTimeout(f,16)}return a}(_self);\"undefined\"!=typeof module&&module.exports&&(module.exports=Prism),\"undefined\"!=typeof global&&(global.Prism=Prism);"
-    /** Prism.js 1.29 LaTeX/TeX grammar (MIT). */
-    const PRISM_LATEX = "!function(a){var e=/\\\\(?:[^a-z()[\\]]|[a-z*]+)/i,n={\"equation-command\":{pattern:e,alias:\"regex\"}};a.languages.latex={comment:/%.*/,cdata:{pattern:/(\\\\begin\\{((?:lstlisting|verbatim)\\*?)\\})[\\s\\S]*?(?=\\\\end\\{\\2\\})/,lookbehind:!0},equation:[{pattern:/\\$\\$(?:\\\\[\\s\\S]|[^\\\\$])+\\$\\$|\\$(?:\\\\[\\s\\S]|[^\\\\$])+\\$|\\\\\\([\\s\\S]*?\\\\\\)|\\\\\\[[\\s\\S]*?\\\\\\]/,inside:n,alias:\"string\"},{pattern:/(\\\\begin\\{((?:align|eqnarray|equation|gather|math|multline)\\*?)\\})[\\s\\S]*?(?=\\\\end\\{\\2\\})/,lookbehind:!0,inside:n,alias:\"string\"}],keyword:{pattern:/(\\\\(?:begin|cite|documentclass|end|label|ref|usepackage)(?:\\[[^\\]]+\\])?\\{)[^}]+(?=\\})/,lookbehind:!0},url:{pattern:/(\\\\url\\{)[^}]+(?=\\})/,lookbehind:!0},headline:{pattern:/(\\\\(?:chapter|frametitle|paragraph|part|section|subparagraph|subsection|subsubparagraph|subsubsection|subsubsubparagraph)\\*?(?:\\[[^\\]]+\\])?\\{)[^}]+(?=\\})/,lookbehind:!0,alias:\"class-name\"},function:{pattern:e,alias:\"selector\"},punctuation:/[[\\]{}&]/},a.languages.tex=a.languages.latex,a.languages.context=a.languages.latex}(Prism);"
     const SESSION_RESOURCE_PREFIX = 'dsh-resource://file/session/'
     const FIXED_ZOOM_STEPS = [0.5, 0.75, 1, 1.25, 1.5, 2, 3]
     const RENDER_URL = 'api/dsh-openprism-latex/render'
@@ -1025,35 +1021,37 @@ window.__ModuleLoader__.load({
   background: #0f1113;
   color: #e6e8ea;
 }
-/* Sampled from the Codex preview the plugin is modelled on: lavender commands,
-   orange optional arguments, near-white brace content, dim italic comments. */
+/* Token classes follow codemirror-lang-latex, the grammar Open-Prism's editor uses:
+   CtrlSeq → command, EnvName → environment, sectioning → section, Comment, Bracket,
+   math → MathChar, optional arguments → option. Hues sampled from Codex's preview. */
 .oprilx-tok[data-type="comment"],
 .oprilx-tok[data-type="cdata"] {
   color: #6b7481;
   font-style: italic;
 }
-.oprilx-tok[data-type="function"] {
+.oprilx-tok[data-type="command"] {
   color: #a892e8;
+}
+.oprilx-tok[data-type="section"] {
+  color: #a892e8;
+  font-weight: 600;
+}
+.oprilx-tok[data-type="environment"] {
+  color: #e5c07b;
 }
 .oprilx-tok[data-type="option"] {
   color: #e0a575;
 }
-.oprilx-tok[data-type="keyword"] {
-  color: #e6e8ea;
+.oprilx-tok[data-type="math"] {
+  color: #56b6c2;
 }
-.oprilx-tok[data-type="equation"],
-.oprilx-tok[data-type="equation-command"],
-.oprilx-tok[data-type="regex"] {
-  color: #dbe2ea;
+.oprilx-tok[data-type="number"] {
+  color: #d19a66;
 }
-.oprilx-tok[data-type="headline"] {
-  color: #e6e8ea;
-  font-weight: 600;
+.oprilx-tok[data-type="string"] {
+  color: #98c379;
 }
-.oprilx-tok[data-type="url"] {
-  color: #e0a575;
-}
-.oprilx-tok[data-type="punctuation"] {
+.oprilx-tok[data-type="bracket"] {
   color: #8b929a;
 }
 `
@@ -1358,112 +1356,129 @@ window.__ModuleLoader__.load({
       ]
     }
 
-    /** Load Prism once, in manual mode, and hand back its LaTeX grammar. */
-    function latexGrammar() {
-      try {
-        const scope = typeof window === 'undefined' ? undefined : window
-        if (scope === undefined) return undefined
-        if (scope.Prism === undefined || scope.Prism === null) scope.Prism = { manual: true }
-        if (scope.Prism.manual !== true) scope.Prism.manual = true
-        if (scope.Prism.languages === undefined || scope.Prism.languages.latex === undefined) {
-          // Prism's core reads `manual` from the pre-set object, then owns window.Prism.
-          if (typeof scope.Prism.tokenize !== 'function') new Function(PRISM_CORE)()
-          if (typeof window.Prism?.tokenize !== 'function') return undefined
-          new Function(PRISM_LATEX)()
-        }
-        return window.Prism?.languages?.latex
-      } catch {
-        return undefined
-      }
-    }
-
-    /** Flatten Prism's token tree into typed runs, innermost type winning. */
-    function tokenRuns(tokens, type, out) {
-      for (const token of tokens) {
-        if (typeof token === 'string') {
-          if (token !== '') out.push({ type, text: token })
-          continue
-        }
-        if (token === null || typeof token !== 'object') continue
-        const inner = Array.isArray(token.content) ? token.content : [token.content]
-        tokenRuns(inner, token.type ?? type, out)
-      }
-    }
-
-    /**
-     * Re-type the runs of an optional argument (`[11pt,a4paper]`) that follows a
-     * command, which Codex colours separately from the command and its braces.
-     *
-     * A Prism rule cannot do this: its `lookbehind` support needs a fixed-length
-     * prefix and the command before the bracket varies in length.
-     */
-    function markOptionRuns(runs) {
-      let pending = false
-      let inside = false
-      for (const run of runs) {
-        const text = String(run.text)
-        if (text.includes('\n')) {
-          pending = false
-          inside = false
-          continue
-        }
-        if (inside) {
-          run.type = 'option'
-          if (text.includes(']')) inside = false
-          continue
-        }
-        if (run.type === 'function') {
-          pending = true
-          continue
-        }
-        if (pending) {
-          if (text.trim() === '') continue
-          if (text.trimStart().startsWith('[')) {
-            run.type = 'option'
-            inside = !text.includes(']')
-            pending = false
-            continue
-          }
-          pending = false
-        }
-      }
-      return runs
-    }
-
-    /** Split typed runs into one array of runs per source line. */
-    function runsToLines(runs) {
-      const lines = [[]]
-      for (const run of runs) {
-        const parts = String(run.text).split('\n')
-        for (let index = 0; index < parts.length; index += 1) {
-          if (index > 0) lines.push([])
-          if (parts[index] !== '') lines[lines.length - 1].push({ type: run.type, text: parts[index] })
-        }
-      }
-      return lines
-    }
-
-    /** One-entry memo: the source pane re-renders on zoom and mode changes. */
-    let highlightCache = { text: undefined, lines: undefined }
     /** Above this size the tokenizer costs more than the tint is worth. */
     const HIGHLIGHT_LIMIT = 200 * 1024
 
-    /** Highlight the whole document once; `undefined` when Prism cannot load. */
+    /** One-entry memo: the source pane re-renders on scroll, zoom and mode changes. */
+    let highlightCache = { text: undefined, lines: undefined }
+
+    /** Tokenize the whole document once; line-oriented runs for the gutter view. */
     function highlightLatexLines(text) {
       if (typeof text !== 'string' || text === '') return undefined
       if (highlightCache.text === text) return highlightCache.lines
       if (text.length > HIGHLIGHT_LIMIT) return undefined
-      const grammar = latexGrammar()
-      if (grammar === undefined) return undefined
       let lines
       try {
-        const runs = []
-        tokenRuns(window.Prism.tokenize(text, grammar), 'plain', runs)
-        lines = runsToLines(markOptionRuns(runs))
+        lines = tokenizeLatex(text)
       } catch {
         lines = undefined
       }
       highlightCache = { text, lines }
+      return lines
+    }
+
+    const SECTIONING = /^\\(part|chapter|section|subsection|subsubsection|paragraph|subparagraph|title|author|date|chapter\*)\b/
+
+    function tokenizeLatex(text) {
+      const lines = [[]]
+      const push = (type, value) => {
+        if (value === '') return
+        const parts = value.split('\n')
+        for (let index = 0; index < parts.length; index += 1) {
+          if (index > 0) lines.push([])
+          const part = parts[index]
+          if (part !== '') lines[lines.length - 1].push({ type, text: part })
+        }
+      }
+      let i = 0
+      let math = undefined
+      let dollars = ''
+      while (i < text.length) {
+        const ch = text[i]
+        if (math === undefined) {
+          if (ch === '$') {
+            dollars = text.startsWith('$$', i) ? '$$' : '$'
+            push('bracket', dollars)
+            math = dollars
+            i += dollars.length
+            continue
+          }
+          if (text.startsWith('\\[', i)) { push('bracket', '\\['); math = '\\]'; i += 2; continue }
+          if (text.startsWith('\\(', i)) { push('bracket', '\\('); math = '\\)'; i += 2; continue }
+          if (text.startsWith('\\verb', i)) {
+            const verb = /^\\verb\*?([^A-Za-z\s])/.exec(text.slice(i))
+            if (verb !== null) {
+              const bodyEnd = text.indexOf(verb[1], i + verb[0].length)
+              const stop = bodyEnd === -1 ? text.length : bodyEnd + 1
+              push('command', text.slice(i, i + verb[0].length - 1))
+              push('string', text.slice(i + verb[0].length - 1, stop))
+              i = stop
+              continue
+            }
+          }
+        } else if (text.startsWith(math, i)) {
+          push('bracket', math)
+          i += math.length
+          math = undefined
+          continue
+        }
+        if (ch === '%') {
+          const newline = text.indexOf('\n', i)
+          const stop = newline === -1 ? text.length : newline
+          push('comment', text.slice(i, stop))
+          i = stop
+          continue
+        }
+        if (ch === '\\') {
+          const command = /^\\([A-Za-z@]+\*?|.)/.exec(text.slice(i))
+          const raw = command === null ? '\\' : command[0]
+          const name = raw.slice(1)
+          const inMath = math !== undefined
+          if (inMath) push('math', raw)
+          else push(SECTIONING.test(raw) ? 'section' : 'command', raw)
+          i += raw.length
+          if (!inMath && (name === 'begin' || name === 'end')) {
+            if (text[i] === '{') {
+              push('bracket', '{')
+              i += 1
+              const close = text.indexOf('}', i)
+              const stop = close === -1 ? text.length : close
+              push('environment', text.slice(i, stop))
+              i = stop
+              if (text[i] === '}') { push('bracket', '}'); i += 1 }
+            }
+            continue
+          }
+          if (!inMath && text[i] === '[') {
+            const close = text.indexOf(']', i)
+            const stop = close === -1 ? text.length : close + 1
+            push('option', text.slice(i, stop))
+            i = stop
+            continue
+          }
+          continue
+        }
+        if (ch >= '0' && ch <= '9') {
+          const number = /^[0-9]+(?:\.[0-9]+)?/.exec(text.slice(i))
+          push('number', number[0])
+          i += number[0].length
+          continue
+        }
+        if (ch === '{' || ch === '}' || ch === '[' || ch === ']') {
+          push('bracket', ch)
+          i += 1
+          continue
+        }
+        let j = i + 1
+        while (j < text.length) {
+          const next = text[j]
+          if (next === '\\' || next === '$' || next === '%' || next === '{' || next === '}' || next === '[' || next === ']') break
+          if (next >= '0' && next <= '9') break
+          j += 1
+        }
+        push(math === undefined ? 'plain' : 'math', text.slice(i, j))
+        i = j
+      }
       return lines
     }
 
