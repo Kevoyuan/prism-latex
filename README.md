@@ -25,14 +25,17 @@ that pane about `.tex`:
   of overwriting the other writer.
 - **A panel you can find.** The left rail lists the workspace's LaTeX documents, so the feature is
   reachable without already knowing which file to open.
-- **A real compile, not a syntax highlighter.** The Host compiles with the local TeX Live
-  (`pdflatex` by default, or `xelatex` / `lualatex` / `latexmk`) in the file's own directory, so
-  `\input`, `\includegraphics` and relative paths behave exactly as in a local build.
+- **A real compile, not a syntax highlighter.** The Host compiles with the local TeX Live in the
+  file's own directory, so `\input`, `\includegraphics` and relative paths behave exactly as in a
+  local build. The default engine is `latexmk`, which repeats the run and drives BibTeX/Biber, so
+  references and the table of contents resolve; the toolbar's engine picker switches to
+  `pdflatex`, `xelatex` (CJK) or `lualatex` and remembers the choice.
 - **Pages, not a blob.** The PDF is rasterized with Ghostscript and shown as a vertical page stack
   with fit-width by default, fixed zoom steps up to 300 %, page count and compile time, and a
   **Download PDF** button.
-- **Failures are readable.** A LaTeX error shows the offending message and the compiler log tail in
-  the pane, with Retry — no terminal needed.
+- **Failures are readable and clickable.** A LaTeX error shows the offending message, its line and
+  the compiler log tail; the line is a button that opens the source at that line beside the page.
+  Retry, copy and send-to-chat run from the same card — no terminal needed.
 - **It stays in sync.** The preview is a member of the document pane's file watches, so a new
   version of the file recompiles the page; the pane's own **Reload** button forces a rebuild.
 - **Source stays one click away.** The preview's renderer menu keeps **Plain text**, so you can flip
@@ -70,7 +73,7 @@ The plugin drives tools you already have; nothing is bundled or downloaded at ru
 
 | Tool | Version | Notes |
 |---|---|---|
-| TeX Live | any recent | `pdflatex` is the default engine. `xelatex`, `lualatex` and `latexmk` are used when configured. On macOS, MacTeX's `/Library/TeX/texbin` is found automatically even though GUI apps start with a minimal `PATH`. |
+| TeX Live | any recent | `latexmk` is the default engine: it runs the engine as often as the document needs and drives BibTeX/Biber itself, so cross-references and the table of contents resolve. A picker in the tab toolbar switches to `pdflatex`, `xelatex` (CJK and system fonts) or `lualatex`; the choice is remembered. Where `latexmk` is not installed the Host falls back to a single `pdflatex` run and reports what actually ran. On macOS, MacTeX's `/Library/TeX/texbin` is found automatically even though GUI apps start with a minimal `PATH`. |
 | Ghostscript | 9.x / 10.x | `gs`, used only to rasterize pages for preview. |
 
 If either is missing, the pane says so — it does not fail silently.
@@ -141,8 +144,9 @@ The renderer menu stays available for every `.tex` file regardless of configurat
   directory.
 - **Raster preview.** Pages are PNGs at the configured DPI, so very high zoom softens letterforms;
   text is not selectable in the pane. **Download PDF** gives you the vector original.
-- **One engine per compile**, no bibliography pass orchestration beyond what `latexmk` does
-  (BibTeX/Biber runs are part of the `latexmk` engine, not the plain engines).
+- **Plain engines are single-pass.** `pdflatex`, `xelatex` and `lualatex` run once; only `latexmk`
+  repeats the engine and calls BibTeX/Biber. Switching the picker changes the cache key, so the
+  first compile after a switch is a real compile.
 - **Page cap.** Longer documents preview their first `maxPages` pages; the PDF route still returns
   the whole file.
 - Shell escape is always off, so packages that need `\write18` (e.g. `minted`) will not compile.

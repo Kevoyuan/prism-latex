@@ -103,6 +103,8 @@ window.__ModuleLoader__.load({
       findCount: '{current}/{total}',
       findNoMatches: 'No matches',
       completionLabel: 'Completions',
+      engineLabel: 'LaTeX engine',
+      jumpToLine: 'Jump to line {line}',
       copyError: 'Copy the error',
       sendToChat: 'Send the error to the chat',
       copied: 'Copied',
@@ -652,6 +654,26 @@ window.__ModuleLoader__.load({
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
+.oprilx-error-jump {
+  appearance: none;
+  align-self: flex-start;
+  cursor: pointer;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #c3a6ff;
+  font: inherit;
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+}
+.oprilx-error-jump:hover {
+  color: #e2d4ff;
+}
+.oprilx-error-jump:focus-visible {
+  outline: 2px solid #c3a6ff;
+  outline-offset: 2px;
+  border-radius: 3px;
+}
 .oprilx-find-action {
   appearance: none;
   cursor: pointer;
@@ -685,6 +707,27 @@ window.__ModuleLoader__.load({
   box-shadow: inset 0 0 0 1px rgba(224, 165, 117, .7);
   color: #ffe6cd;
   border-radius: 2px;
+}
+.oprilx-engine {
+  appearance: none;
+  flex: 0 0 auto;
+  height: 24px;
+  max-width: 96px;
+  padding: 0 6px;
+  border: 1px solid var(--opr-border, #26262c);
+  border-radius: 6px;
+  background: #16181a;
+  color: var(--opr-text, #e6e8ea);
+  font-size: 11px;
+  font-family: var(--dsw-font, system-ui, sans-serif);
+  cursor: pointer;
+}
+.oprilx-engine:hover {
+  background: #1d2024;
+}
+.oprilx-engine:focus-visible {
+  outline: 2px solid #4a4f58;
+  outline-offset: 1px;
 }
 .oprilx-zoombadge {
   padding: 0 6px;
@@ -1388,7 +1431,18 @@ window.__ModuleLoader__.load({
         h('div', { className: 'oprilx-error-message', key: 'message' }, message),
       ]
       if (line !== undefined) {
-        children.push(h('div', { className: 'oprilx-error-line', key: 'line' }, tr(t, 'errorLine', { line })))
+        const label = tr(t, 'errorLine', { line })
+        // With a handler the row jumps the editor to that line; without one it stays text.
+        children.push(typeof options?.onJumpLine === 'function'
+          ? h('button', {
+            type: 'button',
+            className: 'oprilx-error-jump',
+            key: 'line',
+            'aria-label': tr(t, 'jumpToLine', { line }),
+            title: tr(t, 'jumpToLine', { line }),
+            onClick: () => options.onJumpLine(line),
+          }, label)
+          : h('div', { className: 'oprilx-error-line', key: 'line' }, label))
       }
       if (detail !== '') {
         children.push(h('div', { className: 'oprilx-error-detail', key: 'detail' }, detail))
@@ -2235,6 +2289,8 @@ window.__ModuleLoader__.load({
       const [copied, setCopied] = useState(false)
       const [codeFont, setCodeFont] = useState(() => readCodeFont())
       const [fontBadge, setFontBadge] = useState(undefined)
+      const [engine, setEngine] = useState(() => readEngine())
+      const [jump, setJump] = useState(undefined)
       const [splitRatio, setSplitRatio] = useState(() => readSplitRatio())
       const splitRef = useRef(null)
       const ratioRef = useRef(splitRatio)
@@ -2465,7 +2521,7 @@ window.__ModuleLoader__.load({
      * otherwise be invisible through the transparent textarea.
      */
     function SourceEditor(props) {
-      const { t, text, resetToken, onInput, onSave, fontSize, onZoom } = props
+      const { t, text, resetToken, onInput, onSave, fontSize, onZoom, jump } = props
       const [composing, setComposing] = useState(false)
       const [caret, setCaret] = useState(-1)
       const [finder, setFinder] = useState({
@@ -2564,6 +2620,13 @@ window.__ModuleLoader__.load({
         setCompletion(next)
         // eslint-disable-next-line react-hooks/exhaustive-deps
       }, [text, caret, composing, finder.open])
+
+      // Follow the error card's jump request.
+      useEffect(() => {
+        if (jump === undefined || !Number.isFinite(jump?.line)) return
+        goToLine(jump.line)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, [jump?.seq])
 
       useEffect(() => {
         if (!finder.open) return
@@ -3217,6 +3280,35 @@ window.__ModuleLoader__.load({
 
     /** The client's own preference key for the session on screen. */
     const CURRENT_SESSION_KEY = 'dsh.sessions.current'
+    /** Engines the Host knows how to drive, in the order the picker shows them. */
+    const ENGINE_CHOICES = [
+      { value: 'latexmk', label: 'latexmk' },
+      { value: 'pdflatex', label: 'pdfLaTeX' },
+      { value: 'xelatex', label: 'XeLaTeX' },
+      { value: 'lualatex', label: 'LuaLaTeX' },
+    ]
+    const ENGINE_KEY = 'dsh-openprism-latex.engine'
+    const ENGINE_DEFAULT = 'latexmk'
+
+    /** @returns the remembered engine, or the default when nothing valid is stored. */
+    function readEngine() {
+      try {
+        const raw = typeof localStorage === 'undefined' ? null : localStorage.getItem(ENGINE_KEY)
+        return ENGINE_CHOICES.some(choice => choice.value === raw) ? raw : ENGINE_DEFAULT
+      } catch {
+        return ENGINE_DEFAULT
+      }
+    }
+
+    /** @param engine - chosen engine id; stored as preference. */
+    function rememberEngine(engine) {
+      try {
+        if (typeof localStorage !== 'undefined') localStorage.setItem(ENGINE_KEY, engine)
+      } catch {
+        /* preference storage is best effort */
+      }
+    }
+
     /** Editor type size, remembered across files and reloads like an IDE. */
     const CODE_FONT_KEY = 'dsh-openprism-latex.font'
     const CODE_FONT_DEFAULT = 12
@@ -3308,6 +3400,8 @@ window.__ModuleLoader__.load({
       const [copied, setCopied] = useState(false)
       const [codeFont, setCodeFont] = useState(() => readCodeFont())
       const [fontBadge, setFontBadge] = useState(undefined)
+      const [engine, setEngine] = useState(() => readEngine())
+      const [jump, setJump] = useState(undefined)
       const [splitRatio, setSplitRatio] = useState(() => readSplitRatio())
       const splitRef = useRef(null)
       const ratioRef = useRef(splitRatio)
@@ -3319,6 +3413,14 @@ window.__ModuleLoader__.load({
       const sourceRef = useRef(source)
       sourceRef.current = source
       const savingRef = useRef(false)
+
+      // A compile error hands the editor a line: show the source beside the page and put
+      // the caret there.
+      const jumpToSourceLine = line => {
+        if (!Number.isFinite(Number(line))) return
+        setMode(previous => (previous === 'split' ? previous : 'split'))
+        setJump(previous => ({ line: Number(line), seq: (previous?.seq ?? 0) + 1 }))
+      }
 
       useEffect(() => {
         if (target === undefined) {
@@ -3350,6 +3452,7 @@ window.__ModuleLoader__.load({
           ? { ...previous, refreshing: true }
           : { status: 'compiling' }))
         const query = new URLSearchParams({ session: target.sessionId, path: target.path })
+        query.set('engine', engine)
         fetch(`${RENDER_URL}?${query.toString()}`, { signal, cache: 'no-store' })
           .then(async response => {
             let body
@@ -3410,7 +3513,7 @@ window.__ModuleLoader__.load({
           revoke(created.filter(url => !urlsRef.current.includes(url)))
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-      }, [target?.sessionId, target?.path, attempt])
+      }, [target?.sessionId, target?.path, attempt, engine])
 
       // Source is read on demand: Source and Side by side fetch it once per file.
       useEffect(() => {
@@ -3496,6 +3599,7 @@ window.__ModuleLoader__.load({
       } else if (state.status === 'error') {
         preview.push(renderError(t, state.error, {
           onRetry: () => setAttempt(value => value + 1),
+          onJumpLine: jumpToSourceLine,
           onCopy: () => copyText(errorReport(target.path, state.error), setCopied),
           onSend: typeof props.inputActions === 'object'
             ? () => sendToComposer(props.inputActions, errorReport(target.path, state.error))
@@ -3704,6 +3808,7 @@ window.__ModuleLoader__.load({
           onCompile: compileNow,
           fontSize: codeFont,
           onZoom: changeCodeFont,
+          jump,
         }))
       }
 
@@ -3781,6 +3886,21 @@ window.__ModuleLoader__.load({
             }, status.text),
           ]),
           h('div', { className: 'oprilx-tabactions', key: 'actions' }, [
+            h('select', {
+              key: 'engine',
+              className: 'oprilx-engine',
+              'aria-label': tr(t, 'engineLabel'),
+              title: tr(t, 'engineLabel'),
+              value: engine,
+              onChange: event => {
+                const next = event.target.value
+                setEngine(next)
+                rememberEngine(next)
+              },
+            }, ENGINE_CHOICES.map(choice => h('option', {
+              key: choice.value,
+              value: choice.value,
+            }, choice.label))),
             fontBadge === undefined
               ? null
               : h('span', { className: 'oprilx-zoombadge', key: 'font', role: 'status' }, fontBadge),
@@ -3838,6 +3958,8 @@ window.__ModuleLoader__.load({
       const [copied, setCopied] = useState(false)
       const [codeFont, setCodeFont] = useState(() => readCodeFont())
       const [fontBadge, setFontBadge] = useState(undefined)
+      const [engine, setEngine] = useState(() => readEngine())
+      const [jump, setJump] = useState(undefined)
       const [splitRatio, setSplitRatio] = useState(() => readSplitRatio())
       const splitRef = useRef(null)
       const ratioRef = useRef(splitRatio)

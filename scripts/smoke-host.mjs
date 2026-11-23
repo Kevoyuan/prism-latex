@@ -10,7 +10,7 @@
  * Usage:
  *   node scripts/smoke-host.mjs [--write-pages <dir>]
  */
-import { mkdtempSync, readFileSync, rmSync, writeFileSync, mkdirSync } from 'node:fs'
+import { mkdtempSync, readFileSync, rmSync, writeFileSync, mkdirSync, existsSync } from 'node:fs'
 import { EventEmitter } from 'node:events'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
@@ -104,6 +104,12 @@ async function main() {
     return
   }
   check('engine reported', typeof body.engine === 'string', String(body.engine))
+  // latexmk is the default; it falls back to pdflatex only where it is not installed.
+  const hasLatexmk = ['/Library/TeX/texbin/latexmk', '/opt/homebrew/bin/latexmk', '/usr/local/bin/latexmk']
+    .some(candidate => existsSync(candidate))
+  check('default engine is latexmk (or its fallback)', hasLatexmk
+    ? body.engine === 'latexmk'
+    : body.engine === 'pdflatex', String(body.engine))
   check('durationMs reported', typeof body.durationMs === 'number')
   check('pageCount matches pages', body.pageCount === body.pages.length)
   check('version present', typeof body.version === 'string' && body.version.length > 0)
@@ -124,6 +130,22 @@ async function main() {
       writeFileSync(file, Buffer.from(page.png, 'base64'))
       console.log(`      wrote ${file}`)
     }
+  }
+
+  section('engine override')
+  {
+    const explicit = await render.resource(new Request(renderUrl({
+      session: 'smoke-session', path: 'demo/example.tex', engine: 'pdflatex',
+    })))
+    const explicitBody = await explicit.json()
+    check('explicit engine honoured', explicitBody.engine === 'pdflatex',
+      String(explicitBody.engine))
+    const unknown = await render.resource(new Request(renderUrl({
+      session: 'smoke-session', path: 'demo/example.tex', engine: 'not-an-engine',
+    })))
+    const unknownBody = await unknown.json()
+    check('unknown engine falls back to the default', unknownBody.engine === body.engine,
+      String(unknownBody.engine))
   }
 
   section('pdf route')

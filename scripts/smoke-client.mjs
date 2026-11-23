@@ -660,6 +660,11 @@ section('right sidebar tab body: error report actions')
   check('copy click does not throw', copyError === '', copyError)
   send.props.onClick()
   check('send inserts one report', sent.length === 1, String(sent.length))
+  const jump = nodes.find(node => node.type === 'button'
+    && String(node.props['aria-label']).startsWith('Jump to line'))
+  check('error line is a jump control', jump !== undefined)
+  check('jump names the line', jump?.props?.['aria-label'] === 'Jump to line 42',
+    String(jump?.props?.['aria-label']))
   check('report is actionable', sent[0].includes('demo/example.tex')
     && sent[0].includes('line 42') && sent[0].includes('Paragraph ende')
     && sent[0].includes('```log'), JSON.stringify(sent[0]?.slice(0, 200)))
@@ -755,6 +760,19 @@ section('right sidebar tab body: latex token classes')
   }
 }
 
+section('right sidebar tab body: error without a line')
+{
+  const errorState = { status: 'error', error: { code: 'network' } }
+  const { slots, en } = mount(makeTabReact({ state: errorState }))
+  const entry = slots.find(candidate => candidate.options?.name === 'sidebar.right.pane.tab')
+  const tree = entry.body({
+    t: key => en.get(key) ?? key,
+    useTabInfo: () => ({ tab: { contentId: ADDRESS, signal: new AbortController().signal } }),
+  })
+  check('no jump control without a line', !flatten(tree).some(node => node.type === 'button'
+    && String(node.props['aria-label'] ?? '').startsWith('Jump to line')))
+}
+
 section('right sidebar tab body: code font zoom')
 {
   const text = '\\documentclass{article}'
@@ -787,6 +805,14 @@ section('right sidebar tab body: code font zoom')
   check('cmd+f intercepted (no page find)', press('f') === true)
   check('cmd+g intercepted', press('g') === true)
   check('plain key not intercepted', press('a') === false)
+  const engine = nodes.find(node => node.type === 'select')
+  check('engine picker rendered', engine !== undefined)
+  check('engine picker is labelled', engine?.props?.['aria-label'] === 'LaTeX engine',
+    String(engine?.props?.['aria-label']))
+  const choices = (engine?.props?.children ?? []).map(option => option.props.value)
+  check('four engines offered', JSON.stringify(choices) === JSON.stringify(
+    ['latexmk', 'pdflatex', 'xelatex', 'lualatex']), JSON.stringify(choices))
+  check('latexmk is the default', engine?.props?.value === 'latexmk', String(engine?.props?.value))
 }
 
 section('right sidebar tab body: bracket editing')

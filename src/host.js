@@ -25,6 +25,14 @@ const WRITE_PATH = '/api/dsh-openprism-latex/write'
 /** Largest editor save accepted, in bytes of UTF-8 source. */
 const MAX_WRITE_BYTES = 8 * 1024 * 1024
 const ENGINES = ['pdflatex', 'xelatex', 'lualatex', 'latexmk']
+/**
+ * latexmk drives the engine as many times as the document needs and runs BibTeX on
+ * its own, which is the difference between resolved and unresolved references. When
+ * it is not installed the resolver falls back to a single pdflatex run.
+ */
+const DEFAULT_ENGINE = 'latexmk'
+/** Engine used when the requested one is missing from this machine. */
+const ENGINE_FALLBACK = 'pdflatex'
 const TEX_EXTENSIONS = new Set(['.tex', '.latex', '.ltx'])
 const TEMP_PREFIX = 'dsh-openprism-latex-'
 const OUTPUT_CAP = 64 * 1024
@@ -118,9 +126,9 @@ function normalizeConfig(raw) {
 }
 
 function normalizeEngine(value) {
-  if (typeof value !== 'string') return 'pdflatex'
+  if (typeof value !== 'string') return DEFAULT_ENGINE
   const engine = value.trim()
-  return ENGINES.includes(engine) ? engine : 'pdflatex'
+  return ENGINES.includes(engine) ? engine : DEFAULT_ENGINE
 }
 
 function normalizeOptionalPath(value) {
@@ -227,6 +235,21 @@ function resolveEngine(engine, settings, cache) {
       cache.set(cacheKey, candidate)
       return candidate
     }
+  }
+  return undefined
+}
+
+/**
+ * Resolve the engine to run, falling back to pdflatex when latexmk is not installed.
+ *
+ * @returns `{ engine, path }` where `engine` is what actually runs, or undefined.
+ */
+function resolveEngineWithFallback(settings, cache, engine) {
+  const direct = resolveEngine(engine, settings, cache)
+  if (direct !== undefined) return { engine, path: direct }
+  if (engine === DEFAULT_ENGINE) {
+    const fallback = resolveEngine(ENGINE_FALLBACK, settings, cache)
+    if (fallback !== undefined) return { engine: ENGINE_FALLBACK, path: fallback }
   }
   return undefined
 }
@@ -390,7 +413,7 @@ async function handleRequest(shared, request, mode) {
   const body = {
     ok: true,
     version,
-    engine,
+    engine: compiled.entry.engine ?? engine,
     dpi: settings.dpi,
     durationMs: Date.now() - startedAt,
     pageCount: raster.pages.length,
@@ -780,8 +803,8 @@ async function getCompiled(shared, context) {
 
   const promise = (async () => {
     try {
-      const enginePath = resolveEngine(context.engine, shared.settings, shared.resolved)
-      if (enginePath === undefined) {
+      const resolvedEngine = resolveEngineWithFallback(shared.settings, shared.resolved, context.engine)
+      if (resolvedEngine === undefined) {
         return {
           failure: {
             code: 'engine-missing',
@@ -789,10 +812,11 @@ async function getCompiled(shared, context) {
           },
         }
       }
+      const enginePath = resolvedEngine.path
       const ghostscriptPath = resolveGhostscript(shared.settings, shared.resolved)
       const env = buildChildEnv(enginePath, ghostscriptPath, shared.settings.extraPathDirs)
       const result = await runCompile({
-        engine: context.engine,
+        engine: resolvedEngine.engine,
         enginePath,
         texPath: context.texPath,
         settings: shared.settings,
@@ -802,6 +826,8 @@ async function getCompiled(shared, context) {
 
       const entry = {
         version: context.version,
+        // What actually ran: latexmk falls back to pdflatex on machines without it.
+        engine: resolvedEngine.engine,
         pdf: result.pdf,
         pages: undefined,
         dpi: undefined,
