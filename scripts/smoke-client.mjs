@@ -106,7 +106,7 @@ function makeTabReact(options = {}) {
 }
 
 /** Load a fresh copy of the bundle and apply it to a stand-in client context. */
-function mount(react) {
+function mount(react, globals = {}) {
   let registration
   const sandbox = {
     console,
@@ -119,7 +119,10 @@ function mount(react) {
     btoa: value => Buffer.from(String(value), 'binary').toString('base64'),
     fetch: () => Promise.resolve({ ok: true, status: 200, json: async () => ({ ok: true }) }),
     URL,
+    URLSearchParams,
+    AbortController,
     Blob,
+    ...globals,
   }
   // Browser-like realm: `window` IS the global, so Prism's `new Function` code and its
   // `window.Prism` assignment behave as they do in the page.
@@ -807,12 +810,73 @@ section('right sidebar tab body: code font zoom')
   check('plain key not intercepted', press('a') === false)
   const engine = nodes.find(node => node.type === 'select')
   check('engine picker rendered', engine !== undefined)
-  check('engine picker is labelled', engine?.props?.['aria-label'] === 'LaTeX engine',
+  check('engine picker is labelled', engine?.props?.['aria-label'] === 'Engine',
     String(engine?.props?.['aria-label']))
   const choices = (engine?.props?.children ?? []).map(option => option.props.value)
   check('four engines offered', JSON.stringify(choices) === JSON.stringify(
     ['latexmk', 'pdflatex', 'xelatex', 'lualatex']), JSON.stringify(choices))
   check('latexmk is the default', engine?.props?.value === 'latexmk', String(engine?.props?.value))
+}
+
+section('right sidebar tab body: engine picker preference')
+{
+  const stored = {}
+  globalThis.localStorage = {
+    getItem: key => (key === 'dsh-openprism-latex.engine' ? 'xelatex' : null),
+    setItem: (key, value) => { stored[key] = String(value) },
+  }
+  try {
+    const source = { status: 'ready', path: 'demo/example.tex', text: '', version: '5-5', truncated: false }
+    const { slots, en } = mount(makeTabReact({ mode: 'source', source }))
+    const entry = slots.find(candidate => candidate.options?.name === 'sidebar.right.pane.tab')
+    const tree = entry.body({
+      t: key => en.get(key) ?? key,
+      useTabInfo: () => ({ tab: { contentId: ADDRESS, signal: new AbortController().signal } }),
+    })
+    const engine = flatten(tree).find(node => node.type === 'select')
+    check('stored engine is selected', engine?.props?.value === 'xelatex',
+      String(engine?.props?.value))
+    engine.props.onChange({ target: { value: 'lualatex' } })
+    check('engine choice persists under its key', stored['dsh-openprism-latex.engine'] === 'lualatex',
+      JSON.stringify(stored))
+  } finally {
+    delete globalThis.localStorage
+  }
+}
+
+section('right sidebar tab body: engine reaches the render request')
+{
+  const requests = []
+  const fetch = url => {
+    requests.push(String(url))
+    return Promise.resolve({
+      ok: true,
+      status: 200,
+      json: async () => ({ ok: false, error: { code: 'network' } }),
+    })
+  }
+  const render = react => {
+    const { slots, en } = mount(react, { fetch })
+    const entry = slots.find(candidate => candidate.options?.name === 'sidebar.right.pane.tab')
+    return entry.body({
+      t: key => en.get(key) ?? key,
+      useTabInfo: () => ({ tab: { contentId: ADDRESS, signal: new AbortController().signal } }),
+    })
+  }
+  render({ ...makeTabReact(), useEffect(fn) { fn() } })
+  check('default engine is requested', String(requests[0]).includes('engine=latexmk'),
+    String(requests[0]))
+  globalThis.localStorage = {
+    getItem: key => (key === 'dsh-openprism-latex.engine' ? 'xelatex' : null),
+    setItem: () => {},
+  }
+  try {
+    render({ ...makeTabReact(), useEffect(fn) { fn() } })
+  } finally {
+    delete globalThis.localStorage
+  }
+  check('stored engine is requested', String(requests[1]).includes('engine=xelatex'),
+    String(requests[1]))
 }
 
 section('right sidebar tab body: bracket editing')

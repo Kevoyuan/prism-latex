@@ -382,9 +382,13 @@ async function handleRequest(shared, request, mode) {
   }
 
   const version = `${target.stat.size}-${target.stat.mtimeMs}`
-  const cacheKey = `${target.real}|${target.stat.mtimeMs}|${target.stat.size}|${engine}`
+  // Key the cache on what will actually run, so a latexmk request and the pdflatex
+  // binary it falls back to never share pages, and switching back is never stale.
+  const resolvedEngine = resolveEngineWithFallback(settings, shared.resolved, engine)
+  const runEngine = resolvedEngine === undefined ? engine : resolvedEngine.engine
+  const cacheKey = `${target.real}|${target.stat.mtimeMs}|${target.stat.size}|${runEngine}`
   const startedAt = Date.now()
-  const compileContext = { key: cacheKey, engine, texPath: target.real, version }
+  const compileContext = { key: cacheKey, engine: runEngine, texPath: target.real, version }
 
   if (mode === 'pdf') {
     const compiled = await getCompiled(shared, compileContext)

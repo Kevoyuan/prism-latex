@@ -103,7 +103,7 @@ window.__ModuleLoader__.load({
       findCount: '{current}/{total}',
       findNoMatches: 'No matches',
       completionLabel: 'Completions',
-      engineLabel: 'LaTeX engine',
+      engineLabel: 'Engine',
       jumpToLine: 'Jump to line {line}',
       copyError: 'Copy the error',
       sendToChat: 'Send the error to the chat',
@@ -711,19 +711,19 @@ window.__ModuleLoader__.load({
 .oprilx-engine {
   appearance: none;
   flex: 0 0 auto;
-  height: 24px;
+  height: 26px;
   max-width: 96px;
   padding: 0 6px;
   border: 1px solid var(--opr-border, #26262c);
-  border-radius: 6px;
-  background: #16181a;
+  border-radius: 7px;
+  background: var(--opr-surface, #16181a);
   color: var(--opr-text, #e6e8ea);
   font-size: 11px;
   font-family: var(--dsw-font, system-ui, sans-serif);
   cursor: pointer;
 }
 .oprilx-engine:hover {
-  background: #1d2024;
+  background: var(--opr-surface-2, #22262a);
 }
 .oprilx-engine:focus-visible {
   outline: 2px solid #4a4f58;
@@ -2287,14 +2287,6 @@ window.__ModuleLoader__.load({
       const [download, setDownload] = useState({ status: 'idle' })
       const [paneWidth, setPaneWidth] = useState(0)
       const [copied, setCopied] = useState(false)
-      const [codeFont, setCodeFont] = useState(() => readCodeFont())
-      const [fontBadge, setFontBadge] = useState(undefined)
-      const [engine, setEngine] = useState(() => readEngine())
-      const [jump, setJump] = useState(undefined)
-      const [splitRatio, setSplitRatio] = useState(() => readSplitRatio())
-      const splitRef = useRef(null)
-      const ratioRef = useRef(splitRatio)
-      ratioRef.current = splitRatio
 
       const rootRef = useRef(null)
       /** Blob URLs currently shown; replaced generations are revoked after the commit. */
@@ -3956,14 +3948,6 @@ window.__ModuleLoader__.load({
       const [download, setDownload] = useState({ status: 'idle' })
       const [paneWidth, setPaneWidth] = useState(0)
       const [copied, setCopied] = useState(false)
-      const [codeFont, setCodeFont] = useState(() => readCodeFont())
-      const [fontBadge, setFontBadge] = useState(undefined)
-      const [engine, setEngine] = useState(() => readEngine())
-      const [jump, setJump] = useState(undefined)
-      const [splitRatio, setSplitRatio] = useState(() => readSplitRatio())
-      const splitRef = useRef(null)
-      const ratioRef = useRef(splitRatio)
-      ratioRef.current = splitRatio
       const docRef = useRef(null)
       const urlsRef = useRef([])
       const timersRef = useRef([])

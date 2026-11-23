@@ -3,9 +3,10 @@
  * Smoke test for the Host half of dsh-openprism-latex.
  *
  * Loads `src/host.js` with a stand-in Cordis context, then exercises the two
- * registered HTTP resources end to end: a real pdflatex compile, the PNG page
- * payload, the PDF route, and the rejection paths. No DSH host is involved, so
- * this proves the compile pipeline and the wire contract before installation.
+ * registered HTTP resources end to end: a real compile with the default engine,
+ * the PNG page payload, the PDF route, and the rejection paths. No DSH host is
+ * involved, so this proves the compile pipeline and the wire contract before
+ * installation.
  *
  * Usage:
  *   node scripts/smoke-host.mjs [--write-pages <dir>]
@@ -13,8 +14,9 @@
 import { mkdtempSync, readFileSync, rmSync, writeFileSync, mkdirSync, existsSync } from 'node:fs'
 import { EventEmitter } from 'node:events'
 import { tmpdir } from 'node:os'
-import { join, resolve } from 'node:path'
+import { delimiter, join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
+import { inflateSync } from 'node:zlib'
 
 const root = resolve(import.meta.dirname, '..')
 const pageDirArg = process.argv.indexOf('--write-pages')
@@ -68,6 +70,58 @@ function pdfUrl(query) {
 }
 
 const PNG_MAGIC = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
+/** The engines the Host accepts, mirroring its list; a response must name one of them. */
+const ENGINE_NAMES = ['pdflatex', 'xelatex', 'lualatex', 'latexmk']
+
+/** True when latexmk is installed where the Host's resolver looks for it. */
+function hasLatexmk() {
+  const directories = String(process.env.PATH ?? '')
+    .split(delimiter)
+    .filter(entry => entry !== '')
+  directories.push('/Library/TeX/texbin', '/opt/homebrew/bin', '/usr/local/bin')
+  return directories.some(directory => existsSync(join(directory, 'latexmk')))
+}
+
+/**
+ * Concatenate a PDF's page content streams so a test can inspect the rendered text.
+ *
+ * Only streams that open with `BT` (the PDF text object) are read: embedded font
+ * programs also contain arbitrary bytes, and a chance "??" inside one must not be
+ * mistaken for a rendered unresolved reference.
+ *
+ * @param bytes - the whole PDF file.
+ * @returns the content stream text, or an empty string when there is none.
+ */
+function pdfStreamText(bytes) {
+  const startMarker = Buffer.from('stream')
+  const endMarker = Buffer.from('endstream')
+  const chunks = []
+  let offset = 0
+  while ((offset = bytes.indexOf(startMarker, offset)) !== -1) {
+    let start = offset + startMarker.length
+    if (bytes[start] === 0x0d) start += 1
+    if (bytes[start] === 0x0a) start += 1
+    const end = bytes.indexOf(endMarker, start)
+    if (end === -1) break
+    offset = end + endMarker.length
+    let content
+    try {
+      content = inflateSync(bytes.subarray(start, end)).toString('latin1')
+    } catch {
+      continue
+    }
+    if (content.trimStart().startsWith('BT')) chunks.push(content)
+  }
+  return chunks.join('\n')
+}
+
+/** Fetch a compiled PDF from the Host's /pdf route and return its text content. */
+async function pdfText(route, url) {
+  const response = await route.resource(new Request(url))
+  const bytes = Buffer.from(await response.arrayBuffer())
+  if (bytes.subarray(0, 5).toString('latin1') !== '%PDF-') return undefined
+  return pdfStreamText(bytes)
+}
 
 async function main() {
   section('module shape')
@@ -104,10 +158,9 @@ async function main() {
     return
   }
   check('engine reported', typeof body.engine === 'string', String(body.engine))
+  check('default engine from the engine list', ENGINE_NAMES.includes(body.engine), String(body.engine))
   // latexmk is the default; it falls back to pdflatex only where it is not installed.
-  const hasLatexmk = ['/Library/TeX/texbin/latexmk', '/opt/homebrew/bin/latexmk', '/usr/local/bin/latexmk']
-    .some(candidate => existsSync(candidate))
-  check('default engine is latexmk (or its fallback)', hasLatexmk
+  check('default engine is latexmk (or its fallback)', hasLatexmk()
     ? body.engine === 'latexmk'
     : body.engine === 'pdflatex', String(body.engine))
   check('durationMs reported', typeof body.durationMs === 'number')
@@ -146,6 +199,63 @@ async function main() {
     const unknownBody = await unknown.json()
     check('unknown engine falls back to the default', unknownBody.engine === body.engine,
       String(unknownBody.engine))
+  }
+
+  section('cross references')
+  {
+    // A table of contents and a \ref only resolve when the engine runs twice; one
+    // pdflatex pass leaves "??" on the page, which is exactly what latexmk avoids.
+    const referenceName = `.smoke-reference-${process.pid}.tex`
+    const referenceFile = join(root, 'demo', referenceName)
+    writeFileSync(referenceFile, [
+      '\\documentclass{article}',
+      '\\begin{document}',
+      '\\tableofcontents',
+      '\\section{Alpha}\\label{sec:alpha}',
+      'See Section~\\ref{sec:alpha}.',
+      '\\end{document}',
+      '',
+    ].join('\n'))
+    try {
+      const referencePath = `demo/${referenceName}`
+      const repeated = await render.resource(new Request(renderUrl({
+        session: 'smoke-session', path: referencePath,
+      })))
+      const repeatedBody = await repeated.json()
+      check('reference document compiles', repeatedBody.ok === true,
+        JSON.stringify(repeatedBody).slice(0, 300))
+      if (repeatedBody.ok === true) {
+        const single = await render.resource(new Request(renderUrl({
+          session: 'smoke-session', path: referencePath, engine: 'pdflatex',
+        })))
+        const singleBody = await single.json()
+        check('single-pass control compiles', singleBody.ok === true,
+          JSON.stringify(singleBody).slice(0, 300))
+        if (singleBody.ok === true) {
+          if (repeatedBody.engine === 'latexmk') {
+            check('resolved contents change page 1 from the single pass',
+              repeatedBody.pages?.[0]?.png !== singleBody.pages?.[0]?.png)
+            const repeatedText = await pdfText(pdf, pdfUrl({
+              session: 'smoke-session', path: referencePath,
+            }))
+            const singleText = await pdfText(pdf, pdfUrl({
+              session: 'smoke-session', path: referencePath, engine: 'pdflatex',
+            }))
+            check('no unresolved "??" from the default engine',
+              repeatedText !== undefined && repeatedText.includes('??') === false,
+              JSON.stringify(repeatedText?.slice(0, 160)))
+            check('single pass leaves "??" (control)',
+              singleText !== undefined && singleText.includes('??') === true,
+              JSON.stringify(singleText?.slice(0, 160)))
+          } else {
+            check('fallback engine runs single-pass pdflatex',
+              repeatedBody.engine === 'pdflatex', String(repeatedBody.engine))
+          }
+        }
+      }
+    } finally {
+      rmSync(referenceFile, { force: true })
+    }
   }
 
   section('pdf route')
