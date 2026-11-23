@@ -19,7 +19,8 @@ DSH already renders PDF, Office, Markdown and images in the right sidebar. This 
 that pane about `.tex`:
 
 - **Edit where you read.** The Source view is a real editor: type, press **⌘S** (or the save
-  symbol), and the pane writes the file and recompiles it — preview and source stay in sync. If
+  symbol), and the pane writes the file and recompiles it. **⌘= / ⌘− / ⌘0** change the editor type
+  size (10–20 px, remembered across files), and **⌘↩** compiles — preview and source stay in sync. If
   the file changed on disk meanwhile, the save is refused with a *Changed on disk* banner instead
   of overwriting the other writer.
 - **A panel you can find.** The left rail lists the workspace's LaTeX documents, so the feature is

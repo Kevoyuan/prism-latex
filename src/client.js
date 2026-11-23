@@ -574,6 +574,13 @@ window.__ModuleLoader__.load({
   min-height: 0;
   box-sizing: border-box;
 }
+.oprilx-zoombadge {
+  padding: 0 6px;
+  color: var(--opr-muted, #9aa0a6);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
 .oprilx-gutter {
   flex: 0 0 auto;
   width: 3.4em;
@@ -583,7 +590,7 @@ window.__ModuleLoader__.load({
   text-align: right;
   color: #5c6370;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 12px;
+  font-size: var(--opr-code-size, 12px);
   line-height: 1.62;
   user-select: none;
   font-variant-numeric: tabular-nums;
@@ -602,7 +609,7 @@ window.__ModuleLoader__.load({
   margin: 0;
   padding: 10px 14px 16px;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 12px;
+  font-size: var(--opr-code-size, 12px);
   line-height: 1.62;
   tab-size: 2;
   white-space: pre;
@@ -1683,6 +1690,8 @@ window.__ModuleLoader__.load({
       const [download, setDownload] = useState({ status: 'idle' })
       const [paneWidth, setPaneWidth] = useState(0)
       const [copied, setCopied] = useState(false)
+      const [codeFont, setCodeFont] = useState(() => readCodeFont())
+      const [fontBadge, setFontBadge] = useState(undefined)
 
       const rootRef = useRef(null)
       /** Blob URLs currently shown; replaced generations are revoked after the commit. */
@@ -1909,7 +1918,7 @@ window.__ModuleLoader__.load({
      * otherwise be invisible through the transparent textarea.
      */
     function SourceEditor(props) {
-      const { t, text, resetToken, onInput, onSave } = props
+      const { t, text, resetToken, onInput, onSave, fontSize, onZoom } = props
       const [composing, setComposing] = useState(false)
       const areaRef = useRef(null)
       const codeRef = useRef(null)
@@ -1950,6 +1959,24 @@ window.__ModuleLoader__.load({
           if (typeof props.onCompile === 'function') props.onCompile()
           return
         }
+        if (event.metaKey || event.ctrlKey) {
+          // Editor type size. preventDefault keeps the browser/Electron page zoom out of it.
+          if (event.key === '=' || event.key === '+') {
+            event.preventDefault()
+            if (typeof onZoom === 'function') onZoom(1)
+            return
+          }
+          if (event.key === '-' || event.key === '_') {
+            event.preventDefault()
+            if (typeof onZoom === 'function') onZoom(-1)
+            return
+          }
+          if (event.key === '0') {
+            event.preventDefault()
+            if (typeof onZoom === 'function') onZoom(0)
+            return
+          }
+        }
         if (event.key === 'Tab') {
           event.preventDefault()
           // execCommand participates in the native undo stack; a sliced assignment
@@ -1973,7 +2000,8 @@ window.__ModuleLoader__.load({
         }
       }
 
-      return h('div', { className: 'oprilx-editor' }, [
+      const size = Number.isFinite(fontSize) ? fontSize : CODE_FONT_DEFAULT
+      return h('div', { className: 'oprilx-editor', style: { '--opr-code-size': `${size}px` } }, [
         h('div', { className: 'oprilx-gutter', key: 'gutter', ref: gutterRef, 'aria-hidden': 'true' },
           lines.map((_, index) => h('div', { key: index }, String(index + 1)))),
         h('div', { className: 'oprilx-editor-body', key: 'body' }, [
@@ -2128,6 +2156,32 @@ window.__ModuleLoader__.load({
 
     /** The client's own preference key for the session on screen. */
     const CURRENT_SESSION_KEY = 'dsh.sessions.current'
+    /** Editor type size, remembered across files and reloads like an IDE. */
+    const CODE_FONT_KEY = 'dsh-openprism-latex.font'
+    const CODE_FONT_DEFAULT = 12
+    const CODE_FONT_MIN = 10
+    const CODE_FONT_MAX = 20
+
+    /** @returns the remembered editor size, clamped to the supported range. */
+    function readCodeFont() {
+      try {
+        const raw = typeof localStorage === 'undefined' ? null : localStorage.getItem(CODE_FONT_KEY)
+        const parsed = Number.parseInt(String(raw), 10)
+        if (!Number.isFinite(parsed)) return CODE_FONT_DEFAULT
+        return Math.min(CODE_FONT_MAX, Math.max(CODE_FONT_MIN, parsed))
+      } catch {
+        return CODE_FONT_DEFAULT
+      }
+    }
+
+    /** @param size - next editor size in px; stored clamped. */
+    function rememberCodeFont(size) {
+      try {
+        if (typeof localStorage !== 'undefined') localStorage.setItem(CODE_FONT_KEY, String(size))
+      } catch {
+        /* preference storage is best effort */
+      }
+    }
 
     /** The session the app currently shows, read from that key. */
     function readCurrentSessionId() {
@@ -2167,6 +2221,8 @@ window.__ModuleLoader__.load({
       const [draft, setDraft] = useState(undefined)
       const [save, setSave] = useState({ status: 'idle' })
       const [copied, setCopied] = useState(false)
+      const [codeFont, setCodeFont] = useState(() => readCodeFont())
+      const [fontBadge, setFontBadge] = useState(undefined)
       const rootRef = useRef(null)
       const urlsRef = useRef([])
       const draftRef = useRef(draft)
@@ -2431,6 +2487,17 @@ window.__ModuleLoader__.load({
         setSource({ status: 'idle' })
       }
 
+      const changeCodeFont = delta => {
+        const next = delta === 0
+          ? CODE_FONT_DEFAULT
+          : Math.min(CODE_FONT_MAX, Math.max(CODE_FONT_MIN, codeFont + delta))
+        if (next === codeFont) return
+        setCodeFont(next)
+        rememberCodeFont(next)
+        setFontBadge(`${next}px`)
+        setTimeout(() => setFontBadge(undefined), 1200)
+      }
+
       const compileNow = () => {
         if (draftRef.current !== undefined) saveText()
         else setAttempt(value => value + 1)
@@ -2485,6 +2552,8 @@ window.__ModuleLoader__.load({
           onInput: value => setDraft(value),
           onSave: saveText,
           onCompile: compileNow,
+          fontSize: codeFont,
+          onZoom: changeCodeFont,
         }))
       }
 
@@ -2538,6 +2607,9 @@ window.__ModuleLoader__.load({
             }, status.text),
           ]),
           h('div', { className: 'oprilx-tabactions', key: 'actions' }, [
+            fontBadge === undefined
+              ? null
+              : h('span', { className: 'oprilx-zoombadge', key: 'font', role: 'status' }, fontBadge),
             dirty
               ? h('button', {
                 type: 'button',
@@ -2590,6 +2662,8 @@ window.__ModuleLoader__.load({
       const [download, setDownload] = useState({ status: 'idle' })
       const [paneWidth, setPaneWidth] = useState(0)
       const [copied, setCopied] = useState(false)
+      const [codeFont, setCodeFont] = useState(() => readCodeFont())
+      const [fontBadge, setFontBadge] = useState(undefined)
       const docRef = useRef(null)
       const urlsRef = useRef([])
       const timersRef = useRef([])

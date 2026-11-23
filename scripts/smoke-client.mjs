@@ -756,6 +756,37 @@ section('right sidebar tab body: latex token classes')
   }
 }
 
+section('right sidebar tab body: code font zoom')
+{
+  const text = '\\documentclass{article}'
+  const source = { status: 'ready', path: 'demo/example.tex', text, version: '3-3', truncated: false }
+  const { slots, en } = mount(makeTabReact({ mode: 'source', source }))
+  const entry = slots.find(candidate => candidate.options?.name === 'sidebar.right.pane.tab')
+  const tree = entry.body({
+    t: key => en.get(key) ?? key,
+    useTabInfo: () => ({ tab: { contentId: ADDRESS, signal: new AbortController().signal } }),
+  })
+  const nodes = flatten(tree)
+  const editor = nodes.find(node => node.props?.className === 'oprilx-editor')
+  check('type size variable', editor?.props?.style?.['--opr-code-size'] === '12px',
+    JSON.stringify(editor?.props?.style))
+  const area = nodes.find(node => node.type === 'textarea')
+  const press = key => {
+    let prevented = false
+    area.props.onKeyDown({
+      metaKey: true,
+      key,
+      preventDefault: () => { prevented = true },
+      currentTarget: { selectionStart: 0, selectionEnd: 0, value: text },
+    })
+    return prevented
+  }
+  check('cmd+= intercepted (no page zoom)', press('=') === true)
+  check('cmd+- intercepted', press('-') === true)
+  check('cmd+0 intercepted', press('0') === true)
+  check('plain key not intercepted', press('a') === false)
+}
+
 section('right sidebar tab body: dirty draft')
 {
   const source = { status: 'ready', path: 'demo/example.tex', text: 'one', version: '12-345', truncated: false }
