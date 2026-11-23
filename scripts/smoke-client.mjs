@@ -723,7 +723,7 @@ section('right sidebar tab body: source mode')
   check('no page images in source mode', nodes.every(node => node.type !== 'img'))
   check('save hidden without edits', !nodes.some(node => node.props?.className === 'oprilx-save-button'))
   check('compile control present', nodes.some(node => node.type === 'button'
-    && node.props['aria-label'] === 'Compile'))
+    && String(node.props['aria-label']).startsWith('Compile')))
 }
 
 section('right sidebar tab body: dirty draft')

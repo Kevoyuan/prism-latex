@@ -81,12 +81,14 @@ window.__ModuleLoader__.load({
       statusReady: '{pages} pages · {seconds} s',
       statusReadyOne: '1 page · {seconds} s',
       statusFailed: 'Compile failed',
+      statusCached: '{pages} pages · cached',
+      statusCachedOne: '1 page · cached',
       statusIdle: 'Not compiled',
       statusHint: 'Compile status',
       editorLabel: 'LaTeX source editor',
       save: 'Save',
       saveHint: 'Save (⌘S)',
-      compile: 'Compile',
+      compile: 'Compile (⌘↩)',
       unsaved: 'Unsaved changes',
       conflict: 'Changed on disk',
       reload: 'Reload from disk',
@@ -864,6 +866,189 @@ window.__ModuleLoader__.load({
   overflow: auto;
   background: var(--dsw-alias-bg-document-preview, var(--dsw-alias-bg-layer-2, #f1f2f4));
 }
+
+/* ---------------------------------------------------------------------------
+ * Codex-Prism dark surface.
+ * The pane owns its palette in both host themes: a near-black canvas, white
+ * paper, and One Dark syntax hues. This mirrors the editor/preview look the
+ * plugin is modelled on instead of borrowing the host's grey document surface.
+ * ------------------------------------------------------------------------- */
+.oprilx-tabroot,
+.oprilx-root {
+  --opr-bg: #0b0b0d;
+  --opr-canvas: #08080a;
+  --opr-surface: #17171b;
+  --opr-surface-2: #232329;
+  --opr-border: #26262c;
+  --opr-text: #e8e8ea;
+  --opr-muted: #9aa0a6;
+  --opr-accent: #3f8efc;
+  --opr-ready: #3fb950;
+  --opr-warn: #d29922;
+  --opr-danger: #f85149;
+  background: var(--opr-bg);
+  color: var(--opr-text);
+}
+.oprilx-toolbar {
+  background: var(--opr-bg);
+  border-bottom-color: var(--opr-border);
+}
+.oprilx-tabstatus {
+  color: var(--opr-muted);
+}
+.oprilx-dot[data-state="ready"] { background: var(--opr-ready); }
+.oprilx-dot[data-state="compiling"] { background: var(--opr-warn); }
+.oprilx-dot[data-state="error"] { background: var(--opr-danger); }
+.oprilx-dot[data-state="idle"] { background: #5c6370; }
+.oprilx-modes {
+  background: var(--opr-surface-2);
+}
+.oprilx-mode {
+  color: var(--opr-muted);
+}
+.oprilx-mode:hover {
+  color: var(--opr-text);
+}
+.oprilx-mode[aria-pressed="true"] {
+  background: #34343c;
+  color: #fff;
+  box-shadow: none;
+}
+.oprilx-icon-button {
+  color: var(--opr-muted);
+}
+.oprilx-icon-button:hover {
+  background: var(--opr-surface-2);
+  color: #fff;
+}
+.oprilx-icon-button:disabled {
+  opacity: .45;
+}
+.oprilx-save-button {
+  background: var(--opr-accent);
+  color: #08080a;
+}
+.oprilx-save-button:hover {
+  filter: brightness(1.1);
+}
+.oprilx-pane[data-pane="preview"] {
+  background: var(--opr-canvas);
+}
+.oprilx-pane[data-pane="source"] {
+  background: #0e0e11;
+}
+.oprilx-page {
+  background: #fff;
+  border-color: #2b2b33;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .55), 0 14px 36px rgba(0, 0, 0, .55);
+}
+.oprilx-pill {
+  background: #1a1a20;
+  border-color: var(--opr-border);
+  color: var(--opr-text);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .5);
+}
+.oprilx-pill-button {
+  color: var(--opr-muted);
+}
+.oprilx-pill-button:hover:enabled {
+  background: var(--opr-surface-2);
+  color: #fff;
+}
+.oprilx-pill-button[aria-pressed="true"] {
+  background: #34343c;
+  color: #fff;
+}
+.oprilx-pill-button:disabled {
+  color: #5c6370;
+}
+.oprilx-pill-divider {
+  background: var(--opr-border);
+}
+.oprilx-zoom-label {
+  color: var(--opr-text);
+}
+.oprilx-meta {
+  color: var(--opr-text);
+}
+.oprilx-note {
+  color: var(--opr-muted);
+}
+.oprilx-note[data-tone="error"] {
+  color: var(--opr-danger);
+}
+.oprilx-status {
+  color: var(--opr-muted);
+}
+.oprilx-spinner {
+  border-color: #2a2a31;
+  border-top-color: var(--opr-text);
+}
+.oprilx-error {
+  background: #14141a;
+  border-color: var(--opr-border);
+  color: var(--opr-text);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, .55);
+}
+.oprilx-error-title {
+  color: var(--opr-danger);
+}
+.oprilx-error-message {
+  color: var(--opr-text);
+}
+.oprilx-error-line,
+.oprilx-error-detail,
+.oprilx-log-label {
+  color: var(--opr-muted);
+}
+.oprilx-log {
+  background: var(--opr-canvas);
+  border-color: var(--opr-border);
+  color: #d6d6da;
+}
+.oprilx-error-actions .oprilx-icon-button {
+  color: var(--opr-muted);
+}
+.oprilx-copied {
+  color: var(--opr-ready);
+}
+.oprilx-banner {
+  background: #241d0e;
+  border-bottom-color: var(--opr-border);
+  color: #e5c07b;
+}
+.oprilx-gutter {
+  background: #0e0e11;
+  color: #4d5560;
+}
+.oprilx-source {
+  background: #0e0e11;
+  color: #d6d6da;
+}
+.oprilx-tok[data-type="comment"],
+.oprilx-tok[data-type="cdata"] {
+  color: #6b7481;
+}
+.oprilx-tok[data-type="function"] {
+  color: #61afef;
+}
+.oprilx-tok[data-type="keyword"] {
+  color: #c678dd;
+}
+.oprilx-tok[data-type="equation"],
+.oprilx-tok[data-type="equation-command"],
+.oprilx-tok[data-type="regex"] {
+  color: #56b6c2;
+}
+.oprilx-tok[data-type="headline"] {
+  color: #e5c07b;
+}
+.oprilx-tok[data-type="url"] {
+  color: #d19a66;
+}
+.oprilx-tok[data-type="punctuation"] {
+  color: #a9b0ba;
+}
 `
 
     let boundT = function fallbackTranslate(key) {
@@ -1248,12 +1433,18 @@ window.__ModuleLoader__.load({
     /** The toolbar's status line: a state tone plus its localized text. */
     function compileStatus(t, state) {
       if (state.status === 'ready') {
-        const seconds = (Math.max(0, Number(state.durationMs) || 0) / 1000).toFixed(1)
+        const duration = Math.max(0, Number(state.durationMs) || 0)
         const pages = Number(state.pageCount) || (Array.isArray(state.pages) ? state.pages.length : 0)
-        return {
-          tone: state.refreshing === true ? 'compiling' : 'ready',
-          text: tr(t, pages === 1 ? 'statusReadyOne' : 'statusReady', { pages, seconds }),
+        const tone = state.refreshing === true ? 'compiling' : 'ready'
+        // A cached compile has no duration to report; saying "0.0 s" reads as broken.
+        if (duration < 1) {
+          return {
+            tone,
+            text: tr(t, pages === 1 ? 'statusCachedOne' : 'statusCached', { pages }),
+          }
         }
+        const seconds = (duration / 1000).toFixed(1)
+        return { tone, text: tr(t, pages === 1 ? 'statusReadyOne' : 'statusReady', { pages, seconds }) }
       }
       if (state.status === 'compiling') return { tone: 'compiling', text: tr(t, 'compiling') }
       if (state.status === 'error') return { tone: 'error', text: tr(t, 'statusFailed') }
@@ -1285,6 +1476,15 @@ window.__ModuleLoader__.load({
           h('path', { key: 'arrow', d: 'M12 4v9.5M8.2 10.2 12 14l3.8-3.8' }),
           h('path', { key: 'tray', d: 'M4.8 16.6v1.6a1.6 1.6 0 0 0 1.6 1.6h11.2a1.6 1.6 0 0 0 1.6-1.6v-1.6' }),
         ])
+      }
+      if (name === 'play') {
+        return h('svg', {
+          viewBox: '0 0 24 24',
+          width: size,
+          height: size,
+          'aria-hidden': 'true',
+          className: 'oprilx-glyph',
+        }, h('path', { key: 'play', d: 'M8.4 5.2 19 12 8.4 18.8z', fill: 'currentColor' }))
       }
       if (name === 'copy') {
         return h('svg', { ...frame, key: 'glyph' }, [
@@ -1681,6 +1881,11 @@ window.__ModuleLoader__.load({
         if ((event.metaKey || event.ctrlKey) && (event.key === 's' || event.key === 'S')) {
           event.preventDefault()
           onSave()
+          return
+        }
+        if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
+          event.preventDefault()
+          if (typeof props.onCompile === 'function') props.onCompile()
           return
         }
         if (event.key === 'Tab') {
@@ -2217,6 +2422,7 @@ window.__ModuleLoader__.load({
           resetToken: source.version,
           onInput: value => setDraft(value),
           onSave: saveText,
+          onCompile: compileNow,
         }))
       }
 
@@ -2288,7 +2494,7 @@ window.__ModuleLoader__.load({
               title: tr(t, 'compile'),
               onClick: compileNow,
               disabled: save.status === 'saving',
-            }, glyph('refresh', 15)),
+            }, glyph('play', 15)),
           ]),
           h('div', {
             className: 'oprilx-modes',
