@@ -651,14 +651,13 @@ section('right sidebar tab body: error report actions')
     && node.props['aria-label'] === 'Send the error to the chat')
   check('copy action offered', copy !== undefined)
   check('send action offered', send !== undefined)
-  check('copy click does not throw', (() => {
-    try {
-      copy.props.onClick()
-      return true
-    } catch {
-      return false
-    }
-  })())
+  let copyError = ''
+  try {
+    copy.props.onClick()
+  } catch (error) {
+    copyError = `${error?.message} @ ${String(error?.stack ?? '').split('\n')[1] ?? ''}`
+  }
+  check('copy click does not throw', copyError === '', copyError)
   send.props.onClick()
   check('send inserts one report', sent.length === 1, String(sent.length))
   check('report is actionable', sent[0].includes('demo/example.tex')
@@ -767,9 +766,10 @@ section('right sidebar tab body: code font zoom')
     useTabInfo: () => ({ tab: { contentId: ADDRESS, signal: new AbortController().signal } }),
   })
   const nodes = flatten(tree)
-  const editor = nodes.find(node => node.props?.className === 'oprilx-editor')
-  check('type size variable', editor?.props?.style?.['--opr-code-size'] === '12px',
-    JSON.stringify(editor?.props?.style))
+  const shell = nodes.find(node => node.props?.className === 'oprilx-editor-shell')
+  check('type size variable', shell?.props?.style?.['--opr-code-size'] === '12px',
+    JSON.stringify(shell?.props?.style))
+  check('editor sits inside the shell', nodes.some(node => node.props?.className === 'oprilx-editor'))
   const area = nodes.find(node => node.type === 'textarea')
   const press = key => {
     let prevented = false
@@ -784,6 +784,8 @@ section('right sidebar tab body: code font zoom')
   check('cmd+= intercepted (no page zoom)', press('=') === true)
   check('cmd+- intercepted', press('-') === true)
   check('cmd+0 intercepted', press('0') === true)
+  check('cmd+f intercepted (no page find)', press('f') === true)
+  check('cmd+g intercepted', press('g') === true)
   check('plain key not intercepted', press('a') === false)
 }
 

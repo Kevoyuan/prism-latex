@@ -90,6 +90,19 @@ window.__ModuleLoader__.load({
       reload: 'Reload from disk',
       saveFailed: 'Save failed',
       readOnlyTooLarge: 'Too large to edit here; showing the file read-only.',
+      resizeSplit: 'Resize the split (drag, or arrow keys)',
+      findPlaceholder: 'Find in source (⌘F)',
+      replacePlaceholder: 'Replace with',
+      goToLine: 'Go to line (⌘G)',
+      findNext: 'Next match',
+      findPrevious: 'Previous match',
+      toggleReplace: 'Replace',
+      replaceOne: 'Replace this match',
+      replaceAll: 'Replace all',
+      closeFind: 'Close',
+      findCount: '{current}/{total}',
+      findNoMatches: 'No matches',
+      completionLabel: 'Completions',
       copyError: 'Copy the error',
       sendToChat: 'Send the error to the chat',
       copied: 'Copied',
@@ -568,11 +581,110 @@ window.__ModuleLoader__.load({
 .oprilx-pane[data-pane="source"][data-editor="true"] {
   overflow: hidden;
 }
-.oprilx-editor {
+.oprilx-editor-shell {
   display: flex;
+  flex-direction: column;
   height: 100%;
   min-height: 0;
+}
+.oprilx-editor {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
   box-sizing: border-box;
+}
+.oprilx-complete {
+  position: absolute;
+  z-index: 4;
+  min-width: 150px;
+  max-height: 210px;
+  overflow-y: auto;
+  padding: 4px;
+  border: 1px solid #2b2f36;
+  border-radius: 8px;
+  background: #191c20;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, .55);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: var(--opr-code-size, 12px);
+}
+.oprilx-complete-item {
+  padding: 3px 8px;
+  border-radius: 5px;
+  color: var(--opr-text, #e6e8ea);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.oprilx-complete-item[data-active="true"] {
+  background: #2c3240;
+  color: #fff;
+}
+.oprilx-find {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 0 0 auto;
+  padding: 4px 8px;
+  background: #14161a;
+  border-bottom: 1px solid var(--opr-border, #26262c);
+}
+.oprilx-find-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 24px;
+  padding: 0 8px;
+  border: 1px solid #2b2f36;
+  border-radius: 6px;
+  background: #0f1113;
+  color: var(--opr-text, #e6e8ea);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+}
+.oprilx-find-input:focus {
+  outline: none;
+  border-color: #4a4f58;
+}
+.oprilx-find-count {
+  flex: 0 0 auto;
+  min-width: 44px;
+  text-align: right;
+  color: var(--opr-muted, #9aa0a6);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.oprilx-find-action {
+  appearance: none;
+  cursor: pointer;
+  flex: 0 0 auto;
+  height: 24px;
+  padding: 0 8px;
+  border: 1px solid #2b2f36;
+  border-radius: 6px;
+  background: #1a1d21;
+  color: var(--opr-text, #e6e8ea);
+  font-size: 11px;
+}
+.oprilx-find-action:hover:enabled {
+  background: #22262b;
+}
+.oprilx-find-action:disabled {
+  opacity: .45;
+  cursor: default;
+}
+.oprilx-replace-row {
+  padding-top: 0;
+}
+.oprilx-match[data-kind="find"] {
+  background: rgba(86, 182, 194, .16);
+  box-shadow: none;
+  color: #cfe9ec;
+  border-radius: 2px;
+}
+.oprilx-match[data-kind="find-current"] {
+  background: rgba(224, 165, 117, .28);
+  box-shadow: inset 0 0 0 1px rgba(224, 165, 117, .7);
+  color: #ffe6cd;
+  border-radius: 2px;
 }
 .oprilx-zoombadge {
   padding: 0 6px;
@@ -635,6 +747,11 @@ window.__ModuleLoader__.load({
   box-shadow: inset 0 0 0 1px rgba(168, 146, 232, .55);
   color: #e6e8ea;
 }
+.oprilx-match[data-kind="env"] {
+  background: rgba(229, 192, 123, .16);
+  box-shadow: inset 0 0 0 1px rgba(229, 192, 123, .5);
+  color: #f0d9a8;
+}
 .oprilx-match[data-kind="broken"] {
   background: rgba(248, 81, 73, .18);
   box-shadow: inset 0 0 0 1px rgba(248, 81, 73, .6);
@@ -666,9 +783,37 @@ window.__ModuleLoader__.load({
   flex: 1 1 auto;
   min-height: 0;
 }
-.oprilx-split > .oprilx-pane {
-  flex: 1 1 50%;
+.oprilx-split > [data-pane="source"] {
+  flex: 0 0 auto;
+  width: calc(var(--opr-split, 0.5) * 100% - 3px);
   min-width: 0;
+}
+.oprilx-split > [data-pane="preview"] {
+  flex: 1 1 0;
+  min-width: 0;
+}
+/* The grab bar between source and page: 6px hit area, 1px visible line. */
+.oprilx-divider {
+  position: relative;
+  flex: 0 0 6px;
+  cursor: col-resize;
+  background: transparent;
+  touch-action: none;
+}
+.oprilx-divider::before {
+  content: '';
+  position: absolute;
+  inset: 0 2px;
+  background: var(--opr-border, #26262c);
+  transition: background .12s ease;
+}
+.oprilx-divider:hover::before,
+.oprilx-divider:focus-visible::before,
+.oprilx-divider[data-dragging="true"]::before {
+  background: #4a4a56;
+}
+.oprilx-divider:focus-visible {
+  outline: none;
 }
 .oprilx-split > .oprilx-pane + .oprilx-pane {
   border-left: 1px solid var(--dsw-alias-border-l1, rgba(0, 0, 0, .12));
@@ -1583,6 +1728,101 @@ window.__ModuleLoader__.load({
       return undefined
     }
 
+    /** Every `\\begin{name}` / `\\end{name}` token, with the name's position. */
+    function environmentSpans(text) {
+      const spans = []
+      const pattern = /\\(begin|end)\s*\{([^}]*)\}/g
+      let found = pattern.exec(text)
+      while (found !== null) {
+        const name = found[2]
+        const offsetInToken = name === '' ? -1 : found[0].indexOf(name)
+        spans.push({
+          kind: found[1],
+          name,
+          start: found.index,
+          end: found.index + found[0].length,
+          nameStart: offsetInToken < 0 ? -1 : found.index + offsetInToken,
+        })
+        found = pattern.exec(text)
+      }
+      return spans
+    }
+
+    /**
+     * The environment pair the caret sits in, for highlighting both `\\begin` and
+     * `\\end` names. Nesting of the same environment is honoured.
+     */
+    function matchEnvironmentAt(text, caret) {
+      const spans = environmentSpans(text)
+      const index = spans.findIndex(span => caret >= span.start - 1 && caret <= span.end)
+      if (index < 0) return undefined
+      const target = spans[index]
+      if (target.nameStart < 0) return undefined
+      let depth = 0
+      if (target.kind === 'begin') {
+        for (let scan = index; scan < spans.length; scan += 1) {
+          const span = spans[scan]
+          if (span.name !== target.name) continue
+          depth += span.kind === 'begin' ? 1 : -1
+          if (depth === 0) {
+            return {
+              env: target.name,
+              begin: { at: target.nameStart, length: target.name.length },
+              end: { at: span.nameStart, length: span.name.length },
+            }
+          }
+        }
+      } else {
+        for (let scan = index; scan >= 0; scan -= 1) {
+          const span = spans[scan]
+          if (span.name !== target.name) continue
+          depth += span.kind === 'end' ? 1 : -1
+          if (depth === 0) {
+            return {
+              env: target.name,
+              begin: { at: span.nameStart, length: span.name.length },
+              end: { at: target.nameStart, length: target.name.length },
+            }
+          }
+        }
+      }
+      return undefined
+    }
+
+    /** Map absolute ranges to per-line decoration entries. */
+    function rangeDecorations(text, ranges, kind) {
+      const map = new Map()
+      const list = ranges.filter(range => range !== undefined && range.at >= 0 && range.length > 0)
+      if (list.length === 0) return map
+      let line = 0
+      let lineStart = 0
+      const top = Math.max(...list.map(range => range.at + range.length - 1))
+      for (let index = 0; index <= top; index += 1) {
+        if (text[index] === '\n') {
+          line += 1
+          lineStart = index + 1
+        }
+        for (const range of list) {
+          if (range.at !== index) continue
+          const entries = map.get(line) ?? []
+          entries.push({ at: index - lineStart, length: range.length, kind })
+          map.set(line, entries)
+        }
+      }
+      return map
+    }
+
+    /** Merge two decoration maps into one. */
+    function mergeDecorations(first, second) {
+      if (first.size === 0) return second
+      if (second.size === 0) return first
+      const merged = new Map(first)
+      for (const [line, entries] of second) {
+        merged.set(line, [...(merged.get(line) ?? []), ...entries])
+      }
+      return merged
+    }
+
     /** Turn absolute delimiter offsets into per-line columns for the highlight layer. */
     function bracketDecorations(text, match) {
       const map = new Map()
@@ -1619,6 +1859,130 @@ window.__ModuleLoader__.load({
       return map
     }
 
+    /** Control sequences offered by the completion popup, most used first. */
+    const LATEX_COMMANDS = [
+      'documentclass', 'usepackage', 'begin', 'end', 'section', 'subsection', 'subsubsection',
+      'paragraph', 'item', 'itemize', 'enumerate', 'description', 'textbf', 'textit', 'texttt',
+      'emph', 'underline', 'textsc', 'textcolor', 'color', 'centering', 'caption', 'label',
+      'ref', 'eqref', 'cite', 'citep', 'citet', 'footnote', 'url', 'href', 'includegraphics',
+      'frac', 'dfrac', 'tfrac', 'sqrt', 'sum', 'int', 'prod', 'left', 'right', 'mathrm',
+      'mathbf', 'mathbb', 'mathcal', 'text', 'hline', 'toprule', 'midrule', 'bottomrule',
+      'newpage', 'clearpage', 'tableofcontents', 'maketitle', 'vspace', 'hspace',
+      'setlength', 'newcommand', 'renewcommand', 'def', 'input', 'include', 'bibliography',
+      'bibliographystyle', 'fontsize', 'linespread', 'graphicspath',
+    ]
+
+    /** Environment names offered after `\\begin{`. */
+    const LATEX_ENVIRONMENTS = [
+      'document', 'itemize', 'enumerate', 'description', 'figure', 'table', 'tabular',
+      'equation', 'equation*', 'align', 'align*', 'gather', 'gather*', 'multline', 'split',
+      'array', 'matrix', 'pmatrix', 'bmatrix', 'vmatrix', 'cases', 'center', 'flushleft',
+      'flushright', 'quote', 'quotation', 'verse', 'verbatim', 'minipage', 'abstract',
+      'thebibliography',
+    ]
+
+    /** Filter a candidate list by what has been typed, prefix matches first. */
+    function filterCompletions(candidates, typed) {
+      const needle = typed.toLowerCase()
+      const prefix = []
+      const rest = []
+      for (const candidate of candidates) {
+        const lower = candidate.toLowerCase()
+        if (needle !== '' && !lower.startsWith(needle)) {
+          if (lower.includes(needle)) rest.push(candidate)
+          continue
+        }
+        prefix.push(candidate)
+      }
+      return [...prefix, ...rest].slice(0, 8)
+    }
+
+    /** Labels declared in the document, for `\\ref{` and `\\cite{` completion. */
+    function collectLabels(text) {
+      const labels = []
+      const pattern = /\\label\{([^}]*)\}/g
+      let found = pattern.exec(text)
+      while (found !== null) {
+        if (found[1] !== '') labels.push(found[1])
+        found = pattern.exec(text)
+      }
+      return labels
+    }
+
+    /**
+     * The completion popup for the caret, if one applies: `\cmd`, `\begin{env}`,
+     * `\ref{label}` or `\cite{key}` partial words.
+     */
+    function completionAt(text, caret, labels = []) {
+      if (caret < 0 || caret > text.length) return undefined
+      const lineStart = text.lastIndexOf('\n', caret - 1) + 1
+      const before = text.slice(lineStart, caret)
+      const environment = /\\(?:begin|end)\s*\{([A-Za-z*]*)$/.exec(before)
+      if (environment !== null) {
+        const items = filterCompletions(LATEX_ENVIRONMENTS, environment[1])
+        return items.length === 0 ? undefined : {
+          kind: 'environment',
+          items,
+          start: caret - environment[1].length,
+        }
+      }
+      const reference = /\\(?:ref|eqref|cref|autoref|cite|citep|citet)\s*\{([^}]*)$/.exec(before)
+      if (reference !== null) {
+        const typed = reference[1].split(',').pop().trim()
+        const items = filterCompletions(labels, typed)
+        return items.length === 0 ? undefined : {
+          kind: 'label',
+          items,
+          start: caret - typed.length,
+        }
+      }
+      const command = /\\([A-Za-z]+)$/.exec(before)
+      if (command !== null) {
+        const items = filterCompletions(LATEX_COMMANDS, command[1])
+        return items.length === 0 ? undefined : {
+          kind: 'command',
+          items,
+          start: caret - command[1].length,
+        }
+      }
+      return undefined
+    }
+
+    /** Measured monospace advance, so the popup can sit under the caret. */
+    const charWidthCache = new Map()
+    function measureCharWidth(size) {
+      const key = String(size)
+      const cached = charWidthCache.get(key)
+      if (cached !== undefined) return cached
+      let width = size * 0.6
+      try {
+        const canvas = document.createElement('canvas')
+        const context = canvas.getContext('2d')
+        if (context !== null) {
+          context.font = `${size}px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace`
+          width = context.measureText('MMMMMMMMMM').width / 10
+        }
+      } catch {
+        /* fall back to the ratio estimate */
+      }
+      charWidthCache.set(key, width)
+      return width
+    }
+
+    /** Case-insensitive literal matches of `query`, as absolute ranges. */
+    function findMatches(text, query) {
+      const matches = []
+      if (typeof query !== 'string' || query === '') return matches
+      const needle = query.toLowerCase()
+      const haystack = text.toLowerCase()
+      let index = haystack.indexOf(needle)
+      while (index >= 0) {
+        matches.push({ at: index, length: query.length })
+        index = haystack.indexOf(needle, index + Math.max(1, needle.length))
+      }
+      return matches
+    }
+
     /** Render one highlighted run list, falling back to the plain line text. */
     function sourceLineNodes(line, runs, decorations) {
       const plainLine = () => (line === '' ? ' ' : line)
@@ -1641,12 +2005,13 @@ window.__ModuleLoader__.load({
           const at = column + index
           const decoration = decorations.find(item => item.at === at)
           if (decoration !== undefined) {
+            const length = Math.max(1, Number(decoration.length) || 1)
             parts.push(h('span', {
               className: 'oprilx-match',
               'data-kind': decoration.kind,
               key: `m${at}`,
-            }, text[index]))
-            index += 1
+            }, text.slice(index, index + length)))
+            index += length
             continue
           }
           let stop = text.length
@@ -1720,6 +2085,18 @@ window.__ModuleLoader__.load({
           'aria-hidden': 'true',
           className: 'oprilx-glyph',
         }, h('path', { key: 'play', d: 'M8.4 5.2 19 12 8.4 18.8z', fill: 'currentColor' }))
+      }
+      if (name === 'up' || name === 'down') {
+        return h('svg', { ...frame, key: 'glyph' }, h('path', {
+          key: 'chevron',
+          d: name === 'up' ? 'M6.5 14.5 12 9.2l5.5 5.3' : 'M6.5 9.5 12 14.8l5.5-5.3',
+        }))
+      }
+      if (name === 'close') {
+        return h('svg', { ...frame, key: 'glyph' }, [
+          h('path', { key: 'a', d: 'M6.6 6.6l10.8 10.8' }),
+          h('path', { key: 'b', d: 'M17.4 6.6 6.6 17.4' }),
+        ])
       }
       if (name === 'copy') {
         return h('svg', { ...frame, key: 'glyph' }, [
@@ -1858,6 +2235,10 @@ window.__ModuleLoader__.load({
       const [copied, setCopied] = useState(false)
       const [codeFont, setCodeFont] = useState(() => readCodeFont())
       const [fontBadge, setFontBadge] = useState(undefined)
+      const [splitRatio, setSplitRatio] = useState(() => readSplitRatio())
+      const splitRef = useRef(null)
+      const ratioRef = useRef(splitRatio)
+      ratioRef.current = splitRatio
 
       const rootRef = useRef(null)
       /** Blob URLs currently shown; replaced generations are revoked after the commit. */
@@ -2087,14 +2468,45 @@ window.__ModuleLoader__.load({
       const { t, text, resetToken, onInput, onSave, fontSize, onZoom } = props
       const [composing, setComposing] = useState(false)
       const [caret, setCaret] = useState(-1)
+      const [finder, setFinder] = useState({
+        open: false,
+        mode: 'find',
+        query: '',
+        replacement: '',
+        replacing: false,
+        index: 0,
+      })
+      const findRef = useRef(null)
+      const [completion, setCompletion] = useState(undefined)
       const areaRef = useRef(null)
       const codeRef = useRef(null)
       const gutterRef = useRef(null)
       const lines = text.split('\n')
       const highlighted = highlightLatexLines(text)
-      const decorations = caret >= 0
-        ? bracketDecorations(text, matchDelimiterAt(text, caret))
-        : new Map()
+      const matches = finder.open && finder.mode === 'find' && finder.query !== ''
+        ? findMatches(text, finder.query)
+        : []
+      let decorations = new Map()
+      if (matches.length > 0) {
+        const current = Math.min(Math.max(0, finder.index), matches.length - 1)
+        for (let index = 0; index < matches.length; index += 1) {
+          decorations = mergeDecorations(
+            decorations,
+            rangeDecorations(text, [matches[index]], index === current ? 'find-current' : 'find'),
+          )
+        }
+      }
+      if (caret >= 0) {
+        decorations = bracketDecorations(text, matchDelimiterAt(text, caret))
+        const environment = matchEnvironmentAt(text, caret)
+        if (environment !== undefined) {
+          decorations = mergeDecorations(decorations, rangeDecorations(
+            text,
+            [environment.begin, environment.end],
+            'env',
+          ))
+        }
+      }
 
       // The textarea is uncontrolled on purpose: a controlled one loses the browser's
       // native undo stack (⌘Z) because React rewrites `value` on every keystroke. The
@@ -2142,6 +2554,157 @@ window.__ModuleLoader__.load({
         if (gutter !== null && gutter !== undefined) gutter.scrollTop = area.scrollTop
       }
 
+      // Completion follows the caret; it closes while an IME composition is running.
+      useEffect(() => {
+        if (composing || caret < 0 || finder.open) {
+          setCompletion(undefined)
+          return
+        }
+        const next = completionAt(text, caret, collectLabels(text))
+        setCompletion(next)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, [text, caret, composing, finder.open])
+
+      useEffect(() => {
+        if (!finder.open) return
+        const input = findRef.current
+        if (input === null || input === undefined) return
+        try {
+          input.focus()
+          if (typeof input.select === 'function') input.select()
+        } catch {
+          /* focus is a nicety */
+        }
+      }, [finder.open, finder.mode])
+
+      // Typing in the bar reveals the first match without stealing focus.
+      useEffect(() => {
+        if (!finder.open || finder.mode !== 'find' || finder.query === '') return
+        const area = areaRef.current
+        if (area === null || area === undefined) return
+        const found = findMatches(text, finder.query)
+        if (found.length === 0) return
+        const first = found[0]
+        try {
+          area.setSelectionRange(first.at, first.at + first.length)
+        } catch {
+          /* the element may be gone */
+        }
+        const line = text.slice(0, first.at).split('\n').length - 1
+        const height = Number.isFinite(area.clientHeight) ? area.clientHeight : 0
+        area.scrollTop = Math.max(0, line * lineHeight() - height / 3)
+        sync()
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, [finder.open, finder.query])
+
+      const lineHeight = () => (Number.isFinite(fontSize) ? fontSize : CODE_FONT_DEFAULT) * 1.62
+
+      /** Scroll one offset into view with a third of the pane above it. */
+      const revealOffset = (offset) => {
+        const area = areaRef.current
+        if (area === null || area === undefined) return
+        const before = text.slice(0, offset)
+        const line = before.split('\n').length - 1
+        const height = Number.isFinite(area.clientHeight) ? area.clientHeight : 0
+        const target = line * lineHeight() - height / 3
+        area.scrollTop = Math.max(0, target)
+        sync()
+      }
+
+      const goToMatch = next => {
+        if (matches.length === 0) return
+        const index = ((next ?? finder.index) % matches.length + matches.length) % matches.length
+        setFinder(previous => ({ ...previous, index }))
+        const area = areaRef.current
+        if (area !== null && area !== undefined) {
+          try {
+            area.setSelectionRange(matches[index].at, matches[index].at + matches[index].length)
+          } catch {
+            /* the element may be gone */
+          }
+          revealOffset(matches[index].at)
+        }
+      }
+
+      const replaceCurrent = () => {
+        const area = areaRef.current
+        if (area === null || area === undefined || matches.length === 0) return
+        const current = Math.min(Math.max(0, finder.index), matches.length - 1)
+        const match = matches[current]
+        try {
+          area.setSelectionRange(match.at, match.at + match.length)
+          if (document.execCommand('insertText', false, finder.replacement) !== true) throw new Error('refused')
+        } catch {
+          const next = `${text.slice(0, match.at)}${finder.replacement}${text.slice(match.at + match.length)}`
+          area.value = next
+          onInput(next)
+        }
+      }
+
+      const replaceAll = () => {
+        const area = areaRef.current
+        if (area === null || area === undefined || finder.query === '') return
+        const all = findMatches(text, finder.query)
+        if (all.length === 0) return
+        let next = ''
+        let cursor = 0
+        for (const match of all) {
+          next += `${text.slice(cursor, match.at)}${finder.replacement}`
+          cursor = match.at + match.length
+        }
+        next += text.slice(cursor)
+        area.value = next
+        onInput(next)
+      }
+
+      const goToLine = line => {
+        const target = Math.max(1, Math.min(text.split('\n').length, Math.floor(Number(line))))
+        if (!Number.isFinite(target)) return
+        const lines = text.split('\n')
+        let offset = 0
+        for (let index = 0; index < target - 1; index += 1) offset += lines[index].length + 1
+        const area = areaRef.current
+        if (area !== null && area !== undefined) {
+          try {
+            area.setSelectionRange(offset, offset)
+            area.focus()
+          } catch {
+            /* the element may be gone */
+          }
+          revealOffset(offset)
+        }
+        setCaret(offset)
+      }
+
+      const acceptCompletion = explicitIndex => {
+        const area = areaRef.current
+        if (completion === undefined || area === null || area === undefined) return
+        const wanted = explicitIndex === undefined ? (completion.index ?? 0) : explicitIndex
+        const index = Math.min(Math.max(0, wanted), completion.items.length - 1)
+        const item = completion.items[index]
+        const end = area.selectionStart
+        try {
+          area.setSelectionRange(completion.start, end)
+          if (document.execCommand('insertText', false, item) !== true) throw new Error('refused')
+        } catch {
+          const next = `${area.value.slice(0, completion.start)}${item}${area.value.slice(end)}`
+          area.value = next
+          onInput(next)
+          const position = completion.start + item.length
+          try {
+            area.setSelectionRange(position, position)
+          } catch {
+            /* the element may be gone */
+          }
+        }
+        setCompletion(undefined)
+        setCaret(completion.start + item.length)
+      }
+
+      const openFinder = mode => {
+        setFinder(previous => ({ ...previous, open: true, mode, index: 0 }))
+      }
+
       /** Insert at the caret through the browser so the native undo stack survives. */
       const insertAt = (area, snippet, caretOffset) => {
         const start = area.selectionStart
@@ -2167,6 +2730,30 @@ window.__ModuleLoader__.load({
       }
 
       const handleKeyDown = event => {
+        if (completion !== undefined && !event.metaKey && !event.ctrlKey && !event.altKey) {
+          if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+            event.preventDefault()
+            const delta = event.key === 'ArrowDown' ? 1 : -1
+            setCompletion(previous => ({
+              ...previous,
+              index: Math.min(
+                Math.max(0, (previous.index ?? 0) + delta),
+                previous.items.length - 1,
+              ),
+            }))
+            return
+          }
+          if (event.key === 'Enter' || event.key === 'Tab') {
+            event.preventDefault()
+            acceptCompletion()
+            return
+          }
+          if (event.key === 'Escape') {
+            event.preventDefault()
+            setCompletion(undefined)
+            return
+          }
+        }
         if ((event.metaKey || event.ctrlKey) && (event.key === 's' || event.key === 'S')) {
           event.preventDefault()
           onSave()
@@ -2175,6 +2762,21 @@ window.__ModuleLoader__.load({
         if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
           event.preventDefault()
           if (typeof props.onCompile === 'function') props.onCompile()
+          return
+        }
+        if ((event.metaKey || event.ctrlKey) && (event.key === 'f' || event.key === 'F')) {
+          event.preventDefault()
+          openFinder('find')
+          return
+        }
+        if ((event.metaKey || event.ctrlKey) && (event.key === 'g' || event.key === 'G')) {
+          event.preventDefault()
+          openFinder('goto')
+          return
+        }
+        if (event.key === 'Escape' && finder.open) {
+          event.preventDefault()
+          setFinder(previous => ({ ...previous, open: false }))
           return
         }
         if (event.metaKey || event.ctrlKey) {
@@ -2274,52 +2876,226 @@ window.__ModuleLoader__.load({
       }
 
       const size = Number.isFinite(fontSize) ? fontSize : CODE_FONT_DEFAULT
-      return h('div', { className: 'oprilx-editor', style: { '--opr-code-size': `${size}px` } }, [
-        h('div', { className: 'oprilx-gutter', key: 'gutter', ref: gutterRef, 'aria-hidden': 'true' },
-          lines.map((_, index) => h('div', { key: index }, String(index + 1)))),
-        h('div', { className: 'oprilx-editor-body', key: 'body' }, [
-          h('pre', {
-            className: 'oprilx-code-highlight',
-            key: 'code',
-            ref: codeRef,
-            'aria-hidden': 'true',
-            'data-hidden': composing ? 'true' : 'false',
-          }, lines.map((line, index) => h('div', { className: 'oprilx-codeline', key: index },
-            sourceLineNodes(line.length === 0 ? '' : line, highlighted?.[index], decorations.get(index))))),
-          h('textarea', {
-            className: 'oprilx-code-input',
-            key: 'input',
-            ref: areaRef,
-            defaultValue: text,
-            spellCheck: false,
-            autoCapitalize: 'off',
-            autoCorrect: 'off',
-            wrap: 'off',
-            'aria-label': tr(t, 'editorLabel'),
-            'data-ime': composing ? 'true' : 'false',
-            onChange: event => onInput(event.target.value),
-            onScroll: sync,
-            onKeyDown: handleKeyDown,
-            onCompositionStart: () => setComposing(true),
-            onCompositionEnd: event => {
-              setComposing(false)
-              onInput(event.currentTarget.value)
+      const currentMatch = matches.length === 0
+        ? 0
+        : Math.min(Math.max(0, finder.index), matches.length - 1) + 1
+      const count = matches.length === 0
+        ? (finder.query === '' ? '' : tr(t, 'findNoMatches'))
+        : tr(t, 'findCount', { current: currentMatch, total: matches.length })
+
+      const bar = []
+      if (finder.open && finder.mode === 'goto') {
+        bar.push(h('div', { className: 'oprilx-find', key: 'goto' }, [
+          h('input', {
+            key: 'line',
+            ref: findRef,
+            className: 'oprilx-find-input',
+            type: 'text',
+            inputMode: 'numeric',
+            placeholder: tr(t, 'goToLine'),
+            'aria-label': tr(t, 'goToLine'),
+            onKeyDown: event => {
+              if (event.key === 'Escape') {
+                event.preventDefault()
+                setFinder(previous => ({ ...previous, open: false }))
+                return
+              }
+              if (event.key === 'Enter') {
+                event.preventDefault()
+                goToLine(event.currentTarget.value)
+                setFinder(previous => ({ ...previous, open: false }))
+              }
             },
           }),
+          h('button', {
+            type: 'button',
+            className: 'oprilx-icon-button',
+            key: 'close',
+            'aria-label': tr(t, 'closeFind'),
+            title: tr(t, 'closeFind'),
+            onClick: () => setFinder(previous => ({ ...previous, open: false })),
+          }, glyph('close', 14)),
+        ]))
+      } else if (finder.open) {
+        const fields = [
+          h('input', {
+            key: 'query',
+            ref: findRef,
+            className: 'oprilx-find-input',
+            type: 'text',
+            placeholder: tr(t, 'findPlaceholder'),
+            'aria-label': tr(t, 'findPlaceholder'),
+            value: finder.query,
+            onChange: event => setFinder(previous => ({
+              ...previous,
+              query: event.target.value,
+              index: 0,
+            })),
+            onKeyDown: event => {
+              if (event.key === 'Escape') {
+                event.preventDefault()
+                setFinder(previous => ({ ...previous, open: false }))
+                return
+              }
+              if (event.key === 'Enter') {
+                event.preventDefault()
+                goToMatch((event.shiftKey ? finder.index - 1 : finder.index + 1) % Math.max(1, matches.length))
+              }
+            },
+          }),
+          h('span', { className: 'oprilx-find-count', key: 'count', role: 'status' }, count),
+          h('button', {
+            type: 'button',
+            className: 'oprilx-icon-button',
+            key: 'prev',
+            'aria-label': tr(t, 'findPrevious'),
+            title: tr(t, 'findPrevious'),
+            disabled: matches.length === 0,
+            onClick: () => goToMatch(finder.index - 1),
+          }, glyph('up', 14)),
+          h('button', {
+            type: 'button',
+            className: 'oprilx-icon-button',
+            key: 'next',
+            'aria-label': tr(t, 'findNext'),
+            title: tr(t, 'findNext'),
+            disabled: matches.length === 0,
+            onClick: () => goToMatch(finder.index + 1),
+          }, glyph('down', 14)),
+          h('button', {
+            type: 'button',
+            className: 'oprilx-icon-button',
+            key: 'replace-toggle',
+            'aria-label': tr(t, 'toggleReplace'),
+            title: tr(t, 'toggleReplace'),
+            'aria-pressed': finder.replacing ? 'true' : 'false',
+            onClick: () => setFinder(previous => ({ ...previous, replacing: !previous.replacing })),
+          }, glyph('copy', 14)),
+          h('button', {
+            type: 'button',
+            className: 'oprilx-icon-button',
+            key: 'close',
+            'aria-label': tr(t, 'closeFind'),
+            title: tr(t, 'closeFind'),
+            onClick: () => setFinder(previous => ({ ...previous, open: false })),
+          }, glyph('close', 14)),
+        ]
+        bar.push(h('div', { className: 'oprilx-find', key: 'find' }, fields))
+        if (finder.replacing) {
+          bar.push(h('div', { className: 'oprilx-find oprilx-replace-row', key: 'replace' }, [
+            h('input', {
+              key: 'replacement',
+              className: 'oprilx-find-input',
+              type: 'text',
+              placeholder: tr(t, 'replacePlaceholder'),
+              'aria-label': tr(t, 'replacePlaceholder'),
+              value: finder.replacement,
+              onChange: event => setFinder(previous => ({ ...previous, replacement: event.target.value })),
+              onKeyDown: event => {
+                if (event.key === 'Escape') {
+                  event.preventDefault()
+                  setFinder(previous => ({ ...previous, open: false }))
+                }
+                if (event.key === 'Enter') {
+                  event.preventDefault()
+                  replaceCurrent()
+                }
+              },
+            }),
+            h('button', {
+              type: 'button',
+              className: 'oprilx-find-action',
+              key: 'one',
+              disabled: matches.length === 0,
+              onClick: replaceCurrent,
+            }, tr(t, 'replaceOne')),
+            h('button', {
+              type: 'button',
+              className: 'oprilx-find-action',
+              key: 'all',
+              disabled: matches.length === 0,
+              onClick: replaceAll,
+            }, tr(t, 'replaceAll')),
+          ]))
+        }
+      }
+
+      const popup = []
+      if (completion !== undefined) {
+        const area = areaRef.current
+        const line = text.slice(0, completion.start).split('\n').length - 1
+        const column = completion.start - (text.lastIndexOf('\n', completion.start - 1) + 1)
+        const charWidth = measureCharWidth(size)
+        const scrollTop = typeof area?.scrollTop === 'number' ? area.scrollTop : 0
+        const scrollLeft = typeof area?.scrollLeft === 'number' ? area.scrollLeft : 0
+        const height = typeof area?.clientHeight === 'number' ? area.clientHeight : 300
+        const top = Math.max(0, Math.min(
+          height - 40,
+          10 + (line + 1) * (size * 1.62) - scrollTop,
+        ))
+        popup.push(h('div', {
+          className: 'oprilx-complete',
+          key: 'completion',
+          role: 'listbox',
+          'aria-label': tr(t, 'completionLabel'),
+          style: {
+            left: `${Math.max(8, 14 + column * charWidth - scrollLeft)}px`,
+            top: `${top}px`,
+          },
+        }, completion.items.map((item, index) => h('div', {
+          className: 'oprilx-complete-item',
+          key: item,
+          role: 'option',
+          'aria-selected': index === (completion.index ?? 0) ? 'true' : 'false',
+          'data-active': index === (completion.index ?? 0) ? 'true' : 'false',
+          onMouseDown: event => {
+            if (typeof event.preventDefault === 'function') event.preventDefault()
+            acceptCompletion(index)
+          },
+        }, item))))
+      }
+
+      return h('div', {
+        className: 'oprilx-editor-shell',
+        style: { '--opr-code-size': `${size}px` },
+      }, [
+        ...bar,
+        h('div', { className: 'oprilx-editor', key: 'editor' }, [
+          h('div', { className: 'oprilx-gutter', key: 'gutter', ref: gutterRef, 'aria-hidden': 'true' },
+            lines.map((_, index) => h('div', { key: index }, String(index + 1)))),
+          h('div', { className: 'oprilx-editor-body', key: 'body' }, [
+            h('pre', {
+              className: 'oprilx-code-highlight',
+              key: 'code',
+              ref: codeRef,
+              'aria-hidden': 'true',
+              'data-hidden': composing ? 'true' : 'false',
+            }, lines.map((line, index) => h('div', { className: 'oprilx-codeline', key: index },
+              sourceLineNodes(line.length === 0 ? '' : line, highlighted?.[index], decorations.get(index))))),
+            h('textarea', {
+              className: 'oprilx-code-input',
+              key: 'input',
+              ref: areaRef,
+              defaultValue: text,
+              spellCheck: false,
+              autoCapitalize: 'off',
+              autoCorrect: 'off',
+              wrap: 'off',
+              'aria-label': tr(t, 'editorLabel'),
+              'data-ime': composing ? 'true' : 'false',
+              onChange: event => onInput(event.target.value),
+              onScroll: sync,
+              onKeyDown: handleKeyDown,
+              onCompositionStart: () => setComposing(true),
+              onCompositionEnd: event => {
+                setComposing(false)
+                onInput(event.currentTarget.value)
+              },
+            }),
+            ...popup,
+          ]),
         ]),
       ])
-    }
-
-    /** Tab chip text for one file address: its decoded basename. */
-    function titleOfAddress(address) {
-      if (typeof address !== 'string') return 'document.tex'
-      const name = address.slice(address.lastIndexOf('/') + 1)
-      if (name === '') return 'document.tex'
-      try {
-        return decodeURIComponent(name)
-      } catch {
-        return name
-      }
     }
 
     /** Copy text to the clipboard, with an accessible confirmation flag. */
@@ -2365,10 +3141,22 @@ window.__ModuleLoader__.load({
         if (span !== undefined && typeof actions.insertText === 'function'
           && actions.insertText(report, span) === true) return
       } catch {
-        /* fall through to setDraft */
+        /* fall through */
       }
       // No setDraft fallback: replacing the draft would discard whatever the user had
       // typed. A refused insert leaves the composer untouched instead.
+    }
+
+    /** Tab chip text for one file address: its decoded basename. */
+    function titleOfAddress(address) {
+      if (typeof address !== 'string') return 'document.tex'
+      const name = address.slice(address.lastIndexOf('/') + 1)
+      if (name === '') return 'document.tex'
+      try {
+        return decodeURIComponent(name)
+      } catch {
+        return name
+      }
     }
 
     /** Download the compiled PDF of one file through the Host's pdf route. */
@@ -2447,6 +3235,30 @@ window.__ModuleLoader__.load({
       }
     }
 
+    /** Split pane ratio, remembered per user like an IDE's split position. */
+    const SPLIT_KEY = 'dsh-openprism-latex.split'
+
+    /** @returns the remembered source share of the split, clamped to 0.2–0.8. */
+    function readSplitRatio() {
+      try {
+        const raw = typeof localStorage === 'undefined' ? null : localStorage.getItem(SPLIT_KEY)
+        const parsed = Number.parseFloat(String(raw))
+        if (!Number.isFinite(parsed)) return 0.5
+        return Math.min(0.8, Math.max(0.2, parsed))
+      } catch {
+        return 0.5
+      }
+    }
+
+    /** @param ratio - source share; stored clamped. */
+    function rememberSplitRatio(ratio) {
+      try {
+        if (typeof localStorage !== 'undefined') localStorage.setItem(SPLIT_KEY, String(ratio))
+      } catch {
+        /* preference storage is best effort */
+      }
+    }
+
     /** @param size - next editor size in px; stored clamped. */
     function rememberCodeFont(size) {
       try {
@@ -2496,6 +3308,10 @@ window.__ModuleLoader__.load({
       const [copied, setCopied] = useState(false)
       const [codeFont, setCodeFont] = useState(() => readCodeFont())
       const [fontBadge, setFontBadge] = useState(undefined)
+      const [splitRatio, setSplitRatio] = useState(() => readSplitRatio())
+      const splitRef = useRef(null)
+      const ratioRef = useRef(splitRatio)
+      ratioRef.current = splitRatio
       const rootRef = useRef(null)
       const urlsRef = useRef([])
       const draftRef = useRef(draft)
@@ -2760,6 +3576,67 @@ window.__ModuleLoader__.load({
         setSource({ status: 'idle' })
       }
 
+      const commitSplit = ratio => {
+        ratioRef.current = ratio
+        setSplitRatio(ratio)
+        rememberSplitRatio(ratio)
+      }
+
+      const startSplitDrag = event => {
+        const container = splitRef.current
+        if (container === null || container === undefined) return
+        if (typeof event.preventDefault === 'function') event.preventDefault()
+        const rect = container.getBoundingClientRect()
+        if (rect.width <= 0) return
+        const target = event.currentTarget
+        if (target !== null && target !== undefined && typeof target.setPointerCapture === 'function') {
+          try {
+            target.setPointerCapture(event.pointerId)
+          } catch {
+            /* capture is a nicety */
+          }
+        }
+        if (typeof target === 'object' && target !== null) target.dataset.dragging = 'true'
+        const move = moveEvent => {
+          const ratio = Math.min(0.8, Math.max(0.2, (moveEvent.clientX - rect.left) / rect.width))
+          ratioRef.current = ratio
+          setSplitRatio(ratio)
+        }
+        const stop = () => {
+          if (typeof target === 'object' && target !== null && target.dataset !== undefined) {
+            target.dataset.dragging = 'false'
+          }
+          if (typeof window !== 'undefined') {
+            window.removeEventListener('pointermove', move)
+            window.removeEventListener('pointerup', stop)
+            window.removeEventListener('pointercancel', stop)
+          }
+          rememberSplitRatio(ratioRef.current)
+        }
+        if (typeof window !== 'undefined') {
+          window.addEventListener('pointermove', move)
+          window.addEventListener('pointerup', stop)
+          window.addEventListener('pointercancel', stop)
+        }
+      }
+
+      const nudgeSplit = event => {
+        const step = event.shiftKey ? 0.1 : 0.02
+        if (event.key === 'ArrowLeft') {
+          event.preventDefault()
+          commitSplit(Math.max(0.2, splitRatio - step))
+        } else if (event.key === 'ArrowRight') {
+          event.preventDefault()
+          commitSplit(Math.min(0.8, splitRatio + step))
+        } else if (event.key === 'Home') {
+          event.preventDefault()
+          commitSplit(0.2)
+        } else if (event.key === 'End') {
+          event.preventDefault()
+          commitSplit(0.8)
+        }
+      }
+
       const changeCodeFont = delta => {
         const next = delta === 0
           ? CODE_FONT_DEFAULT
@@ -2853,7 +3730,31 @@ window.__ModuleLoader__.load({
       let body
       if (mode === 'preview') body = previewPane
       else if (mode === 'source') body = sourcePane
-      else body = h('div', { className: 'oprilx-split', key: 'split' }, [sourcePane, previewPane])
+      else {
+        body = h('div', {
+          className: 'oprilx-split',
+          key: 'split',
+          ref: node => { splitRef.current = node },
+          style: { '--opr-split': String(splitRatio) },
+        }, [
+          sourcePane,
+          h('div', {
+            className: 'oprilx-divider',
+            key: 'divider',
+            role: 'separator',
+            'aria-orientation': 'vertical',
+            'aria-label': tr(t, 'resizeSplit'),
+            'aria-valuenow': Math.round(splitRatio * 100),
+            'aria-valuemin': 20,
+            'aria-valuemax': 80,
+            tabIndex: 0,
+            onPointerDown: startSplitDrag,
+            onDoubleClick: () => commitSplit(0.5),
+            onKeyDown: nudgeSplit,
+          }),
+          previewPane,
+        ])
+      }
 
       const status = compileStatus(t, state)
       const heading = typeof tab?.title === 'string' && tab.title !== ''
@@ -2937,6 +3838,10 @@ window.__ModuleLoader__.load({
       const [copied, setCopied] = useState(false)
       const [codeFont, setCodeFont] = useState(() => readCodeFont())
       const [fontBadge, setFontBadge] = useState(undefined)
+      const [splitRatio, setSplitRatio] = useState(() => readSplitRatio())
+      const splitRef = useRef(null)
+      const ratioRef = useRef(splitRatio)
+      ratioRef.current = splitRatio
       const docRef = useRef(null)
       const urlsRef = useRef([])
       const timersRef = useRef([])

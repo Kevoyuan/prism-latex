@@ -20,8 +20,11 @@ if (start < 0 || end < 0) {
 const block = source.slice(start, end)
 const directory = mkdtempSync(join(tmpdir(), 'oprilx-pairing-'))
 const modulePath = join(directory, 'pairing.mjs')
-writeFileSync(modulePath, `${block}\nexport { matchDelimiterAt, bracketDecorations }\n`)
-const { matchDelimiterAt, bracketDecorations } = await import(pathToFileURL(modulePath).href)
+writeFileSync(modulePath,
+  `${block}\nexport { matchDelimiterAt, bracketDecorations, matchEnvironmentAt, rangeDecorations,
+    findMatches, completionAt, filterCompletions, collectLabels }\n`)
+const { matchDelimiterAt, bracketDecorations, matchEnvironmentAt, rangeDecorations, findMatches,
+  completionAt, filterCompletions, collectLabels } = await import(pathToFileURL(modulePath).href)
 
 let failures = 0
 function check(label, ok, detail = '') {
@@ -75,6 +78,80 @@ section('unmatched delimiters')
   const items = [...decorations.values()].flat()
   check('unmatched pair is marked broken', items.every(item => item.kind === 'broken'),
     JSON.stringify(items))
+}
+
+section('environment pairing')
+{
+  const doc = '\\begin{itemize}\n  \\item x\n\\end{itemize}'
+  const open = matchEnvironmentAt(doc, 3)
+  check('begin pairs with its end', open?.env === 'itemize'
+    && open?.begin.at === 7 && open?.end.at === 31, JSON.stringify(open))
+  const back = matchEnvironmentAt(doc, 31)
+  check('end pairs back to its begin', back?.begin.at === 7 && back?.end.at === 31,
+    JSON.stringify(back))
+
+  const nested = '\\begin{a}\\begin{a}\\end{a}\\end{a}'
+  const inner = matchEnvironmentAt(nested, 2)
+  check('nested begin pairs with the outer end', inner?.begin.at === 7 && inner?.end.at === 30,
+    JSON.stringify(inner))
+  const second = matchEnvironmentAt(nested, 11)
+  check('inner begin pairs with the inner end', second?.begin.at === 16 && second?.end.at === 23,
+    JSON.stringify(second))
+
+  const mixed = '\\begin{a}\\begin{b}\\end{b}\\end{a}'
+  check('other environments are skipped', matchEnvironmentAt(mixed, 2)?.end.at === 30,
+    JSON.stringify(matchEnvironmentAt(mixed, 2)))
+  check('outside an environment no pair', matchEnvironmentAt('plain text', 3) === undefined)
+}
+
+section('environment decorations')
+{
+  const doc = '\\begin{a}x\\end{a}'
+  const match = matchEnvironmentAt(doc, 3)
+  const decorations = rangeDecorations(doc, [match.begin, match.end], 'env')
+  check('names are marked on one line', (decorations.get(0) ?? []).length === 2,
+    JSON.stringify([...decorations]))
+  check('name range keeps its length', decorations.get(0)?.[0]?.length === 1)
+}
+
+section('find matches')
+{
+  const text = 'alpha Beta alpha ALPHA'
+  const matches = findMatches(text, 'alpha')
+  check('case-insensitive matches', matches.length === 3, JSON.stringify(matches))
+  check('offsets reported', matches[0].at === 0 && matches[1].at === 11 && matches[2].at === 17,
+    JSON.stringify(matches))
+  check('length follows the query', matches.every(match => match.length === 5))
+  check('empty query matches nothing', findMatches(text, '').length === 0)
+  check('missing query matches nothing', findMatches(text, 'zzz').length === 0)
+  const unicode = findMatches('Ünïcode', 'ü')
+  check('unicode is matched case-insensitively', unicode.length === 1, JSON.stringify(unicode))
+}
+
+section('completion')
+{
+  const command = completionAt('\\sec', 4)
+  check('command prefix completes', command?.kind === 'command' && command.items.includes('section'),
+    JSON.stringify(command))
+  check('replacement starts after the backslash', command?.start === 1, String(command?.start))
+  check('a lone backslash offers nothing', completionAt('\\', 1) === undefined)
+  check('unknown prefix offers nothing', completionAt('\\zzz', 4) === undefined)
+
+  const environment = completionAt('\\begin{it', 9)
+  check('environment prefix completes', environment?.kind === 'environment'
+    && environment.items[0] === 'itemize' && environment.start === 7, JSON.stringify(environment))
+
+  const doc = 'see \\label{fig:one} and \\ref{fi'
+  const labels = collectLabels(doc)
+  check('labels collected', labels[0] === 'fig:one', JSON.stringify(labels))
+  const reference = completionAt(doc, doc.length, labels)
+  check('reference completes from labels', reference?.kind === 'label' && reference.items[0] === 'fig:one',
+    JSON.stringify(reference))
+
+  const filtered = filterCompletions(['textsc', 'textbf', 'text', 'other'], 'text')
+  check('prefix matches rank first', filtered[0] === 'text' || filtered[0] === 'textsc',
+    JSON.stringify(filtered))
+  check('candidates are capped', filterCompletions(Array.from({ length: 40 }, (_, index) => `c${index}`), '').length === 8)
 }
 
 section('line decorations')
