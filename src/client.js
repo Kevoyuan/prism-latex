@@ -628,6 +628,18 @@ window.__ModuleLoader__.load({
   white-space: pre;
   min-height: 1.62em;
 }
+/* The delimiter pair under the caret: a quiet box, red when unmatched. */
+.oprilx-match {
+  border-radius: 2px;
+  background: rgba(168, 146, 232, .22);
+  box-shadow: inset 0 0 0 1px rgba(168, 146, 232, .55);
+  color: #e6e8ea;
+}
+.oprilx-match[data-kind="broken"] {
+  background: rgba(248, 81, 73, .18);
+  box-shadow: inset 0 0 0 1px rgba(248, 81, 73, .6);
+  color: #ffb4ae;
+}
 .oprilx-code-input {
   border: 0;
   outline: 0;
@@ -1489,14 +1501,168 @@ window.__ModuleLoader__.load({
       return lines
     }
 
+    /** The three delimiter pairs an editor pairs; LaTeX uses all of them. */
+    const BRACKET_PAIRS = { '{': '}', '[': ']', '(': ')' }
+    const BRACKET_CLOSERS = { '}': '{', ']': '[', ')': '(' }
+
+    /** Whether the character at `offset` is escaped by a backslash run. */
+    function isEscaped(text, offset) {
+      let slashes = 0
+      let index = offset - 1
+      while (index >= 0 && text[index] === '\\') {
+        slashes += 1
+        index -= 1
+      }
+      return slashes % 2 === 1
+    }
+
+    /** Whether `offset` sits inside a `%` comment that starts on its own line. */
+    function isCommented(text, offset) {
+      let index = offset
+      while (index > 0 && text[index - 1] !== '\n') index -= 1
+      for (let scan = index; scan < offset; scan += 1) {
+        if (text[scan] === '%' && !isEscaped(text, scan)) return true
+      }
+      return false
+    }
+
+    /** Offset of the delimiter closing the one at `openOffset`, or -1. */
+    function findClosing(text, openOffset) {
+      const opener = text[openOffset]
+      const closer = BRACKET_PAIRS[opener]
+      let depth = 0
+      for (let index = openOffset; index < text.length; index += 1) {
+        const ch = text[index]
+        if (isEscaped(text, index) || isCommented(text, index)) continue
+        if (ch === opener) depth += 1
+        else if (ch === closer) {
+          depth -= 1
+          if (depth === 0) return index
+        }
+      }
+      return -1
+    }
+
+    /** Offset of the delimiter opening the one at `closeOffset`, or -1. */
+    function findOpening(text, closeOffset) {
+      const closer = text[closeOffset]
+      const opener = BRACKET_CLOSERS[closer]
+      let depth = 0
+      for (let index = closeOffset; index >= 0; index -= 1) {
+        const ch = text[index]
+        if (isEscaped(text, index) || isCommented(text, index)) continue
+        if (ch === closer) depth += 1
+        else if (ch === opener) {
+          depth -= 1
+          if (depth === 0) return index
+        }
+      }
+      return -1
+    }
+
+    /**
+     * The delimiter pair at the caret, for highlighting.
+     *
+     * Checks the character before the caret first (where the caret sits after
+     * typing), then the one after it. An unmatched delimiter reports the pair with
+     * -1 on the missing side so the UI can tint it as broken.
+     */
+    function matchDelimiterAt(text, caret) {
+      for (const offset of [caret - 1, caret]) {
+        if (offset < 0 || offset >= text.length) continue
+        const ch = text[offset]
+        if (BRACKET_PAIRS[ch] !== undefined) {
+          if (isEscaped(text, offset) || isCommented(text, offset)) continue
+          return { open: offset, close: findClosing(text, offset) }
+        }
+        if (BRACKET_CLOSERS[ch] !== undefined) {
+          if (isEscaped(text, offset) || isCommented(text, offset)) continue
+          return { open: findOpening(text, offset), close: offset }
+        }
+      }
+      return undefined
+    }
+
+    /** Turn absolute delimiter offsets into per-line columns for the highlight layer. */
+    function bracketDecorations(text, match) {
+      const map = new Map()
+      if (match === undefined) return map
+      const entries = []
+      for (const kind of ['open', 'close']) {
+        const offset = match[kind]
+        if (Number.isInteger(offset) && offset >= 0 && offset < text.length) {
+          entries.push({ offset, kind })
+        }
+      }
+      if (entries.length === 0) return map
+      const top = Math.max(...entries.map(entry => entry.offset))
+      let line = 0
+      let lineStart = 0
+      for (let index = 0; index <= top; index += 1) {
+        const entry = entries.find(candidate => candidate.offset === index)
+        if (entry !== undefined) {
+          const list = map.get(line) ?? []
+          list.push({ at: index - lineStart, kind: entry.kind })
+          map.set(line, list)
+        }
+        if (text[index] === '\n') {
+          line += 1
+          lineStart = index + 1
+        }
+      }
+      const broken = match.open < 0 || match.close < 0
+      if (broken) {
+        for (const list of map.values()) {
+          for (const item of list) item.kind = 'broken'
+        }
+      }
+      return map
+    }
+
     /** Render one highlighted run list, falling back to the plain line text. */
-    function sourceLineNodes(line, runs) {
-      if (runs === undefined) return line === '' ? ' ' : line
-      return runs.length === 1 && runs[0].type === 'plain'
-        ? runs[0].text
-        : runs.map((run, index) => (run.type === 'plain'
-          ? run.text
-          : h('span', { className: 'oprilx-tok', 'data-type': run.type, key: `r${index}` }, run.text)))
+    function sourceLineNodes(line, runs, decorations) {
+      const plainLine = () => (line === '' ? ' ' : line)
+      if (decorations === undefined || decorations.length === 0) {
+        if (runs === undefined) return plainLine()
+        return runs.length === 1 && runs[0].type === 'plain'
+          ? runs[0].text
+          : runs.map((run, index) => (run.type === 'plain'
+            ? run.text
+            : h('span', { className: 'oprilx-tok', 'data-type': run.type, key: `r${index}` }, run.text)))
+      }
+      // Delimiters need their own span, so the run text is split at those columns.
+      const list = runs ?? [{ type: 'plain', text: line }]
+      const parts = []
+      let column = 0
+      for (const run of list) {
+        const text = String(run.text)
+        let index = 0
+        while (index < text.length) {
+          const at = column + index
+          const decoration = decorations.find(item => item.at === at)
+          if (decoration !== undefined) {
+            parts.push(h('span', {
+              className: 'oprilx-match',
+              'data-kind': decoration.kind,
+              key: `m${at}`,
+            }, text[index]))
+            index += 1
+            continue
+          }
+          let stop = text.length
+          for (const item of decorations) {
+            const relative = item.at - at
+            if (relative > 0 && relative < stop) stop = relative
+          }
+          const chunk = text.slice(index, stop)
+          parts.push(run.type === 'plain'
+            ? chunk
+            : h('span', { className: 'oprilx-tok', 'data-type': run.type, key: `r${at}` }, chunk))
+          index = stop
+        }
+        column += text.length
+      }
+      return parts
     }
 
     /** The toolbar's status line: a state tone plus its localized text. */
@@ -1920,11 +2086,15 @@ window.__ModuleLoader__.load({
     function SourceEditor(props) {
       const { t, text, resetToken, onInput, onSave, fontSize, onZoom } = props
       const [composing, setComposing] = useState(false)
+      const [caret, setCaret] = useState(-1)
       const areaRef = useRef(null)
       const codeRef = useRef(null)
       const gutterRef = useRef(null)
       const lines = text.split('\n')
       const highlighted = highlightLatexLines(text)
+      const decorations = caret >= 0
+        ? bracketDecorations(text, matchDelimiterAt(text, caret))
+        : new Map()
 
       // The textarea is uncontrolled on purpose: a controlled one loses the browser's
       // native undo stack (⌘Z) because React rewrites `value` on every keystroke. The
@@ -1934,6 +2104,30 @@ window.__ModuleLoader__.load({
         if (area === null || area === undefined) return
         if (area.value !== text) area.value = text
         // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, [resetToken])
+
+      // The caret drives delimiter pairing: track it on selection changes, not on every
+      // render, and drop the pair when a range is selected.
+      useEffect(() => {
+        const area = areaRef.current
+        if (area === null || area === undefined || typeof document === 'undefined') return undefined
+        const update = () => {
+          if (document.activeElement !== area) {
+            setCaret(-1)
+            return
+          }
+          const start = area.selectionStart
+          setCaret(start === area.selectionEnd ? start : -1)
+        }
+        update()
+        document.addEventListener('selectionchange', update)
+        area.addEventListener('keyup', update)
+        area.addEventListener('click', update)
+        return () => {
+          document.removeEventListener('selectionchange', update)
+          area.removeEventListener('keyup', update)
+          area.removeEventListener('click', update)
+        }
       }, [resetToken])
 
       const sync = () => {
@@ -1946,6 +2140,30 @@ window.__ModuleLoader__.load({
           code.scrollLeft = area.scrollLeft
         }
         if (gutter !== null && gutter !== undefined) gutter.scrollTop = area.scrollTop
+      }
+
+      /** Insert at the caret through the browser so the native undo stack survives. */
+      const insertAt = (area, snippet, caretOffset) => {
+        const start = area.selectionStart
+        let done = false
+        try {
+          done = document.execCommand('insertText', false, snippet)
+        } catch {
+          done = false
+        }
+        if (!done) {
+          const next = `${area.value.slice(0, start)}${snippet}${area.value.slice(area.selectionEnd)}`
+          area.value = next
+          onInput(next)
+        }
+        if (caretOffset !== undefined) {
+          const position = start + caretOffset
+          try {
+            area.setSelectionRange(position, position)
+          } catch {
+            /* the element may already be gone */
+          }
+        }
       }
 
       const handleKeyDown = event => {
@@ -1974,6 +2192,61 @@ window.__ModuleLoader__.load({
           if (event.key === '0') {
             event.preventDefault()
             if (typeof onZoom === 'function') onZoom(0)
+            return
+          }
+        }
+        const area = event.currentTarget
+        const start = area.selectionStart
+        const end = area.selectionEnd
+        const plain = !event.metaKey && !event.ctrlKey && !event.altKey
+        if (plain && event.key === 'Enter' && start === end && !event.shiftKey) {
+          // Keep the indentation of the line being split, like an editor.
+          const before = area.value.slice(0, start)
+          const lineStart = before.lastIndexOf('\n') + 1
+          const leading = /^[ \t]*/.exec(before.slice(lineStart))
+          const indent = leading === null ? '' : leading[0]
+          if (indent !== '') {
+            event.preventDefault()
+            insertAt(area, `\n${indent}`, indent.length + 1)
+            return
+          }
+        }
+        if (plain && (event.key === '{' || event.key === '[' || event.key === '(')) {
+          // Auto-close, wrapping a selection instead of replacing it.
+          const closer = event.key === '{' ? '}' : event.key === '[' ? ']' : ')'
+          event.preventDefault()
+          const selected = area.value.slice(start, end)
+          insertAt(area, `${event.key}${selected}${closer}`,
+            selected === '' ? 1 : selected.length + 2)
+          return
+        }
+        if (plain && (event.key === '}' || event.key === ']' || event.key === ')')
+          && start === end && area.value[start] === event.key) {
+          // Step over a closer that is already there.
+          event.preventDefault()
+          try {
+            area.setSelectionRange(start + 1, start + 1)
+          } catch {
+            /* the element may already be gone */
+          }
+          setCaret(start + 1)
+          return
+        }
+        if (plain && event.key === 'Backspace' && start === end && start > 0) {
+          const before = area.value[start - 1]
+          const after = area.value[start]
+          const pairs = { '{': '}', '[': ']', '(': ')' }
+          if (pairs[before] === after) {
+            event.preventDefault()
+            const next = `${area.value.slice(0, start - 1)}${area.value.slice(start + 1)}`
+            area.value = next
+            onInput(next)
+            try {
+              area.setSelectionRange(start - 1, start - 1)
+            } catch {
+              /* the element may already be gone */
+            }
+            setCaret(start - 1)
             return
           }
         }
@@ -2012,7 +2285,7 @@ window.__ModuleLoader__.load({
             'aria-hidden': 'true',
             'data-hidden': composing ? 'true' : 'false',
           }, lines.map((line, index) => h('div', { className: 'oprilx-codeline', key: index },
-            sourceLineNodes(line.length === 0 ? '' : line, highlighted?.[index])))),
+            sourceLineNodes(line.length === 0 ? '' : line, highlighted?.[index], decorations.get(index))))),
           h('textarea', {
             className: 'oprilx-code-input',
             key: 'input',

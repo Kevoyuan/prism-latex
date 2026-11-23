@@ -130,8 +130,10 @@ The renderer menu stays available for every `.tex` file regardless of configurat
 
 ## Limits
 
-- **A minimal editor.** Plain typing, ⌘S save, two-space Tab, and Prism color under the text. No
-  multi-cursor, search panel, folding or SyncTeX forward/backward search; files larger than the
+- **A minimal editor.** Plain typing, ⌘S save, two-space Tab, delimiter pairing (the pair under the
+  caret is boxed, an unmatched one turns red, `{`/`[`/`(` auto-close and wrap a selection, the
+  closer steps over, Backspace removes an empty pair, Enter keeps the indentation). No
+  multi-cursor, search panel, folding, completion or SyncTeX forward/backward search; files larger than the
   editor cap are shown read-only. Compile artifacts (`\input` siblings) come from the file's
   directory.
 - **Raster preview.** Pages are PNGs at the configured DPI, so very high zoom softens letterforms;

@@ -787,6 +787,61 @@ section('right sidebar tab body: code font zoom')
   check('plain key not intercepted', press('a') === false)
 }
 
+section('right sidebar tab body: bracket editing')
+{
+  const source = { status: 'ready', path: 'demo/example.tex', text: '', version: '5-5', truncated: false }
+  const { slots, en } = mount(makeTabReact({ mode: 'source', source }))
+  const entry = slots.find(candidate => candidate.options?.name === 'sidebar.right.pane.tab')
+  const tree = entry.body({
+    t: key => en.get(key) ?? key,
+    useTabInfo: () => ({ tab: { contentId: ADDRESS, signal: new AbortController().signal } }),
+  })
+  const area = flatten(tree).find(node => node.type === 'textarea')
+  const makeArea = (value, start, end = start) => ({
+    value,
+    selectionStart: start,
+    selectionEnd: end,
+    setSelectionRange(nextStart, nextEnd) {
+      this.selectionStart = nextStart
+      this.selectionEnd = nextEnd
+    },
+  })
+  const press = (target, key) => {
+    let prevented = false
+    area.props.onKeyDown({
+      key,
+      metaKey: false,
+      ctrlKey: false,
+      altKey: false,
+      shiftKey: false,
+      preventDefault: () => { prevented = true },
+      currentTarget: target,
+    })
+    return prevented
+  }
+
+  const braces = makeArea('', 0)
+  check('typing { auto-closes', press(braces, '{') === true)
+  check('closer inserted', braces.value === '{}', JSON.stringify(braces.value))
+  check('caret sits inside the pair', braces.selectionStart === 1, String(braces.selectionStart))
+
+  const wrapped = makeArea('x', 0, 1)
+  press(wrapped, '(')
+  check('selection is wrapped', wrapped.value === '(x)', JSON.stringify(wrapped.value))
+
+  const skip = makeArea('{}', 1)
+  check('closer steps over', press(skip, '}') === true && skip.selectionStart === 2
+    && skip.value === '{}', `${skip.selectionStart} ${JSON.stringify(skip.value)}`)
+
+  const backspace = makeArea('{}', 1)
+  check('backspace removes an empty pair', press(backspace, 'Backspace') === true
+    && backspace.value === '', JSON.stringify(backspace.value))
+
+  const indent = makeArea('  item', 6)
+  press(indent, 'Enter')
+  check('enter keeps indentation', indent.value === '  item\n  ', JSON.stringify(indent.value))
+}
+
 section('right sidebar tab body: dirty draft')
 {
   const source = { status: 'ready', path: 'demo/example.tex', text: 'one', version: '12-345', truncated: false }
