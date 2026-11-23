@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Open-Prism LaTeX preview",
+    "description": "Renders .tex files as compiled documents in the right sidebar preview. Open a .tex file from chat, Files, or a delivered file card and the pane compiles it with the local TeX Live, shows the pages with fit-width and zoom controls, and offers the PDF for download. Compiling happens on this machine with shell escape disabled; it needs pdflatex (or xelatex, lualatex, latexmk) from TeX Live and Ghostscript (gs). Plain text stays available from the preview's renderer menu."
+  }
+}

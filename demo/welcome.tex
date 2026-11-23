@@ -1,0 +1,36 @@
+% A second document, so opening it creates a brand-new sidebar tab.
+\documentclass[11pt]{article}
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage{amsmath}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{microtype}
+
+\title{\textcolor{black}{Hello, LaTeX}}\author{the dsh-openprism-latex bundle}
+\date{}
+
+\begin{document}
+\maketitle
+
+\section*{If you can read this, the sidebar renderer works}
+
+This page was produced by compiling \texttt{demo/welcome.tex} with your local TeX Live,
+rasterizing the PDF with Ghostscript, and drawing the pages inside a DeepSeek Harness
+sidebar tab --- the same tab pane that normally shows plain text.
+
+\begin{itemize}
+  \item The tab was claimed by the \texttt{extension} band of tab types, so it wins over the
+        built-in plain-text viewer for \texttt{.tex}, \texttt{.latex} and \texttt{.ltx}.
+  \item The bottom pill gives fit-width, fixed zoom, the page count with the compile time,
+        and a PDF download of the vector original.
+  \item A compile error would show the offending line and the compiler log here, with Retry.
+\end{itemize}
+
+\noindent A little mathematics, because that is usually where a preview earns its keep:
+\[
+  \int_{-\infty}^{\infty} e^{-x^2}\,\mathrm{d}x = \sqrt{\pi},
+  \qquad
+  \nabla \times \mathbf{B} = \mu_0 \mathbf{J} + \mu_0 \varepsilon_0 \frac{\partial \mathbf{E}}{\partial t}.
+\]
+
+\end{document}

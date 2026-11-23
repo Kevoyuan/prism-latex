@@ -1,0 +1,72 @@
+% A one-page document that shows off the sidebar pane: type, colour, math, a table.
+\documentclass[11pt]{article}
+\usepackage[a4paper,margin=1.1in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{xcolor}
+\usepackage{titlesec}
+\usepackage{microtype}
+
+\definecolor{ink}{RGB}{28,28,30}
+\definecolor{accent}{RGB}{36,123,191}
+\definecolor{muted}{RGB}{107,114,128}
+
+\titleformat{\section}{\large\bfseries\color{ink}}{}{0pt}{}[\vspace{-0.4em}\color{accent}\rule{\linewidth}{0.8pt}]
+\titlespacing*{\section}{0pt}{1.1em}{0.6em}
+
+\begin{document}
+
+\begin{flushleft}
+  {\color{muted}\small\scshape dsh-openprism-latex \,\textperiodcentered\, sidebar preview}\\[0.5em]
+  {\Huge\bfseries\color{ink} LaTeX, rendered where you read}\\[0.35em]
+  {\large\color{accent} Preview \textperiodcentered{} Source \textperiodcentered{} Side by side}
+\end{flushleft}
+
+\vspace{0.4em}
+
+\noindent
+This aagasdasde is compiled by your local TeX Live and drawn into the right sidebar tab. The toolbar
+above carries stasdasdashe compile status, the three view modes; the pill below carries zoom, page count
+with compile time, and the PDF.
+
+\section{What the pane gets right}
+
+\begin{itemize}\setlength{\i
+  \item \textbf{Paper, not a screenshot.} Pages keep their aspect ratio, a hairline border and a
+        quiet shadow, so they read as sheets rather than images.
+  \item \textbf{State you can see.} A dot and one line report compiling, ready or failed; a
+        two-pixel sweep runs along the top while a document recompiles, and the old pages stay put.
+  \item \textbf{Source that reads.} Commands, braces and comments are tinted just enough to scan,
+        with a tabular line gutter.
+\end{itemize}
+
+\section{A little of everything}
+
+\[
+  \int_{-\infty}^{\infty} e^{-x^{2}}\,\mathrm{d}x = \sqrt{\pi},
+  \qquad
+  \nabla \cdot \mathbf{E} = \frac{\rho}{\varepsilon_{0}},
+  \qquad
+  \mathbf{F} = m\mathbf{a}.
+\]
+
+\begin{center}
+\renewcommand{\arraystretch}{1.25}
+\begin{tabular}{@{}llr@{}}
+  \toprule
+  \textbf{Control} & \textbf{What it does} & \textbf{Default} \\
+  \midrule
+  Preview & Compiled pages in the pane & \color{accent}selected \\
+  Source & Tinted \LaTeX{} with line numbers & \\
+  Side by side & Source left, pages right & \\
+  Fit width & Page never upscales past its size & \color{accent}on \\
+  Download & Vector PDF of the same compile & \\
+  \bottomrule
+\end{tabular}
+\end{center}
+
+\vspace{0.3em}
+{\color{muted}\small One engine pass, one Ghostscript pass, one cache entry keyed by the file's
+mtime --- so reopening the same document is instant.}
+
+\end{document}

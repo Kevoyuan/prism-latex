@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Open-Prism LaTeX preview">
+  <defs>
+    <linearGradient id="oprilx-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1d2340"/>
+      <stop offset="1" stop-color="#2b3072"/>
+    </linearGradient>
+    <linearGradient id="oprilx-spectrum" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#ff6398"/>
+      <stop offset="0.55" stop-color="#ffd166"/>
+      <stop offset="1" stop-color="#4dd0e1"/>
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="60" height="60" rx="14" fill="url(#oprilx-bg)"/>
+  <path d="M9 45 L28.5 33.5" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" opacity="0.95" fill="none"/>
+  <path d="M32 13 L48 47 H16 Z" fill="#eaf2ff" fill-opacity="0.14" stroke="#eaf2ff" stroke-width="2.6" stroke-linejoin="round"/>
+  <g stroke="url(#oprilx-spectrum)" stroke-width="2.3" stroke-linecap="round" fill="none">
+    <path d="M33.5 32 L54 24.5"/>
+    <path d="M34.5 35.5 L54 31"/>
+    <path d="M35.5 39 L54 37.5"/>
+  </g>
+</svg>

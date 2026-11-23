@@ -1,0 +1,146 @@
+% dsh-openprism-latex demo document.
+% Compiles with a stock TeX Live installation using pdflatex and produces
+% several pages, which makes it useful for verifying the compile-and-rasterize
+% pipeline end to end.
+\documentclass[11pt]{article}
+
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\newcommand{\prism}{\textsc{Open-Prism}}
+\newcommand{\dsh}{\textsc{DeepSeek Harness}}
+
+\title{\prism{} in \dsh:\\ A Living \LaTeX{} Preview}
+\author{The \texttt{dsh-openprism-latex} bundle}
+\date{Version 0.1.0}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+This sample document exists so the preview can be checked against a real
+compiler rather than a mock. It exercises the parts of a small paper that a
+renderer is likely to meet: a title block, an abstract, numbered sections,
+lists, displayed mathematics, a table, and enough prose to spill onto a second
+page. If this file compiles and its pages appear in the right sidebar, the
+pipeline from source to raster image is working.
+\end{abstract}
+
+\section{Why compile inside the sidebar?}
+
+A language model writes \LaTeX{} the way a person does: as source. Reading that
+source is useful, but it is not the same as reading the document. The difference
+is not cosmetic. Page breaks move, a table overflows, an equation number
+collides with a line of text, and a stray backslash turns a finished section
+into an error message. None of those problems are visible in a syntax-highlighted
+editor, and all of them are obvious in a compiled page.
+
+The usual workaround is a terminal: run the engine, open the PDF, scroll to the
+place that changed. That loop is fine on a workstation with a build script and
+poor inside a chat window. The bundle this document tests closes the loop in
+place: opening a \texttt{.tex} file compiles it with the TeX Live installation
+already on the machine and paints the pages in the document preview.
+
+\section{The pipeline}
+
+The work is split between two halves that never share a process.
+
+\begin{enumerate}
+  \item The host half resolves the requested file, checks that it is a
+        \texttt{.tex}, \texttt{.latex}, or \texttt{.ltx} file inside the
+        session workspace, and refuses anything that escapes that directory.
+  \item It creates a throwaway directory and runs the engine there, with shell
+        escape disabled. The file's own directory is the working directory, so
+        \verb|\input| and relative image paths resolve the way they would in a
+        local build.
+  \item It reads the produced PDF and hands it to Ghostscript, which rasterizes
+        the first pages at the configured resolution.
+  \item It returns the pages as PNG data with their pixel dimensions, plus a
+        freshness token and a link to the PDF.
+  \item The client half turns each page into a blob URL, stacks them vertically,
+        and keeps the tab's loading state honest: compiling, failed, or ready.
+\end{enumerate}
+
+A small in-memory cache is keyed by the file's real path, its modification time,
+its size, and the engine name. Reopening an unchanged document reuses the
+previous compile; editing it invalidates the entry automatically.
+
+\section{A little mathematics}
+
+Because a preview is only convincing when the hard parts render correctly, the
+document includes a few constructs that stress font and spacing decisions:
+inline mathematics such as $e^{i\pi} + 1 = 0$, a display with an integral, and
+an aligned system.
+
+\begin{equation}
+  \int_{-\infty}^{\infty} e^{-x^{2}}\,\mathrm{d}x = \sqrt{\pi}.
+\end{equation}
+
+\begin{align}
+  \nabla \cdot \mathbf{E} &= \frac{\rho}{\varepsilon_{0}}, &
+  \nabla \cdot \mathbf{B} &= 0, \\
+  \nabla \times \mathbf{E} &= -\frac{\partial \mathbf{B}}{\partial t}, &
+  \nabla \times \mathbf{B} &= \mu_{0}\mathbf{J}
+    + \mu_{0}\varepsilon_{0}\frac{\partial \mathbf{E}}{\partial t}.
+\end{align}
+
+The Gaussian integral above is the only numbered result the sample needs. The
+alignment is here to make sure that a two-column display does not push the text
+off the page. It is written for a single compiler pass: the preview runs one
+engine invocation, so the sample avoids cross-references and tables of contents
+that would need a second pass to settle.
+
+\section{What the preview shows}
+
+The page stack is deliberately plain, so that the document, not the interface,
+carries the attention. The table below lists the controls and what they do.
+
+\begin{table}[h]
+  \centering
+  \begin{tabular}{ll}
+    \hline
+    Control & Effect \\
+    \hline
+    Fit width & Default; each page matches the pane width \\
+    Zoom out / in & Fixed steps from 50\% to 300\% \\
+    Percentage & Current scale, or \emph{Fit} while fitting \\
+    Page count & Pages rendered, and the compile time \\
+    Download PDF & Saves the compiled vector PDF \\
+    Retry & Recompiles after an error \\
+    \hline
+  \end{tabular}
+  \caption{Controls in the preview pill, in the order they appear.}
+\end{table}
+
+Fit width never enlarges a page beyond its natural size on screen. That matters
+on a wide monitor: a short page should look like paper, not like a poster. Fixed
+zoom, by contrast, is allowed to overflow the pane horizontally, and the pane
+scrolls when it does.
+
+\section{Limits worth knowing}
+
+\begin{itemize}
+  \item The preview is read-only. Editing happens in the source file; a new
+        version of the file, or the pane's Reload button, compiles it again.
+  \item Pages are raster images. Text is not selectable in the pane; the PDF
+        button is the way to obtain the vector original.
+  \item Shell escape is always disabled, so packages that need to run external
+        programs will not compile.
+  \item Long documents preview their first pages only. The PDF route still
+        serves the complete file.
+\end{itemize}
+
+These are honest limits of a preview, not of \LaTeX{}. A compiled document is
+still the best proof that the source is what its author meant, and a preview
+that stays one click away from the source is enough to keep the loop short.
+
+\section*{Acknowledgements}
+
+The idea of pairing an AI writing workspace with a compiled document view comes
+from the open-source \prism{} project. This bundle ports that idea into the
+\dsh{} plugin system; the compiler and the rasterizer remain the ones already
+installed on the machine.
+
+\end{document}

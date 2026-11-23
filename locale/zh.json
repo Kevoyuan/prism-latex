@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Open-Prism LaTeX 预览",
+    "description": "在右侧栏文档预览中把 .tex 文件渲染成编译后的文档。从对话、文件列表或交付文件卡片打开 .tex 文件，面板会用本机 TeX Live 编译，按宽度自适应并支持缩放显示各页，并可下载 PDF。编译在本机进行并禁用 shell escape，需要 TeX Live 提供的 pdflatex（或 xelatex、lualatex、latexmk）以及 Ghostscript（gs）。仍可在预览的渲染器菜单中切回纯文本。"
+  }
+}

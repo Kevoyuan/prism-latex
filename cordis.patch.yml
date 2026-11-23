@@ -1,0 +1,6 @@
+# dsh-openprism-latex bundle patch: one Host row. The `dsh.client` declaration in
+# package.json makes the Web app load `./client` as the browser half, which
+# registers the LaTeX document-preview renderer in the right sidebar.
+- insert:
+    - id: dsh-openprism-latex
+      name: dsh-openprism-latex
