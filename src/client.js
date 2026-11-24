@@ -5,9 +5,6 @@ window.__ModuleLoader__.load({
     const h = React.createElement
     const { useEffect, useMemo, useRef, useState } = React
 
-    /** Last uncaught client error, reported with the diagnostic so a crash is diagnosable. */
-    let lastClientError
-
     /** Shown in the panel header: which client bundle the page actually loaded. */
     const CLIENT_BUILD = '0.1.0+latex-tab'
     const SESSION_RESOURCE_PREFIX = 'dsh-resource://file/session/'
@@ -109,9 +106,6 @@ window.__ModuleLoader__.load({
       completionLabel: 'Completions',
       engineLabel: 'Engine',
       jumpToLine: 'Jump to line {line}',
-      synctexHint: 'Double-click to find the source line',
-      synctexMiss: 'No source line found at that spot',
-      synctexElsewhere: 'In {path} line {line}',
       copyError: 'Copy the error',
       sendToChat: 'Send the error to the chat',
       copied: 'Copied',
@@ -702,12 +696,6 @@ window.__ModuleLoader__.load({
 }
 .oprilx-replace-row {
   padding-top: 0;
-}
-.oprilx-match[data-kind="flash"] {
-  background: rgba(168, 146, 232, .13);
-  box-shadow: none;
-  border-radius: 0;
-  color: inherit;
 }
 .oprilx-match[data-kind="find"] {
   background: rgba(86, 182, 194, .16);
@@ -1345,33 +1333,6 @@ window.__ModuleLoader__.load({
       return { sessionId: undefined, path: filePath, absolute: true }
     }
 
-    /**
-     * Offset of the first character of a 1-based line, clamped to the document.
-     *
-     * The equivalent of CodeMirror's `doc.line(n).from`, which is what Open-Prism's
-     * outline jump uses.
-     */
-    function lineStartOffset(text, line) {
-      const target = Math.max(1, Math.floor(Number(line)) || 1)
-      let offset = 0
-      for (let current = 1; current < target; current += 1) {
-        const newline = text.indexOf('\n', offset)
-        if (newline === -1) return offset
-        offset = newline + 1
-      }
-      return offset
-    }
-
-    /** Number of the 1-based line that contains `offset`. */
-    function lineNumberAt(text, offset) {
-      const limit = Math.max(0, Math.min(text.length, Math.floor(Number(offset) || 0)))
-      let line = 1
-      for (let index = 0; index < limit; index += 1) {
-        if (text[index] === '\n') line += 1
-      }
-      return line
-    }
-
     /** Whether an address ends in a LaTeX suffix: the only thing `canOpen` may check. */
     function isLatexAddress(address) {
       if (typeof address !== 'string') return false
@@ -1560,7 +1521,7 @@ window.__ModuleLoader__.load({
     }
 
     function renderReady(context) {
-      const { t, address, state, zoom, setZoom, fitScale, download, onDownload, onPageDoubleClick } = context
+      const { t, address, state, zoom, setZoom, fitScale, download, onDownload } = context
       const dpi = Number.isFinite(state.dpi) && state.dpi > 0 ? state.dpi : 144
       const fit = zoom === 'fit'
       const pages = state.pages.map((page, index) => {
@@ -1576,13 +1537,9 @@ window.__ModuleLoader__.load({
           width: pixelWidth,
           height: pixelHeight,
           alt: tr(t, 'pageAlt', { index: index + 1 }),
-          title: typeof onPageDoubleClick === 'function' ? tr(t, 'synctexHint') : undefined,
           loading: 'lazy',
           decoding: 'async',
           draggable: false,
-          onDoubleClick: typeof onPageDoubleClick === 'function'
-            ? event => onPageDoubleClick(index, event)
-            : undefined,
         }))
       })
 
@@ -2592,8 +2549,6 @@ window.__ModuleLoader__.load({
       const { t, text, resetToken, onInput, onSave, fontSize, onZoom, jump } = props
       const [composing, setComposing] = useState(false)
       const [caret, setCaret] = useState(-1)
-      const [flashLine, setFlashLine] = useState(undefined)
-      const flashTimer = useRef(undefined)
       const [finder, setFinder] = useState({
         open: false,
         mode: 'find',
@@ -2619,17 +2574,6 @@ window.__ModuleLoader__.load({
           decorations = mergeDecorations(
             decorations,
             rangeDecorations(text, [matches[index]], index === current ? 'find-current' : 'find'),
-          )
-        }
-      }
-      if (Number.isFinite(flashLine)) {
-        const start = lineStartOffset(text, flashLine)
-        const end = text.indexOf('\n', start)
-        const length = (end === -1 ? text.length : end) - start
-        if (length > 0) {
-          decorations = mergeDecorations(
-            decorations,
-            rangeDecorations(text, [{ at: start, length }], 'flash'),
           )
         }
       }
@@ -2705,7 +2649,7 @@ window.__ModuleLoader__.load({
       // Follow the error card's jump request.
       useEffect(() => {
         if (jump === undefined || !Number.isFinite(jump?.line)) return
-        goToLine(jump.line, jump.column)
+        goToLine(jump.line)
         // eslint-disable-next-line react-hooks/exhaustive-deps
       }, [jump?.seq])
 
@@ -2741,47 +2685,19 @@ window.__ModuleLoader__.load({
         // eslint-disable-next-line react-hooks/exhaustive-deps
       }, [finder.open, finder.query])
 
-      /** Real line box height, measured so a CSS change cannot desync the scroll. */
-      const lineHeight = () => {
-        const area = areaRef.current
-        const fallback = (Number.isFinite(fontSize) ? fontSize : CODE_FONT_DEFAULT) * 1.62
-        if (area === null || area === undefined || typeof getComputedStyle !== 'function') return fallback
-        try {
-          const parsed = Number.parseFloat(getComputedStyle(area).lineHeight)
-          return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback
-        } catch {
-          return fallback
-        }
-      }
+      const lineHeight = () => (Number.isFinite(fontSize) ? fontSize : CODE_FONT_DEFAULT) * 1.62
 
       /** Scroll one offset into view with a third of the pane above it. */
-      /**
-       * Scroll one offset into view.
-       *
-       * `top` puts the line one row below the top edge, which is what CodeMirror's
-       * `scrollIntoView(..., { y: 'start' })` does. The scroll repeats on the next frame
-       * because Chromium also scrolls when a textarea takes focus, and that second scroll
-       * would otherwise leave the caret at the frame edge.
-       */
-      const scrollToOffset = (offset, align = 'middle') => {
+      const revealOffset = (offset) => {
         const area = areaRef.current
         if (area === null || area === undefined) return
-        const row = lineHeight()
+        const before = text.slice(0, offset)
+        const line = before.split('\n').length - 1
         const height = Number.isFinite(area.clientHeight) ? area.clientHeight : 0
-        const index = text.slice(0, Math.max(0, offset)).split('\n').length - 1
-        const target = align === 'top' ? 10 + index * row - row : index * row - height / 3
-        const clamp = () => {
-          const node = areaRef.current
-          if (node === null || node === undefined) return
-          const max = Math.max(0, (Number(node.scrollHeight) || 0) - height)
-          node.scrollTop = Math.max(0, Math.min(max, target))
-          sync()
-        }
-        clamp()
-        if (typeof requestAnimationFrame === 'function') requestAnimationFrame(clamp)
+        const target = line * lineHeight() - height / 3
+        area.scrollTop = Math.max(0, target)
+        sync()
       }
-
-      const revealOffset = offset => scrollToOffset(offset, 'middle')
 
       const goToMatch = next => {
         if (matches.length === 0) return
@@ -2829,33 +2745,23 @@ window.__ModuleLoader__.load({
         onInput(next)
       }
 
-      /**
-       * Put the caret on a 1-based line (and an optional 0-based column), scroll it to the
-       * top and flash the row so the landing is visible. Focus comes first so the caret is
-       * painted, and the scroll runs after it.
-       */
-      const goToLine = (line, column) => {
+      const goToLine = line => {
+        const target = Math.max(1, Math.min(text.split('\n').length, Math.floor(Number(line))))
+        if (!Number.isFinite(target)) return
         const lines = text.split('\n')
-        const target = Math.max(1, Math.min(lines.length, Math.floor(Number(line)) || 1))
         let offset = 0
         for (let index = 0; index < target - 1; index += 1) offset += lines[index].length + 1
-        const width = lines[target - 1] === undefined ? 0 : lines[target - 1].length
-        const within = Math.max(0, Math.min(width, Math.floor(Number(column)) || 0))
-        const caret = offset + within
         const area = areaRef.current
         if (area !== null && area !== undefined) {
           try {
+            area.setSelectionRange(offset, offset)
             area.focus()
-            area.setSelectionRange(caret, caret)
           } catch {
             /* the element may be gone */
           }
-          scrollToOffset(offset, 'top')
+          revealOffset(offset)
         }
-        setCaret(caret)
-        setFlashLine(target)
-        if (flashTimer.current !== undefined) clearTimeout(flashTimer.current)
-        flashTimer.current = setTimeout(() => setFlashLine(undefined), 1600)
+        setCaret(offset)
       }
 
       const acceptCompletion = explicitIndex => {
@@ -3524,7 +3430,6 @@ window.__ModuleLoader__.load({
       const [fontBadge, setFontBadge] = useState(undefined)
       const [engine, setEngine] = useState(() => readEngine())
       const [jump, setJump] = useState(undefined)
-      const [hint, setHint] = useState(undefined)
       const [splitRatio, setSplitRatio] = useState(() => readSplitRatio())
       const splitRef = useRef(null)
       const ratioRef = useRef(splitRatio)
@@ -3539,62 +3444,11 @@ window.__ModuleLoader__.load({
 
       // A compile error hands the editor a line: show the source beside the page and put
       // the caret there.
-      const jumpToSourceLine = (line, column) => {
+      const jumpToSourceLine = line => {
         if (!Number.isFinite(Number(line))) return
         setMode(previous => (previous === 'split' ? previous : 'split'))
-        const within = Number.isFinite(Number(column)) ? Math.max(0, Number(column)) : 0
-        setJump(previous => ({ line: Number(line), column: within, seq: (previous?.seq ?? 0) + 1 }))
+        setJump(previous => ({ line: Number(line), seq: (previous?.seq ?? 0) + 1 }))
       }
-
-      /**
-       * Inverse search: the page pixel under the pointer becomes a PDF point, SyncTeX maps
-       * it back to the source line, and the editor jumps there.
-       */
-      const inverseSearchAt = (index, event) => {
-        const image = event?.currentTarget
-        if (target === undefined || image === null || image === undefined) return
-        const rect = typeof image.getBoundingClientRect === 'function' ? image.getBoundingClientRect() : undefined
-        if (rect === undefined || rect.width <= 0 || rect.height <= 0) return
-        const naturalWidth = Number(image.naturalWidth) > 0 ? Number(image.naturalWidth) : rect.width
-        const naturalHeight = Number(image.naturalHeight) > 0 ? Number(image.naturalHeight) : rect.height
-        const pixelX = (event.clientX - rect.left) * (naturalWidth / rect.width)
-        const pixelY = (event.clientY - rect.top) * (naturalHeight / rect.height)
-        const dpi = Number(state.dpi) > 0 ? Number(state.dpi) : 144
-        const query = new URLSearchParams({
-          session: sessionId ?? '',
-          path: target.path,
-          page: String(index + 1),
-          x: (pixelX * 72 / dpi).toFixed(2),
-          y: (pixelY * 72 / dpi).toFixed(2),
-          engine,
-        })
-        fetch(`api/dsh-openprism-latex/synctex?${query.toString()}`, { cache: 'no-store' })
-          .then(async response => {
-            let body
-            try {
-              body = await response.json()
-            } catch {
-              body = undefined
-            }
-            if (body?.ok !== true) {
-              setHint(tr(t, 'synctexMiss'))
-              setTimeout(() => setHint(undefined), 2400)
-              return
-            }
-            if (body.path === target.path) {
-              jumpToSourceLine(body.line, body.column)
-              return
-            }
-            // The spot came from an \input or \include sibling: report where it is.
-            setHint(tr(t, 'synctexElsewhere', { path: body.path, line: body.line }))
-            setTimeout(() => setHint(undefined), 3200)
-          })
-          .catch(() => {
-            setHint(tr(t, 'synctexMiss'))
-            setTimeout(() => setHint(undefined), 2400)
-          })
-      }
-
 
       useEffect(() => {
         if (target === undefined) {
@@ -3740,10 +3594,6 @@ window.__ModuleLoader__.load({
       }, [mode, target?.sessionId, target?.path, source.status, source.path])
 
       useEffect(() => () => {
-        if (flashTimer.current !== undefined) clearTimeout(flashTimer.current)
-      }, [])
-
-      useEffect(() => () => {
         for (const url of urlsRef.current) {
           try {
             URL.revokeObjectURL(url)
@@ -3794,7 +3644,6 @@ window.__ModuleLoader__.load({
           fitScale: fitScaleFor(paneWidth, { ...state.pages[0], dpi: state.dpi }),
           download,
           onDownload: () => startDownload(state.pdfUrl, pdfFilename(target), setDownload),
-          onPageDoubleClick: inverseSearchAt,
         }))
       }
 
@@ -4061,9 +3910,8 @@ window.__ModuleLoader__.load({
               key: 'status',
               role: 'status',
               'aria-live': 'polite',
-              title: hint === undefined ? heading : hint,
-              'data-hint': hint === undefined ? 'false' : 'true',
-            }, hint === undefined ? status.text : hint),
+              title: heading,
+            }, status.text),
           ]),
           h('div', { className: 'oprilx-tabactions', key: 'actions' }, [
             h('select', {
@@ -4393,27 +4241,6 @@ window.__ModuleLoader__.load({
       const t = ctx.locale.bind('openprismLatex')
       boundT = t
 
-      ctx.effect(() => {
-        if (typeof window === 'undefined' || typeof window.addEventListener !== 'function') {
-          return () => {}
-        }
-        const record = error => {
-          lastClientError = {
-            message: String(error?.message ?? error ?? 'unknown client error'),
-            stack: String(error?.stack ?? '').slice(0, 1200),
-            at: Date.now(),
-          }
-        }
-        const onError = event => record(event?.error ?? event?.message)
-        const onRejection = event => record(event?.reason)
-        window.addEventListener('error', onError)
-        window.addEventListener('unhandledrejection', onRejection)
-        return () => {
-          window.removeEventListener('error', onError)
-          window.removeEventListener('unhandledrejection', onRejection)
-        }
-      })
-
       const definition = {
         id: 'dsh-openprism-latex',
         extensions: ['tex', 'latex', 'ltx'],
@@ -4499,12 +4326,10 @@ window.__ModuleLoader__.load({
         ],
         priority: 'extension',
         title: address => titleOfAddress(address),
-        // Stop claiming documents. Every configuration that let this type win a `.tex`
-        // address ended with the right sidebar closing on the next interaction in this
-        // environment; `candidates()` filters this entry out, so another editor keeps the
-        // file and the pane stays untouched. The renderer reachable today is the left
-        // rail's LaTeX panel, which previews the selected file inline.
-        canOpen: () => false,
+        // DSH's `claim(address, kind)` THROWS when this refuses, and the open flow then
+        // leaves the pane half-updated. The patterns already restrict the suffix, so only
+        // re-check that and never refuse a matched file address.
+        canOpen: address => isLatexAddress(address),
       }
       const registerTabType = () => {
         disposeTabType = ctx.sidebarRightTabs.register(tabDefinition)
@@ -4572,28 +4397,7 @@ window.__ModuleLoader__.load({
         name: 'sidebar.right.pane.tab',
         key: 'dsh-openprism-latex',
         locale: 'openprismLatex',
-      }, function GuardedLatexTab(props) {
-        // A throw during render would unmount the tab and blank the pane; show the error
-        // instead, and keep it for the diagnostic report.
-        try {
-          return LatexTab(props)
-        } catch (error) {
-          lastClientError = {
-            message: String(error?.message ?? error),
-            stack: String(error?.stack ?? '').slice(0, 1200),
-            at: Date.now(),
-          }
-          return React.createElement('div', {
-            style: {
-              padding: '12px',
-              color: '#f85149',
-              fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
-              fontSize: '12px',
-              whiteSpace: 'pre-wrap',
-            },
-          }, `LaTeX pane failed: ${String(error?.message ?? error)}\n\n${String(error?.stack ?? '').split('\n').slice(0, 6).join('\n')}`)
-        }
-      })))
+      }, LatexTab)))
 
       // Self report: the browser cannot expose its registries to the Host any other way, so
       // the tab registry's answer for this plugin is written to a temp file by the /files
@@ -4661,7 +4465,6 @@ window.__ModuleLoader__.load({
             })(),
             sampleAddress,
             sessionKnown: sessionId !== undefined,
-            clientError: lastClientError,
           }
           const encoded = encodeURIComponent(btoa(JSON.stringify(report)))
           fetch(`api/dsh-openprism-latex/files?session=diag&diag=${encoded}`, { cache: 'no-store' })

@@ -27,9 +27,8 @@ writeFileSync(modulePath,
 const addressStart = source.indexOf('    const SESSION_RESOURCE_PREFIX')
 const addressEnd = source.indexOf('    function base64ToBytes', addressStart)
 const addressModulePath = join(directory, 'addresses.mjs')
-writeFileSync(addressModulePath, `${source.slice(addressStart, addressEnd)}\nexport { parseFileAddress, isLatexAddress, lineStartOffset, lineNumberAt }\n`)
-const { parseFileAddress, isLatexAddress, lineStartOffset, lineNumberAt } =
-  await import(pathToFileURL(addressModulePath).href)
+writeFileSync(addressModulePath, `${source.slice(addressStart, addressEnd)}\nexport { parseFileAddress, isLatexAddress }\n`)
+const { parseFileAddress, isLatexAddress } = await import(pathToFileURL(addressModulePath).href)
 
 const { matchDelimiterAt, bracketDecorations, matchEnvironmentAt, rangeDecorations, findMatches,
   completionAt, filterCompletions, collectLabels } = await import(pathToFileURL(modulePath).href)
@@ -176,19 +175,6 @@ section('file addresses')
     && parseFileAddress('') === undefined)
   check('suffix check accepts LaTeX files', isLatexAddress('dsh-resource://file/absolute/tmp/x.latex') === true)
   check('suffix check rejects other files', isLatexAddress('dsh-resource://file/session/s/x.md') === false)
-}
-
-section('line offsets')
-{
-  const doc = 'a\nbb\nccc'
-  check('line 1 starts at 0', lineStartOffset(doc, 1) === 0)
-  check('line 2 starts after the first newline', lineStartOffset(doc, 2) === 2)
-  check('line 3 starts after the second newline', lineStartOffset(doc, 3) === 5)
-  check('past the end clamps to the last line', lineStartOffset(doc, 99) === 5)
-  check('junk clamps to the first line', lineStartOffset(doc, 'x') === 0
-    && lineStartOffset(doc, 0) === 0)
-  check('every line start round-trips', [1, 2, 3].every(line =>
-    lineNumberAt(doc, lineStartOffset(doc, line)) === line))
 }
 
 section('line decorations')

@@ -185,25 +185,6 @@ async function main() {
     }
   }
 
-  section('inverse search (synctex)')
-  {
-    const route = ctx.routes.get('/api/dsh-openprism-latex/synctex')
-    check('synctex route registered', route !== undefined)
-    const response = await route.resource(new Request(
-      `${ORIGIN}/api/dsh-openprism-latex/synctex?session=smoke-session&path=demo/showcase.tex&page=1&x=120&y=150`))
-    const synctex = await response.json()
-    check('synctex resolves a position', synctex.ok === true, JSON.stringify(synctex).slice(0, 300))
-    if (synctex.ok === true) {
-      check('synctex reports the source file', synctex.path === 'demo/showcase.tex', String(synctex.path))
-      check('synctex reports a line', Number.isInteger(synctex.line) && synctex.line >= 1, String(synctex.line))
-      check('synctex reports a column', Number.isInteger(synctex.column) && synctex.column >= 0,
-        String(synctex.column))
-    }
-    const missing = await route.resource(new Request(
-      `${ORIGIN}/api/dsh-openprism-latex/synctex?session=smoke-session&path=demo/showcase.tex&page=1`))
-    check('synctex requires coordinates', missing.status === 400, String(missing.status))
-  }
-
   section('engine override')
   {
     const explicit = await render.resource(new Request(renderUrl({
