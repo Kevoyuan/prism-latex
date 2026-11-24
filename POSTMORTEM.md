@@ -162,10 +162,28 @@ then re-measure.
 
 ---
 
+## 8. A layout was shipped without its stylesheet
+
+**Symptom.** The "two-column workspace" had the right markup and still looked like a vertical
+stack in the app.
+
+**Cause.** The commit added `.oprilx-workspace` / `.oprilx-files` elements but no CSS rules for
+them; the smoke suite only inspects the element tree, so nothing failed.
+
+**Fix.** The CSS ships in the same commit as the markup from now on. A layout change is verified
+on the real page, and the suite asserts only structure — never appearance.
+
+**Rule.** Markup and its CSS land together; a green suite never proves a layout looks right.
+
+---
+
 ## The final stable configuration
 
-- The tab type stays registered but claims nothing: `canOpen: () => false`.
-- The render is reached from the left rail's **LaTeX** panel, which previews the selected file
-  inline, and the panel is the only surface that was stable in every build.
-- Re-enabling claiming requires a real-page check of tab switching, and the user's explicit
-  agreement first. Do not "just fix it" by turning the claim back on.
+- The tab type **claims** `.tex` files again (`canOpen: isLatexAddress`), because that claim is
+  what renders this plugin's preview in the right sidebar. The claim is only safe because
+  `canOpen` never refuses a matched address and every effect that touches a ref lives in the
+  component that declares it.
+- One entry point remains: the `conversation.view` named **LaTeX** (three columns plus the
+  shell's native composer). The left-rail icon and the `main` panel are gone.
+- A page double-click publishes a jump through a module-level channel and **never changes the
+  preview pane's mode**; the conversation view's editor column takes the caret.

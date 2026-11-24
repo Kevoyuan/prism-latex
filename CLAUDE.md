@@ -12,10 +12,14 @@ project already paid for, with the exact code that caused each one.
 - **Client changes need a full relaunch.** DSH serves client bundles as immutable per launch, so
   `Cmd + R` keeps the old bytes. A client change is unverified until the app is quit and reopened.
 - The client bundle may only `require('react')`. No JSX, no `@deepseek-ai/*` imports, no eval.
-- **No document tab type claims a file.** The type is registered with
-  `canOpen: () => false`, so `candidates()` never ranks it and `.tex` files keep the editor that
-  claimed them. Every build that let this type win a `.tex` address had the right sidebar close
-  on the next interaction. The render is reachable from the left rail's **LaTeX** panel.
+- **The tab type does claim `.tex` files** (`canOpen: address => isLatexAddress(address)`, suffix
+  only — never refuse a matched address). That claim is what puts this plugin's preview in the
+  right sidebar, which the user relies on. The early "the pane closes when this type wins"
+  regressions were a misplaced React cleanup and a refused address, not the claim itself; see
+  `POSTMORTEM.md` §1 and §3.
+- **One entry point: the `conversation.view` named LaTeX.** The left-rail icon and the `main`
+  panel were removed. The view draws three columns — files (196px, with Outline), the source
+  editor, and the preview — plus the shell's native composer underneath.
 - Host routes are loopback-only and origin-guarded: `/render`, `/pdf`, `/files`, `/source`,
   `/synctex`, `POST /write`. Anything new repeats those guards.
 - Compile with the local engine (`/Library/TeX/texbin`). Never ship a TeX engine.
