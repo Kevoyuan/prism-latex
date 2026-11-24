@@ -3006,7 +3006,7 @@ window.__ModuleLoader__.load({
       const [composing, setComposing] = useState(false)
       const [caret, setCaret] = useState(-1)
       const [flashLine, setFlashLine] = useState(undefined)
-      const sections = collectSections(text)
+      const sections = useMemo(() => collectSections(text), [text])
       /** Section index that owns the first visible line; -1 when the view is above all. */
       const sectionAtTop = () => {
         let index = -1
@@ -3031,8 +3031,8 @@ window.__ModuleLoader__.load({
       const areaRef = useRef(null)
       const codeRef = useRef(null)
       const gutterRef = useRef(null)
-      const lines = text.split('\n')
-      const highlighted = highlightLatexLines(text)
+      const lines = useMemo(() => text.split('\n'), [text])
+      const highlighted = useMemo(() => highlightLatexLines(text), [text])
       const matches = finder.open && finder.mode === 'find' && finder.query !== ''
         ? findMatches(text, finder.query)
         : []
@@ -3129,6 +3129,27 @@ window.__ModuleLoader__.load({
         // eslint-disable-next-line react-hooks/exhaustive-deps
       }, [text, resetToken])
 
+      /** Pending frame for a coalesced scroll sync. */
+      const scrollFrame = useRef(0)
+      /** Scroll events are frequent; do the work at most once per frame. */
+      const onScroll = () => {
+        if (scrollFrame.current !== 0) return
+        if (typeof requestAnimationFrame !== 'function') {
+          sync()
+          return
+        }
+        scrollFrame.current = requestAnimationFrame(() => {
+          scrollFrame.current = 0
+          sync()
+        })
+      }
+      useEffect(() => () => {
+        if (scrollFrame.current !== 0 && typeof cancelAnimationFrame === 'function') {
+          cancelAnimationFrame(scrollFrame.current)
+          scrollFrame.current = 0
+        }
+      }, [])
+
       const sync = () => {
         const area = areaRef.current
         const code = codeRef.current
@@ -3192,18 +3213,31 @@ window.__ModuleLoader__.load({
         // eslint-disable-next-line react-hooks/exhaustive-deps
       }, [finder.open, finder.query])
 
-      /** Real line box height, measured so a CSS change cannot desync the scroll. */
+      /**
+       * Real line box height, measured so a CSS change cannot desync the scroll.
+       *
+       * `getComputedStyle` forces a style flush, and a scroll handler asking for it on every
+       * event made scrolling feel sticky, so the measurement is cached until the font or the
+       * document changes.
+       */
+      const rowRef = useRef(0)
       const lineHeight = () => {
+        if (rowRef.current > 0) return rowRef.current
         const area = areaRef.current
         const fallback = (Number.isFinite(fontSize) ? fontSize : CODE_FONT_DEFAULT) * 1.62
         if (area === null || area === undefined || typeof getComputedStyle !== 'function') return fallback
         try {
           const parsed = Number.parseFloat(getComputedStyle(area).lineHeight)
-          return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback
+          const row = Number.isFinite(parsed) && parsed > 0 ? parsed : fallback
+          rowRef.current = row
+          return row
         } catch {
           return fallback
         }
       }
+      useEffect(() => {
+        rowRef.current = 0
+      }, [fontSize, resetToken])
 
       /** Scroll one offset into view with a third of the pane above it. */
       /**
@@ -3720,7 +3754,7 @@ window.__ModuleLoader__.load({
               'aria-label': tr(t, 'editorLabel'),
               'data-ime': composing ? 'true' : 'false',
               onChange: event => onInput(event.target.value),
-              onScroll: sync,
+              onScroll,
               onKeyDown: handleKeyDown,
               onCompositionStart: () => setComposing(true),
               onCompositionEnd: event => {

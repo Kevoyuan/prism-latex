@@ -194,6 +194,18 @@ section('completion')
   check('candidates are capped', filterCompletions(Array.from({ length: 40 }, (_, index) => `c${index}`), '').length === 8)
 }
 
+section('scroll coalescing')
+{
+  const source = readFileSync(new URL('../src/client.js', import.meta.url), 'utf8')
+  check('scroll work is framed, not per event', source.includes('requestAnimationFrame(() => {')
+    && source.includes('scrollFrame.current'))
+  check('the textarea uses the coalesced handler', source.includes('onScroll,'))
+  check('line height is cached', source.includes('rowRef.current > 0')
+    && !source.includes('const parsed = Number.parseFloat(getComputedStyle(area).lineHeight)\n          return'))
+  check('parses are memoised', source.includes("useMemo(() => collectSections(text), [text])")
+    && source.includes("useMemo(() => highlightLatexLines(text), [text])"))
+}
+
 section('document outline')
 {
   const doc = [
