@@ -700,6 +700,12 @@ window.__ModuleLoader__.load({
 .oprilx-replace-row {
   padding-top: 0;
 }
+.oprilx-match[data-kind="flash"] {
+  background: rgba(168, 146, 232, .13);
+  box-shadow: none;
+  border-radius: 0;
+  color: inherit;
+}
 .oprilx-match[data-kind="find"] {
   background: rgba(86, 182, 194, .16);
   box-shadow: none;
@@ -2556,6 +2562,8 @@ window.__ModuleLoader__.load({
       const { t, text, resetToken, onInput, onSave, fontSize, onZoom, jump } = props
       const [composing, setComposing] = useState(false)
       const [caret, setCaret] = useState(-1)
+      const [flashLine, setFlashLine] = useState(undefined)
+      const flashTimer = useRef(undefined)
       const [finder, setFinder] = useState({
         open: false,
         mode: 'find',
@@ -2581,6 +2589,17 @@ window.__ModuleLoader__.load({
           decorations = mergeDecorations(
             decorations,
             rangeDecorations(text, [matches[index]], index === current ? 'find-current' : 'find'),
+          )
+        }
+      }
+      if (Number.isFinite(flashLine)) {
+        const start = lineStartOffset(text, flashLine)
+        const end = text.indexOf('\n', start)
+        const length = (end === -1 ? text.length : end) - start
+        if (length > 0) {
+          decorations = mergeDecorations(
+            decorations,
+            rangeDecorations(text, [{ at: start, length }], 'flash'),
           )
         }
       }
@@ -2656,7 +2675,7 @@ window.__ModuleLoader__.load({
       // Follow the error card's jump request.
       useEffect(() => {
         if (jump === undefined || !Number.isFinite(jump?.line)) return
-        goToLine(jump.line)
+        goToLine(jump.line, jump.column)
         // eslint-disable-next-line react-hooks/exhaustive-deps
       }, [jump?.seq])
 
@@ -2692,19 +2711,47 @@ window.__ModuleLoader__.load({
         // eslint-disable-next-line react-hooks/exhaustive-deps
       }, [finder.open, finder.query])
 
-      const lineHeight = () => (Number.isFinite(fontSize) ? fontSize : CODE_FONT_DEFAULT) * 1.62
+      /** Real line box height, measured so a CSS change cannot desync the scroll. */
+      const lineHeight = () => {
+        const area = areaRef.current
+        const fallback = (Number.isFinite(fontSize) ? fontSize : CODE_FONT_DEFAULT) * 1.62
+        if (area === null || area === undefined || typeof getComputedStyle !== 'function') return fallback
+        try {
+          const parsed = Number.parseFloat(getComputedStyle(area).lineHeight)
+          return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback
+        } catch {
+          return fallback
+        }
+      }
 
       /** Scroll one offset into view with a third of the pane above it. */
-      const revealOffset = (offset) => {
+      /**
+       * Scroll one offset into view.
+       *
+       * `top` puts the line one row below the top edge, which is what CodeMirror's
+       * `scrollIntoView(..., { y: 'start' })` does. The scroll repeats on the next frame
+       * because Chromium also scrolls when a textarea takes focus, and that second scroll
+       * would otherwise leave the caret at the frame edge.
+       */
+      const scrollToOffset = (offset, align = 'middle') => {
         const area = areaRef.current
         if (area === null || area === undefined) return
-        const before = text.slice(0, offset)
-        const line = before.split('\n').length - 1
+        const row = lineHeight()
         const height = Number.isFinite(area.clientHeight) ? area.clientHeight : 0
-        const target = line * lineHeight() - height / 3
-        area.scrollTop = Math.max(0, target)
-        sync()
+        const index = text.slice(0, Math.max(0, offset)).split('\n').length - 1
+        const target = align === 'top' ? 10 + index * row - row : index * row - height / 3
+        const clamp = () => {
+          const node = areaRef.current
+          if (node === null || node === undefined) return
+          const max = Math.max(0, (Number(node.scrollHeight) || 0) - height)
+          node.scrollTop = Math.max(0, Math.min(max, target))
+          sync()
+        }
+        clamp()
+        if (typeof requestAnimationFrame === 'function') requestAnimationFrame(clamp)
       }
+
+      const revealOffset = offset => scrollToOffset(offset, 'middle')
 
       const goToMatch = next => {
         if (matches.length === 0) return
@@ -2752,23 +2799,33 @@ window.__ModuleLoader__.load({
         onInput(next)
       }
 
-      const goToLine = line => {
-        const target = Math.max(1, Math.min(text.split('\n').length, Math.floor(Number(line))))
-        if (!Number.isFinite(target)) return
+      /**
+       * Put the caret on a 1-based line (and an optional 0-based column), scroll it to the
+       * top and flash the row so the landing is visible. Focus comes first so the caret is
+       * painted, and the scroll runs after it.
+       */
+      const goToLine = (line, column) => {
         const lines = text.split('\n')
+        const target = Math.max(1, Math.min(lines.length, Math.floor(Number(line)) || 1))
         let offset = 0
         for (let index = 0; index < target - 1; index += 1) offset += lines[index].length + 1
+        const width = lines[target - 1] === undefined ? 0 : lines[target - 1].length
+        const within = Math.max(0, Math.min(width, Math.floor(Number(column)) || 0))
+        const caret = offset + within
         const area = areaRef.current
         if (area !== null && area !== undefined) {
           try {
-            area.setSelectionRange(offset, offset)
             area.focus()
+            area.setSelectionRange(caret, caret)
           } catch {
             /* the element may be gone */
           }
-          revealOffset(offset)
+          scrollToOffset(offset, 'top')
         }
-        setCaret(offset)
+        setCaret(caret)
+        setFlashLine(target)
+        if (flashTimer.current !== undefined) clearTimeout(flashTimer.current)
+        flashTimer.current = setTimeout(() => setFlashLine(undefined), 1600)
       }
 
       const acceptCompletion = explicitIndex => {
@@ -3452,10 +3509,11 @@ window.__ModuleLoader__.load({
 
       // A compile error hands the editor a line: show the source beside the page and put
       // the caret there.
-      const jumpToSourceLine = line => {
+      const jumpToSourceLine = (line, column) => {
         if (!Number.isFinite(Number(line))) return
         setMode(previous => (previous === 'split' ? previous : 'split'))
-        setJump(previous => ({ line: Number(line), seq: (previous?.seq ?? 0) + 1 }))
+        const within = Number.isFinite(Number(column)) ? Math.max(0, Number(column)) : 0
+        setJump(previous => ({ line: Number(line), column: within, seq: (previous?.seq ?? 0) + 1 }))
       }
 
       /**
@@ -3494,7 +3552,7 @@ window.__ModuleLoader__.load({
               return
             }
             if (body.path === target.path) {
-              jumpToSourceLine(body.line)
+              jumpToSourceLine(body.line, body.column)
               return
             }
             // The spot came from an \input or \include sibling: report where it is.
@@ -3650,6 +3708,10 @@ window.__ModuleLoader__.load({
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
       }, [mode, target?.sessionId, target?.path, source.status, source.path])
+
+      useEffect(() => () => {
+        if (flashTimer.current !== undefined) clearTimeout(flashTimer.current)
+      }, [])
 
       useEffect(() => () => {
         for (const url of urlsRef.current) {
