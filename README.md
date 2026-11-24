@@ -23,6 +23,9 @@ that pane about `.tex`:
   size (10–20 px, remembered across files), and **⌘↩** compiles — preview and source stay in sync. If
   the file changed on disk meanwhile, the save is refused with a *Changed on disk* banner instead
   of overwriting the other writer.
+- **The tab type repairs itself.** A registration that goes missing makes the owner refuse
+  the next document open (and close the pane), so the plugin re-registers its tab type whenever
+  the registry stops listing it, and only disposes a registration it still owns.
 - **A panel you can find.** The left rail lists the workspace's LaTeX documents, so the feature is
   reachable without already knowing which file to open.
 - **A real compile, not a syntax highlighter.** The Host compiles with the local TeX Live in the

@@ -4275,31 +4275,85 @@ window.__ModuleLoader__.load({
       let tabTypeState = 'unknown'
       let tabTypeError = ''
       let disposeTabType
-      try {
-        disposeTabType = ctx.sidebarRightTabs.register({
-          id: 'dsh-openprism-latex',
-          kind: 'latex',
-          // Whole-address patterns: a plain `*.tex` loses the extension-band tie to a
-          // broader file type (`dsh-resource://file/**`), because the ranking compares
-          // matched pattern length. These out-specify it and still restrict by suffix
-          // through `canOpen`.
-          patterns: [
-            'dsh-resource://file/**/*.tex',
-            'dsh-resource://file/**/*.latex',
-            'dsh-resource://file/**/*.ltx',
-          ],
-          priority: 'extension',
-          title: address => titleOfAddress(address),
-          canOpen: address => parseSessionAddress(address) !== undefined,
-        })
+      /** How often the watchdog had to put the type back after it disappeared. */
+      let tabTypeRecovered = 0
+      // Whole-address patterns: a plain `*.tex` loses the extension-band tie to a broader
+      // file type (`dsh-resource://file/**`), because the ranking compares matched pattern
+      // length. These out-specify it and still restrict by suffix through `canOpen`.
+      const tabDefinition = {
+        id: 'dsh-openprism-latex',
+        kind: 'latex',
+        patterns: [
+          'dsh-resource://file/**/*.tex',
+          'dsh-resource://file/**/*.latex',
+          'dsh-resource://file/**/*.ltx',
+        ],
+        priority: 'extension',
+        title: address => titleOfAddress(address),
+        canOpen: address => parseSessionAddress(address) !== undefined,
+      }
+      const registerTabType = () => {
+        disposeTabType = ctx.sidebarRightTabs.register(tabDefinition)
         tabTypeState = 'registered'
+      }
+      try {
+        registerTabType()
       } catch (error) {
         tabTypeState = 'threw'
         tabTypeError = String(error?.message ?? error)
       }
       ctx.effect(() => () => {
-        if (typeof disposeTabType === 'function') disposeTabType()
+        if (typeof disposeTabType !== 'function') return
+        // A newer instance may have replaced this definition by id; disposing then would
+        // remove the live type and make the owner close the pane on the next interaction.
+        try {
+          const entries = ctx.sidebarRightTabs?.entries?.()
+          if (Array.isArray(entries)) {
+            const mine = entries.find(entry => entry?.id === 'dsh-openprism-latex')
+            if (mine !== undefined && mine.canOpen !== tabDefinition.canOpen
+              && mine.title !== tabDefinition.title) return
+          }
+        } catch {
+          /* fall through to the normal dispose */
+        }
+        disposeTabType()
       })
+
+      // A tab type that stops being in force makes the owner close the pane on the next
+      // interaction, which looks like "the sidebar disappeared". The registry is cheap to
+      // read, so verify it and put the type back when the entry is gone.
+      ctx.effect(() => {
+        const probe = () => {
+          try {
+            const entries = ctx.sidebarRightTabs?.entries?.()
+            if (!Array.isArray(entries)) return
+            if (entries.some(entry => entry?.id === 'dsh-openprism-latex')) return
+            registerTabType()
+            tabTypeRecovered += 1
+            reportDiagnostic()
+          } catch {
+            /* the registry may be mid-replacement */
+          }
+        }
+        // Fast for the first few seconds (the window where a click can hit a missing
+        // type), then settle to a cheap poll.
+        let fast = 60
+        const tick = () => {
+          probe()
+          if (fast > 0) {
+            fast -= 1
+            timer = setTimeout(tick, 300)
+            return
+          }
+          timer = setInterval(probe, 2000)
+        }
+        let timer = setTimeout(tick, 300)
+        return () => {
+          clearTimeout(timer)
+          clearInterval(timer)
+        }
+      })
+
       ctx.effect(() => ctx.slots.inject('sidebar.right.pane.tab', () => ctx.slots.register({
         name: 'sidebar.right.pane.tab',
         key: 'dsh-openprism-latex',
@@ -4318,6 +4372,17 @@ window.__ModuleLoader__.load({
             build: CLIENT_BUILD,
             tabTypeState,
             tabTypeError,
+            tabTypeRecovered,
+            tabTypePresent: (() => {
+              try {
+                const entries = ctx.sidebarRightTabs?.entries?.()
+                return Array.isArray(entries)
+                  ? entries.some(entry => entry?.id === 'dsh-openprism-latex')
+                  : `not an array: ${String(entries)}`
+              } catch (error) {
+                return `entries threw: ${String(error?.message ?? error)}`
+              }
+            })(),
             service: typeof ctx.sidebarRightTabs,
             entries: (() => {
               try {
