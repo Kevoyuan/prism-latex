@@ -1342,6 +1342,33 @@ window.__ModuleLoader__.load({
       return { sessionId: undefined, path: filePath, absolute: true }
     }
 
+    /**
+     * Offset of the first character of a 1-based line, clamped to the document.
+     *
+     * The equivalent of CodeMirror's `doc.line(n).from`, which is what Open-Prism's
+     * outline jump uses.
+     */
+    function lineStartOffset(text, line) {
+      const target = Math.max(1, Math.floor(Number(line)) || 1)
+      let offset = 0
+      for (let current = 1; current < target; current += 1) {
+        const newline = text.indexOf('\n', offset)
+        if (newline === -1) return offset
+        offset = newline + 1
+      }
+      return offset
+    }
+
+    /** Number of the 1-based line that contains `offset`. */
+    function lineNumberAt(text, offset) {
+      const limit = Math.max(0, Math.min(text.length, Math.floor(Number(offset) || 0)))
+      let line = 1
+      for (let index = 0; index < limit; index += 1) {
+        if (text[index] === '\n') line += 1
+      }
+      return line
+    }
+
     /** Whether an address ends in a LaTeX suffix: the only thing `canOpen` may check. */
     function isLatexAddress(address) {
       if (typeof address !== 'string') return false
