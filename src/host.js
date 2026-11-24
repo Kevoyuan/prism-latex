@@ -21,6 +21,7 @@ const RENDER_PATH = '/api/dsh-openprism-latex/render'
 const PDF_PATH = '/api/dsh-openprism-latex/pdf'
 const FILES_PATH = '/api/dsh-openprism-latex/files'
 const SOURCE_PATH = '/api/dsh-openprism-latex/source'
+const SYNCTEX_PATH = '/api/dsh-openprism-latex/synctex'
 const WRITE_PATH = '/api/dsh-openprism-latex/write'
 /** Largest editor save accepted, in bytes of UTF-8 source. */
 const MAX_WRITE_BYTES = 8 * 1024 * 1024
@@ -51,6 +52,9 @@ const PDF_FAILURE_STATUS = {
   'no-workspace': 503,
   'too-large': 413,
   'engine-missing': 503,
+  'synctex-missing': 501,
+  'no-synctex-match': 404,
+  'outside-workspace': 403,
   'rasterizer-missing': 503,
   'latex-error': 500,
   'rasterize-failed': 500,
@@ -71,7 +75,16 @@ export function apply(ctx, config = {}) {
   const rasterFlights = new Map()
   const resolved = new Map()
 
-  const shared = { ctx, settings, cache, compileFlights, rasterFlights, resolved }
+  const shared = {
+    ctx,
+    settings,
+    cache,
+    compileFlights,
+    rasterFlights,
+    resolved,
+    // Work directories kept for inverse search, one per compiled document, bounded.
+    synctexArtifacts: new Map(),
+  }
 
   const renderRoute = {
     kind: 'exact',
@@ -98,6 +111,12 @@ export function apply(ctx, config = {}) {
     resource: request => respond(shared, request, 'source'),
   }
   ctx.effect(() => ctx.webServer.register(sourceRoute))
+  const synctexRoute = {
+    kind: 'exact',
+    path: SYNCTEX_PATH,
+    resource: request => respond(shared, request, 'synctex'),
+  }
+  ctx.effect(() => ctx.webServer.register(synctexRoute))
   const writeRoute = {
     kind: 'exact',
     path: WRITE_PATH,
@@ -402,6 +421,25 @@ async function handleRequest(shared, request, mode) {
       'content-disposition': `inline; filename="${filename}"`,
       'cache-control': 'no-store',
     })
+  }
+
+  if (mode === 'synctex') {
+    // A missing parameter must not read as 0: `Number(null)` is 0, and y = 0 is a
+    // legitimate point on the top edge of the page.
+    const numberParam = name => {
+      const raw = params.get(name)
+      return raw === null || raw.trim() === '' ? Number.NaN : Number(raw)
+    }
+    const page = numberParam('page')
+    const x = numberParam('x')
+    const y = numberParam('y')
+    if (!Number.isFinite(page) || page < 1 || !Number.isFinite(x) || !Number.isFinite(y)) {
+      return jsonResponse(request,
+        errorBody('bad-request', 'The "page", "x" and "y" query parameters are required.'), 400)
+    }
+    const query = await runSynctexQuery(shared, { ...compileContext, root }, { page, x, y })
+    if (query.failure !== undefined) return failureResponse(request, query.failure, mode)
+    return jsonResponse(request, query.body, 200)
   }
 
   const compiled = await getCompiled(shared, compileContext)
@@ -924,6 +962,7 @@ function buildEngineArgs(engine, texPath, outputDir) {
       '-halt-on-error',
       '-file-line-error',
       '-no-shell-escape',
+      '-synctex=1',
       `-outdir=${outputDir}`,
       texPath,
     ]
@@ -933,12 +972,13 @@ function buildEngineArgs(engine, texPath, outputDir) {
     '-halt-on-error',
     '-file-line-error',
     '-no-shell-escape',
+    '-synctex=1',
     `-output-directory=${outputDir}`,
     texPath,
   ]
 }
 
-async function runCompile({ engine, enginePath, texPath, settings, env }) {
+async function runCompile({ engine, enginePath, texPath, settings, env, keepWorkDir = false }) {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), TEMP_PREFIX))
   try {
     const base = path.basename(texPath, path.extname(texPath))
@@ -1006,13 +1046,132 @@ async function runCompile({ engine, enginePath, texPath, settings, env }) {
       }
     }
 
-    return { pdf, pageCount: pdfPageCountFromLog(log) }
+    return { pdf, pageCount: pdfPageCountFromLog(log), workDir: tmp }
   } finally {
-    try {
-      fs.rmSync(tmp, { recursive: true, force: true })
-    } catch {
-      /* best effort */
+    if (!keepWorkDir) {
+      try {
+        fs.rmSync(tmp, { recursive: true, force: true })
+      } catch {
+        /* best effort */
+      }
     }
+  }
+}
+
+/**
+ * Compile once with positions recorded and keep the work directory, so inverse search
+ * does not recompile per click. At most two documents are kept.
+ *
+ * @returns `{ workDir, pdfPath, synctexBinary }` or `{ failure }`.
+ */
+async function prepareSynctexArtifacts(shared, context) {
+  const cached = shared.synctexArtifacts.get(context.key)
+  if (cached !== undefined) return cached
+
+  const promise = (async () => {
+    const resolvedEngine = resolveEngineWithFallback(shared.settings, shared.resolved, context.engine)
+    if (resolvedEngine === undefined) {
+      return {
+        failure: { code: 'engine-missing', message: `The ${context.engine} executable was not found.` },
+      }
+    }
+    const enginePath = resolvedEngine.path
+    const ghostscriptPath = resolveGhostscript(shared.settings, shared.resolved)
+    const env = buildChildEnv(enginePath, ghostscriptPath, shared.settings.extraPathDirs)
+    const result = await runCompile({
+      engine: resolvedEngine.engine,
+      enginePath,
+      texPath: context.texPath,
+      settings: shared.settings,
+      env,
+      keepWorkDir: true,
+    })
+    if (result.failure !== undefined) return { failure: result.failure }
+    const base = path.basename(context.texPath, path.extname(context.texPath))
+    return {
+      workDir: result.workDir,
+      pdfPath: path.join(result.workDir, `${base}.pdf`),
+      synctexBinary: path.join(path.dirname(enginePath), 'synctex'),
+    }
+  })()
+
+  shared.synctexArtifacts.set(context.key, promise)
+  while (shared.synctexArtifacts.size > 2) {
+    const oldest = shared.synctexArtifacts.keys().next()
+    if (oldest.done === true) break
+    const evicted = shared.synctexArtifacts.get(oldest.value)
+    shared.synctexArtifacts.delete(oldest.value)
+    Promise.resolve(evicted).then(artifacts => {
+      if (artifacts?.workDir === undefined) return
+      try {
+        fs.rmSync(artifacts.workDir, { recursive: true, force: true })
+      } catch {
+        /* best effort */
+      }
+    }).catch(() => {})
+  }
+  return promise
+}
+
+/**
+ * Inverse search: the source position rendered at one PDF point.
+ *
+ * Coordinates arrive in PDF points from the page's top-left corner, which is what
+ * `synctex edit -o page:x:y:pdf` expects; the Client converts pixels with the dpi it
+ * received from the render response.
+ *
+ * @returns `{ body }` with `{ ok, path, line }`, or `{ failure }`.
+ */
+async function runSynctexQuery(shared, context, point) {
+  const artifacts = await prepareSynctexArtifacts(shared, context)
+  if (artifacts.failure !== undefined) return { failure: artifacts.failure }
+  if (!isExecutableFile(artifacts.synctexBinary)) {
+    return {
+      failure: {
+        code: 'synctex-missing',
+        message: 'The synctex tool was not found next to the LaTeX engine.',
+      },
+    }
+  }
+  const spec = `${point.page}:${point.x.toFixed(2)}:${point.y.toFixed(2)}:${artifacts.pdfPath}`
+  const run = await runChildProcess(artifacts.synctexBinary, ['edit', '-o', spec], {
+    cwd: artifacts.workDir,
+    env: process.env,
+    timeoutMs: 15000,
+  })
+  if (run.spawnError !== undefined) {
+    return {
+      failure: {
+        code: 'synctex-missing',
+        message: `synctex could not be started: ${run.spawnError?.message ?? 'unknown error'}`,
+      },
+    }
+  }
+  const stdout = String(run.stdout ?? '')
+  const input = /^Input:(.+)$/m.exec(stdout)
+  const line = /^Line:(-?\d+)$/m.exec(stdout)
+  if (input === null || line === null || run.timedOut) {
+    return {
+      failure: { code: 'no-synctex-match', message: 'No source position matches that spot.' },
+    }
+  }
+  const absolute = path.resolve(input[1].trim())
+  const relative = path.relative(context.root, absolute)
+  if (relative === '' || relative.startsWith('..') || path.isAbsolute(relative)) {
+    return {
+      failure: {
+        code: 'outside-workspace',
+        message: 'That page position belongs to a file outside the workspace.',
+      },
+    }
+  }
+  const sourceLine = Number(line[1])
+  return {
+    body: {
+      ok: true,
+      path: relative,
+      line: Number.isFinite(sourceLine) && sourceLine > 0 ? sourceLine : 1,
+    },
   }
 }
 
