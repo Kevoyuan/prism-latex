@@ -524,6 +524,18 @@ section('sidebar panel entry')
     text.slice(0, 160))
 }
 
+section('chat bar')
+{
+  const { slots, en } = mount(makeReact(undefined))
+  const entry = slots.find(candidate => candidate.options?.name === 'main')
+  const tree = entry.body({ t: key => en.get(key) ?? key })
+  const nodes = flatten(tree)
+  const toggle = nodes.find(node => node.props?.className === 'oprilx-chat-icon')
+  check('chat bar collapses to one icon', toggle !== undefined)
+  check('chat toggle is labelled', toggle?.props?.['aria-label'] === 'Ask in chat',
+    String(toggle?.props?.['aria-label']))
+}
+
 section('panel source mode')
 {
   const { slots, en } = mount(makeReact(undefined))

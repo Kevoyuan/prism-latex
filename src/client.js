@@ -109,6 +109,11 @@ window.__ModuleLoader__.load({
       jumpToSection: 'Jump to {title}',
       outlineLabel: 'Outline',
       outlineEmpty: 'No sections found',
+      chatOpen: 'Ask in chat',
+      chatSend: 'Send to the chat',
+      chatCollapse: 'Collapse the chat box',
+      chatPlaceholder: 'Ask about this document…',
+      chatCopied: 'Copied — paste it into the chat',
       synctexHint: 'Double-click to find the source line',
       synctexMiss: 'No source line found at that spot',
       synctexElsewhere: 'In {path} line {line}',
@@ -601,6 +606,54 @@ window.__ModuleLoader__.load({
   flex: 1 1 auto;
   min-height: 0;
   box-sizing: border-box;
+}
+.oprilx-chat {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border-top: 1px solid var(--dsw-alias-border-l1, #e3e5e8);
+  background: inherit;
+}
+.oprilx-chat-collapsed {
+  justify-content: flex-end;
+}
+.oprilx-chat-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 26px;
+  padding: 0 8px;
+  border: 1px solid var(--dsw-alias-border-l1, #d5d8dc);
+  border-radius: 7px;
+  background: var(--dsw-alias-bg-base, #fff);
+  color: var(--dsw-alias-label-primary, #1c1c1e);
+  font: inherit;
+  font-size: 12px;
+}
+.oprilx-chat-icon {
+  appearance: none;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary, #6b7280);
+  cursor: pointer;
+}
+.oprilx-chat-icon:hover {
+  background: var(--dsw-alias-bg-layer-2, #f1f2f4);
+  color: var(--dsw-alias-label-primary, #1c1c1e);
+}
+.oprilx-chat-note {
+  flex: 0 0 auto;
+  color: var(--dsw-alias-state-success-primary, #2f9e63);
+  font-size: 11px;
 }
 .oprilx-sticky {
   appearance: none;
@@ -2411,6 +2464,117 @@ window.__ModuleLoader__.load({
         'aria-pressed': mode === value,
         onClick: () => setMode(value),
       }, modeIcon(value))
+    }
+
+    /** Whether the chat bar is expanded; remembered across sessions. */
+    function readChatOpen() {
+      try {
+        const raw = typeof localStorage === 'undefined' ? null : localStorage.getItem('dsh-openprism-latex.chat')
+        return raw === 'open'
+      } catch {
+        return false
+      }
+    }
+
+    /**
+     * A composer that drives the real session.
+     *
+     * It is not a second model connection: the text lands in the conversation's draft via
+     * `inputActions` and submits through the same action the native composer uses. Where
+     * that scope is unavailable (the left panel has no input actions) it copies the text
+     * instead, so the button still does something honest.
+     */
+    function ChatBar(props) {
+      const t = typeof props.t === 'function' ? props.t : boundT
+      const [open, setOpen] = useState(() => readChatOpen())
+      const [text, setText] = useState('')
+      const [note, setNote] = useState(undefined)
+
+      const remember = next => {
+        setOpen(next)
+        try {
+          if (typeof localStorage !== 'undefined') {
+            localStorage.setItem('dsh-openprism-latex.chat', next ? 'open' : 'closed')
+          }
+        } catch {
+          /* preference storage is best effort */
+        }
+      }
+
+      const flash = message => {
+        setNote(message)
+        setTimeout(() => setNote(undefined), 2000)
+      }
+
+      const send = () => {
+        const value = text.trim()
+        if (value === '') return
+        const actions = props.inputActions
+        if (actions !== null && typeof actions === 'object' && typeof actions.insertText === 'function') {
+          try {
+            const span = actions.captureInsertion()
+            if (actions.insertText(value, span) === true) {
+              if (typeof actions.submit === 'function') actions.submit()
+              setText('')
+              return
+            }
+          } catch {
+            /* fall through to the clipboard */
+          }
+        }
+        copyText(value, () => {})
+        setText('')
+        flash(tr(t, 'chatCopied'))
+      }
+
+      if (!open) {
+        return h('div', { className: 'oprilx-chat oprilx-chat-collapsed' }, h('button', {
+          type: 'button',
+          className: 'oprilx-chat-icon',
+          'aria-label': tr(t, 'chatOpen'),
+          title: tr(t, 'chatOpen'),
+          onClick: () => remember(true),
+        }, glyph('send', 15)))
+      }
+
+      return h('div', { className: 'oprilx-chat' }, [
+        h('input', {
+          key: 'input',
+          className: 'oprilx-chat-input',
+          type: 'text',
+          value: text,
+          placeholder: tr(t, 'chatPlaceholder'),
+          'aria-label': tr(t, 'chatPlaceholder'),
+          onChange: event => setText(event.target.value),
+          onKeyDown: event => {
+            if (event.key === 'Enter') {
+              event.preventDefault()
+              send()
+            }
+            if (event.key === 'Escape') {
+              event.preventDefault()
+              remember(false)
+            }
+          },
+        }),
+        h('button', {
+          type: 'button',
+          className: 'oprilx-chat-icon',
+          key: 'send',
+          'aria-label': tr(t, 'chatSend'),
+          title: tr(t, 'chatSend'),
+          onClick: send,
+        }, glyph('send', 15)),
+        h('button', {
+          type: 'button',
+          className: 'oprilx-chat-icon',
+          key: 'collapse',
+          'aria-label': tr(t, 'chatCollapse'),
+          title: tr(t, 'chatCollapse'),
+          onClick: () => remember(false),
+        }, glyph('close', 14)),
+        note === undefined ? null : h('span', { className: 'oprilx-chat-note', key: 'note', role: 'status' }, note),
+      ])
     }
 
     /**
@@ -4243,6 +4407,7 @@ window.__ModuleLoader__.load({
           ]),
         ]),
         body,
+        h(ChatBar, { key: 'chat', t, inputActions: props.inputActions }),
       ])
     }
 
@@ -4661,6 +4826,7 @@ window.__ModuleLoader__.load({
           : null,
         h('div', { className: 'oprilx-panel-list', key: 'list', role: 'list' }, rows),
         h('div', { className: 'oprilx-panel-doc', key: 'doc', ref: node => { docRef.current = node } }, doc),
+        h(ChatBar, { key: 'chat', t, inputActions: props.inputActions }),
       ])
     }
 
