@@ -5408,6 +5408,30 @@ window.__ModuleLoader__.load({
       // Self report: the browser cannot expose its registries to the Host any other way, so
       // the tab registry's answer for this plugin is written to a temp file by the /files
       // route. It retries because the app may not have restored its session yet at boot.
+      /** Which ancestor actually scrolls the view, and how tall the panel really is. */
+      const scrollChain = () => {
+        try {
+          if (typeof document === 'undefined' || typeof document.querySelector !== 'function') return null
+          const chain = []
+          let node = document.querySelector('.oprilx-panel')
+          for (let depth = 0; node !== null && node !== undefined && depth < 8; depth += 1) {
+            const style = typeof getComputedStyle === 'function' ? getComputedStyle(node) : undefined
+            chain.push({
+              tag: String(node.tagName ?? '').toLowerCase(),
+              className: typeof node.className === 'string' ? node.className.slice(0, 60) : '',
+              overflowY: style?.overflowY ?? '',
+              clientHeight: Number(node.clientHeight) || 0,
+              scrollHeight: Number(node.scrollHeight) || 0,
+              scrollable: (Number(node.scrollHeight) || 0) > (Number(node.clientHeight) || 0) + 1,
+            })
+            node = node.parentElement
+          }
+          return chain
+        } catch {
+          return null
+        }
+      }
+
       const sendDiagnostic = () => {
         try {
           const sessionId = readCurrentSessionId()
@@ -5415,6 +5439,7 @@ window.__ModuleLoader__.load({
           const sampleAddress = `dsh-resource://file/session/${encodeURIComponent(addressSession)}/demo/hello.tex`
           const report = {
             build: CLIENT_BUILD,
+            scrollChain: scrollChain(),
             tabTypeState,
             tabTypeError,
             tabTypeRecovered,
