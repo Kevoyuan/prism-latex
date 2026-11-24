@@ -4825,7 +4825,6 @@ window.__ModuleLoader__.load({
           : null,
         h('div', { className: 'oprilx-panel-list', key: 'list', role: 'list' }, rows),
         h('div', { className: 'oprilx-panel-doc', key: 'doc', ref: node => { docRef.current = node } }, doc),
-        h(ChatBar, { key: 'chat', t, inputActions: props.inputActions }),
       ])
     }
 
