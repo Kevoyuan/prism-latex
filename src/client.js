@@ -1491,6 +1491,50 @@ window.__ModuleLoader__.load({
       }
     }
 
+    /**
+     * The document the right sidebar is showing. The conversation view mirrors whatever the
+     * user opened there, so the sidebar tab publishes its address and every view picks it up.
+     */
+    let currentDocument
+    const documentListeners = new Set()
+
+    /** Publish the document a sidebar surface is showing. */
+    function publishDocument(next) {
+      if (next === null || typeof next !== 'object') return
+      if (typeof next.path !== 'string' || next.path === '') return
+      currentDocument = {
+        path: next.path,
+        sessionId: typeof next.sessionId === 'string' ? next.sessionId : undefined,
+        at: Date.now(),
+      }
+      for (const listener of [...documentListeners]) {
+        try {
+          listener(currentDocument)
+        } catch {
+          /* one bad listener must not silence the rest */
+        }
+      }
+    }
+
+    /**
+     * Subscribe to the current document. The latest one is mirrored on subscribe, so a view
+     * that mounts after the sidebar tab still shows the right file; returns the unsubscribe.
+     */
+    function subscribeDocument(listener) {
+      if (typeof listener !== 'function') return () => {}
+      documentListeners.add(listener)
+      if (currentDocument !== undefined) {
+        try {
+          listener(currentDocument)
+        } catch {
+          /* the subscriber's own failure is not the publisher's problem */
+        }
+      }
+      return () => {
+        documentListeners.delete(listener)
+      }
+    }
+
     function interpolate(template, values) {
       if (typeof template !== 'string') return ''
       return template.replace(/\{(\w+)\}/g, (match, name) => {
@@ -4038,6 +4082,13 @@ window.__ModuleLoader__.load({
           })
       }
 
+      // The conversation view mirrors the document this sidebar tab shows.
+      useEffect(() => {
+        if (target === undefined) return
+        publishDocument({ path: target.path, sessionId })
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, [target?.path, sessionId])
+
 
       useEffect(() => {
         if (target === undefined) {
@@ -4570,6 +4621,9 @@ window.__ModuleLoader__.load({
       const [listing, setListing] = useState(() => (
         readCurrentSessionId() === undefined ? { status: 'no-session' } : { status: 'idle' }))
       const [selected, setSelected] = useState(undefined)
+      // The session of the document published by the right sidebar; the app's current
+      // session is only the fallback for when nothing has been published yet.
+      const [documentSession, setDocumentSession] = useState(undefined)
       const [renderState, setRenderState] = useState({ status: 'idle' })
       const [zoom, setZoom] = useState('fit')
       const [download, setDownload] = useState({ status: 'idle' })
@@ -4584,7 +4638,7 @@ window.__ModuleLoader__.load({
       const docRef = useRef(null)
       const urlsRef = useRef([])
       const timersRef = useRef([])
-      const sessionId = readCurrentSessionId()
+      const sessionId = documentSession ?? readCurrentSessionId()
       // The jump subscription is registered once; these refs keep it reading the current
       // selection instead of whatever was selected when it mounted.
       const selectedRef = useRef(selected)
@@ -4745,6 +4799,15 @@ window.__ModuleLoader__.load({
         if (session !== undefined && jump.sessionId !== undefined && jump.sessionId !== session) return
         if (selectedRef.current !== jump.path) setSelected(jump.path)
         setPendingJump({ line: jump.line, column: jump.column ?? 0, seq: jump.at ?? Date.now() })
+      }), [])
+
+      // The view's document is whatever the right sidebar is showing; when nothing has been
+      // published yet it keeps whatever it had.
+      useEffect(() => subscribeDocument(document => {
+        if (document === null || document === undefined) return
+        if (typeof document.path !== 'string' || document.path === '') return
+        setSelected(document.path)
+        if (document.sessionId !== undefined) setDocumentSession(document.sessionId)
       }), [])
 
       const typeReady = typeof props.loader?.typeReady === 'function' ? props.loader.typeReady() : undefined

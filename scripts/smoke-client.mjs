@@ -112,34 +112,30 @@ function makeTabReact(options = {}) {
   }
 }
 
-/** React stub matching the conversation view's hook order: every field is seedable. */
+/** React stub matching the conversation view's hook order.
+ *
+ * Named fields seed a state; unseeded states fall back to the component's own initial value
+ * (so localStorage-backed preferences can be exercised). Every setter records into `__log`
+ * so a click can be observed without a real re-render.
+ */
 function makePanelReact(options = {}) {
-  const values = {
-    tick: 0,
-    refresh: 0,
-    attempt: 0,
-    listing: options.listing ?? { status: 'idle' },
-    selected: options.selected,
-    renderState: options.renderState ?? { status: 'idle' },
-    zoom: options.zoom ?? 'fit',
-    download: options.download ?? { status: 'idle' },
-    paneWidth: options.paneWidth ?? 0,
-    copied: false,
-    source: options.source ?? { status: 'idle' },
-    draft: options.draft,
-    pendingJump: undefined,
-    codeFont: 12,
-  }
-  const order = ['tick', 'refresh', 'attempt', 'listing', 'selected', 'renderState', 'zoom',
-    'download', 'paneWidth', 'copied', 'source', 'draft', 'pendingJump', 'codeFont']
+  const order = ['tick', 'refresh', 'attempt', 'listing', 'selected', 'documentSession',
+    'renderState', 'zoom', 'download', 'paneWidth', 'copied', 'source', 'draft', 'pendingJump',
+    'codeFont']
+  const values = { ...options }
+  const log = {}
   let calls = 0
+  const resolve = value => (typeof value === 'function' ? value() : value)
   return {
     ...React,
+    __log: log,
     useState(initial) {
       const key = order[calls]
       calls += 1
-      if (key !== undefined) return [values[key], () => {}]
-      return [typeof initial === 'function' ? initial() : initial, () => {}]
+      if (key === undefined) return [resolve(initial), () => {}]
+      const value = key in values ? values[key] : resolve(initial)
+      const list = log[key] ?? (log[key] = [])
+      return [value, next => list.push(typeof next === 'function' ? next(value) : next)]
     },
     useEffect() {},
     useMemo(factory) {
@@ -147,6 +143,21 @@ function makePanelReact(options = {}) {
     },
     useRef(value) {
       return { current: value }
+    },
+  }
+}
+
+/** localStorage stand-in that remembers reads and writes for the persistence tests. */
+function fakeStorage(entries = {}) {
+  const writes = []
+  return {
+    writes,
+    getItem(key) {
+      return Object.prototype.hasOwnProperty.call(entries, key) ? entries[key] : null
+    },
+    setItem(key, value) {
+      entries[key] = String(value)
+      writes.push([key, String(value)])
     },
   }
 }
@@ -247,26 +258,73 @@ function mount(react, globals = {}) {
   }
 }
 
-/** Flatten an element tree into inspectable nodes, rendering nested components. */
-function flatten(node, out = [], depth = 0) {
+/** Flatten an element tree into inspectable nodes, rendering nested components.
+ *
+ * `scope`, when given, is told the name of every component about to call hooks; the
+ * cross-surface test uses it to seed LatexTab and LatexPanel separately in one bundle.
+ */
+function flatten(node, out = [], depth = 0, scope) {
   if (node === null || node === undefined || node === false || node === true) return out
   if (Array.isArray(node)) {
-    for (const child of node) flatten(child, out, depth)
+    for (const child of node) flatten(child, out, depth, scope)
     return out
   }
   if (typeof node === 'object' && node.props !== undefined) {
     // Function components (SourceEditor and friends) are invoked so their output is
     // inspectable; the hook stubs make a plain call safe.
     if (typeof node.type === 'function' && depth < 8) {
-      flatten(node.type(node.props), out, depth + 1)
+      if (scope !== undefined) scope.enter(node.type.name)
+      flatten(node.type(node.props), out, depth + 1, scope)
+      if (scope !== undefined) scope.leave()
       return out
     }
     out.push(node)
-    flatten(node.props.children, out, depth)
+    flatten(node.props.children, out, depth, scope)
     return out
   }
   out.push({ text: String(node) })
   return out
+}
+
+/** One bundle instance carrying both surfaces.
+ *
+ * Hooks are seeded per component (by function name), and effects can be switched on so the
+ * module-level jump/document channels really publish and subscribe between the two bodies.
+ */
+function makeSurfaceReact(options = {}) {
+  const tab = makeTabReact(options.tab ?? {})
+  const panel = makePanelReact(options.panel ?? {})
+  const stack = []
+  let effects = false
+  const active = () => stack[stack.length - 1]
+  return {
+    ...React,
+    __log: panel.__log,
+    __tabLog: tab.__calls,
+    enter(name) {
+      stack.push(name)
+    },
+    leave() {
+      stack.pop()
+    },
+    __effects(value) {
+      effects = value === true
+    },
+    useState(initial) {
+      if (active() === 'LatexTab') return tab.useState(initial)
+      if (active() === 'LatexPanel') return panel.useState(initial)
+      return [typeof initial === 'function' ? initial() : initial, () => {}]
+    },
+    useEffect(fn) {
+      if (effects) fn()
+    },
+    useMemo(factory) {
+      return factory()
+    },
+    useRef(value) {
+      return { current: value }
+    },
+  }
 }
 
 function textOf(tree) {
@@ -748,6 +806,73 @@ section('panel: the render request carries the remembered engine')
   } finally {
     delete globalThis.localStorage
   }
+}
+
+section('view follows the document the right sidebar publishes')
+{
+  const tabReady = {
+    status: 'ready',
+    pages: [{ url: 'blob:sidebar-1', width: 1191, height: 1684 }],
+    pageCount: 1,
+    durationMs: 300,
+    dpi: 144,
+    pdfUrl: '',
+    truncated: false,
+  }
+  const fetch = url => {
+    const value = String(url)
+    if (value.includes('/synctex?')) {
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        json: async () => ({ ok: true, path: 'demo/other.tex', line: 5, column: 2 }),
+      })
+    }
+    return Promise.resolve({ ok: true, status: 200, json: async () => ({ ok: false }) })
+  }
+  const react = makeSurfaceReact({ tab: { state: tabReady } })
+  const bundle = mount(react, { fetch })
+  react.__effects(true)
+
+  // The right sidebar tab body mounts; its effect publishes that address.
+  const tabEntry = bundle.slots.find(candidate => candidate.options?.name === 'sidebar.right.pane.tab')
+  react.enter('LatexTab')
+  const tabTree = tabEntry.body({
+    t: key => bundle.en.get(key) ?? key,
+    useTabInfo: () => ({ tab: { contentId: 'dsh-resource://file/session/sess-1/demo/other.tex', signal: new AbortController().signal } }),
+  })
+  react.leave()
+  const tabNodes = flatten(tabTree, [], 0, react)
+  const tabImage = tabNodes.find(node => node.type === 'img')
+  check('the sidebar tab renders its page', tabImage !== undefined)
+  // A double-click in the sidebar publishes a jump; it must not touch the pane's mode.
+  if (tabImage !== undefined) {
+    tabImage.props.onDoubleClick({
+      currentTarget: {
+        naturalWidth: 400,
+        naturalHeight: 560,
+        getBoundingClientRect: () => ({ left: 0, top: 0, width: 200, height: 280 }),
+      },
+      clientX: 100,
+      clientY: 50,
+    })
+    await new Promise(resolve => setTimeout(resolve, 0))
+  }
+  check('the sidebar double-click never changes the pane mode',
+    (react.__tabLog?.mode ?? []).length === 0, JSON.stringify(react.__tabLog?.mode))
+
+  // The conversation view subscribes; both channels replay what the sidebar published.
+  const viewEntry = bundle.slots.find(candidate => candidate.options?.name === 'conversation.view')
+  const viewTree = flatten(viewEntry.body({ t: key => bundle.en.get(key) ?? key }), [], 0, react)
+  check('the view follows the published document',
+    (react.__log.selected ?? []).includes('demo/other.tex'),
+    JSON.stringify(react.__log.selected))
+  check('the view takes the published session',
+    (react.__log.documentSession ?? []).includes('sess-1'),
+    JSON.stringify(react.__log.documentSession))
+  check('a sidebar double-click still sets the pending caret',
+    (react.__log.pendingJump ?? []).some(jump => jump !== null && jump !== undefined && jump.line === 5),
+    JSON.stringify(react.__log.pendingJump))
 }
 
 section('sidebar panel with a session')

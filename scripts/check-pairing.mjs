@@ -32,16 +32,18 @@ writeFileSync(addressModulePath,
 const { parseFileAddress, isLatexAddress, lineStartOffset, lineNumberAt, collectSections } =
   await import(pathToFileURL(addressModulePath).href)
 
-// The cross-surface jump channel is module state too; lift it to test replay and cleanup.
+// The cross-surface channels are module state too; lift them to test replay and cleanup.
 const jumpStart = source.indexOf('    let lastJump\n')
 const jumpEnd = source.indexOf('    function interpolate', jumpStart)
 if (jumpStart < 0 || jumpEnd < 0) {
-  console.error('FAIL — the jump channel block moved; update this script')
+  console.error('FAIL — the channel block moved; update this script')
   process.exit(1)
 }
 const jumpModulePath = join(directory, 'jumps.mjs')
-writeFileSync(jumpModulePath, `${source.slice(jumpStart, jumpEnd)}\nexport { publishJump, subscribeJump }\n`)
-const { publishJump, subscribeJump } = await import(pathToFileURL(jumpModulePath).href)
+writeFileSync(jumpModulePath,
+  `${source.slice(jumpStart, jumpEnd)}\nexport { publishJump, subscribeJump, publishDocument, subscribeDocument }\n`)
+const { publishJump, subscribeJump, publishDocument, subscribeDocument } =
+  await import(pathToFileURL(jumpModulePath).href)
 
 const { matchDelimiterAt, bracketDecorations, matchEnvironmentAt, rangeDecorations, findMatches,
   completionAt, filterCompletions, collectLabels } = await import(pathToFileURL(modulePath).href)
@@ -281,6 +283,43 @@ section('jump channel')
     JSON.stringify(strict.map(jump => jump.line)))
   check('a jump without a column starts at zero', strict[1]?.column === 0,
     JSON.stringify(strict[1]))
+}
+
+section('current document channel')
+{
+  const seen = []
+  const first = subscribeDocument(document => seen.push(document))
+  publishDocument({ path: 'demo/a.tex', sessionId: 's1' })
+  check('published document reaches a subscriber', seen.length === 1
+    && seen[0].path === 'demo/a.tex' && seen[0].sessionId === 's1',
+  JSON.stringify(seen))
+  check('document carries a timestamp', Number.isFinite(seen[0].at))
+  first()
+  publishDocument({ path: 'demo/b.tex', sessionId: 's1' })
+  check('unsubscribe stops document delivery', seen.length === 1, String(seen.length))
+  const late = []
+  const off = subscribeDocument(document => late.push(document))
+  check('a late subscriber replays the latest document', late.length === 1
+    && late[0].path === 'demo/b.tex', JSON.stringify(late))
+  off()
+  publishDocument({ path: '' })
+  publishDocument({ path: 42 })
+  publishDocument(null)
+  const strict = []
+  const stop = subscribeDocument(document => strict.push(document))
+  publishDocument({ path: 'demo/c.tex' })
+  stop()
+  check('malformed documents are refused', strict.length === 2
+    && strict[1].path === 'demo/c.tex' && strict[1].sessionId === undefined,
+  JSON.stringify(strict))
+}
+
+section('document channel wiring')
+{
+  check('the sidebar tab publishes its document',
+    source.includes('publishDocument({ path: target.path, sessionId })'))
+  check('the conversation view subscribes to the document channel',
+    source.includes('useEffect(() => subscribeDocument(document =>'))
 }
 
 section('inverse search only publishes')
