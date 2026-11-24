@@ -4499,10 +4499,12 @@ window.__ModuleLoader__.load({
         ],
         priority: 'extension',
         title: address => titleOfAddress(address),
-        // DSH's `claim(address, kind)` THROWS when this refuses, and the open flow then
-        // leaves the pane half-updated. The patterns already restrict the suffix, so only
-        // re-check that and never refuse a matched file address.
-        canOpen: address => isLatexAddress(address),
+        // Stop claiming documents. Every configuration that let this type win a `.tex`
+        // address ended with the right sidebar closing on the next interaction in this
+        // environment; `candidates()` filters this entry out, so another editor keeps the
+        // file and the pane stays untouched. The renderer reachable today is the left
+        // rail's LaTeX panel, which previews the selected file inline.
+        canOpen: () => false,
       }
       const registerTabType = () => {
         disposeTabType = ctx.sidebarRightTabs.register(tabDefinition)
