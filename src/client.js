@@ -1342,6 +1342,28 @@ window.__ModuleLoader__.load({
       return { sessionId: undefined, path: filePath, absolute: true }
     }
 
+    /** Offset of the first character of a 1-based line, clamped to the document. */
+    function lineStartOffset(text, line) {
+      const target = Math.max(1, Math.floor(Number(line)) || 1)
+      let offset = 0
+      for (let current = 1; current < target; current += 1) {
+        const newline = text.indexOf('\n', offset)
+        if (newline === -1) return offset
+        offset = newline + 1
+      }
+      return offset
+    }
+
+    /** Number of the 1-based line that contains `offset`. */
+    function lineNumberAt(text, offset) {
+      const limit = Math.max(0, Math.min(text.length, Math.floor(Number(offset) || 0)))
+      let line = 1
+      for (let index = 0; index < limit; index += 1) {
+        if (text[index] === '\n') line += 1
+      }
+      return line
+    }
+
     /** Whether an address ends in a LaTeX suffix: the only thing `canOpen` may check. */
     function isLatexAddress(address) {
       if (typeof address !== 'string') return false
@@ -2615,6 +2637,12 @@ window.__ModuleLoader__.load({
         }
       }
 
+      // The flash timer belongs to this component; clearing it on unmount keeps a late
+      // setState out of a torn-down tree.
+      useEffect(() => () => {
+        if (flashTimer.current !== undefined) clearTimeout(flashTimer.current)
+      }, [])
+
       // The textarea is uncontrolled on purpose: a controlled one loses the browser's
       // native undo stack (⌘Z) because React rewrites `value` on every keystroke. The
       // file text is adopted only when a new file version arrives.
@@ -3708,10 +3736,6 @@ window.__ModuleLoader__.load({
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
       }, [mode, target?.sessionId, target?.path, source.status, source.path])
-
-      useEffect(() => () => {
-        if (flashTimer.current !== undefined) clearTimeout(flashTimer.current)
-      }, [])
 
       useEffect(() => () => {
         for (const url of urlsRef.current) {
