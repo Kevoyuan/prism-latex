@@ -3667,31 +3667,6 @@ window.__ModuleLoader__.load({
     }
 
     /** Sidebar icon: a prism splitting a beam, in the host's icon color. */
-    function PanelIcon(props) {
-      const size = Number.isFinite(props?.size) ? props.size : 18
-      const active = props?.active === true
-      return h('svg', {
-        viewBox: '0 0 24 24',
-        width: size,
-        height: size,
-        'aria-hidden': 'true',
-        style: { display: 'block', opacity: active ? 1 : 0.72 },
-      }, [
-        h('path', {
-          key: 'beam', d: 'M3 17.2 10.4 12.6', stroke: 'currentColor', strokeWidth: 1.8,
-          strokeLinecap: 'round', fill: 'none',
-        }),
-        h('path', {
-          key: 'prism', d: 'M12 4.6 19 18.4H5Z', fill: 'none', stroke: 'currentColor',
-          strokeWidth: 1.8, strokeLinejoin: 'round',
-        }),
-        h('path', {
-          key: 'spectrum', d: 'M12.7 12.4 21 9.4M13.2 13.8 21 12M13.6 15.1 21 14.4',
-          stroke: 'currentColor', strokeWidth: 1.5, strokeLinecap: 'round', fill: 'none', opacity: 0.85,
-        }),
-      ])
-    }
-
     /** The client's own preference key for the session on screen. */
     const CURRENT_SESSION_KEY = 'dsh.sessions.current'
     /** Engines the Host knows how to drive, in the order the picker shows them. */
@@ -4892,6 +4867,36 @@ window.__ModuleLoader__.load({
         })
       }
 
+      // A Conversation view: the shell draws the view tabs and the native composer around it,
+      // so this is the surface that gets the real input box without re-implementing chat.
+      const ConvView = props => h(LatexPanel, { ...props, loader })
+      ctx.effect(() => ctx.slots.inject('conversation.view', () => ctx.slots.register({
+        name: 'conversation.view',
+        id: 'dsh-openprism-latex',
+        order: 40,
+        locale: 'openprismLatex',
+        label: () => t('panelTitle'),
+      }, function GuardedConvView(props) {
+        try {
+          return ConvView(props)
+        } catch (error) {
+          lastClientError = {
+            message: String(error?.message ?? error),
+            stack: String(error?.stack ?? '').slice(0, 1200),
+            at: Date.now(),
+          }
+          return React.createElement('div', {
+            style: {
+              padding: '12px',
+              color: '#f85149',
+              fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+              fontSize: '12px',
+              whiteSpace: 'pre-wrap',
+            },
+          }, `LaTeX view failed: ${String(error?.message ?? error)}`)
+        }
+      })))
+
       ctx.effect(() => ctx.slots.inject('sidebar.right.tab.document', () => ctx.slots.register({
         name: 'sidebar.right.tab.document',
         key: 'dsh-openprism-latex',
@@ -5109,49 +5114,7 @@ window.__ModuleLoader__.load({
           }
         },
       }
-      const PanelBody = props => h(LatexPanel, { ...props, loader })
 
-      ctx.effect(() => ctx.slots.inject('sidebar.panellist', () => ctx.slots.register({
-        name: 'sidebar.panellist',
-        id: 'dsh-openprism-latex',
-        order: 30,
-        label: () => t('panelTitle'),
-      }, PanelIcon)))
-      // A Conversation view: the shell draws the view tabs and the native composer around it,
-      // so this is the surface that gets the real input box without re-implementing chat.
-      const ConvView = props => h(LatexPanel, { ...props, loader })
-      ctx.effect(() => ctx.slots.inject('conversation.view', () => ctx.slots.register({
-        name: 'conversation.view',
-        id: 'dsh-openprism-latex',
-        order: 40,
-        locale: 'openprismLatex',
-        label: () => t('panelTitle'),
-      }, function GuardedConvView(props) {
-        try {
-          return ConvView(props)
-        } catch (error) {
-          lastClientError = {
-            message: String(error?.message ?? error),
-            stack: String(error?.stack ?? '').slice(0, 1200),
-            at: Date.now(),
-          }
-          return React.createElement('div', {
-            style: {
-              padding: '12px',
-              color: '#f85149',
-              fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
-              fontSize: '12px',
-              whiteSpace: 'pre-wrap',
-            },
-          }, `LaTeX view failed: ${String(error?.message ?? error)}`)
-        }
-      })))
-
-      ctx.effect(() => ctx.slots.inject('main', () => ctx.slots.register({
-        name: 'main',
-        key: 'dsh-openprism-latex',
-        locale: 'openprismLatex',
-      }, PanelBody)))
     }
 
     return { name: 'dsh-openprism-latex', inject: ['slots', 'locale', 'sidebarRightTabs'], apply }

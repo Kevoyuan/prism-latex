@@ -197,8 +197,7 @@ function mount(react, globals = {}) {
     // registrations stay reachable by name.
     slot: findSlot('sidebar.right.tab.document'),
     documentSlot: findSlot('sidebar.right.tab.document'),
-    panelSlot: findSlot('main'),
-    iconSlot: findSlot('sidebar.panellist'),
+    panelSlot: findSlot('conversation.view'),
   }
 }
 
@@ -492,36 +491,15 @@ section('zoom steps follow the fit scale in a narrow pane')
   check('zoom in available', zoomIn?.props?.disabled === false, String(zoomIn?.props?.disabled))
 }
 
-section('sidebar panel entry')
+section('entry points')
 {
-  const { slots, en } = mount(makeReact(undefined))
-  const panelEntry = slots.find(entry => entry.options?.name === 'sidebar.panellist')
-  const panelBody = slots.find(entry => entry.options?.name === 'main')
-  check('sidebar icon registered', panelEntry !== undefined)
-  check('icon id', panelEntry?.options?.id === 'dsh-openprism-latex', String(panelEntry?.options?.id))
-  check('icon order', panelEntry?.options?.order === 30, String(panelEntry?.options?.order))
-  check('icon label', panelEntry?.options?.label?.() === 'LaTeX', String(panelEntry?.options?.label?.()))
-  check('main panel body registered', panelBody !== undefined)
-  check('main panel key', panelBody?.options?.key === 'dsh-openprism-latex', String(panelBody?.options?.key))
-  check('main panel locale', panelBody?.options?.locale === 'openprismLatex', String(panelBody?.options?.locale))
-  check('main panel body is a component', typeof panelBody?.body === 'function')
-
-  const iconTree = panelEntry.body({ size: 18, active: true })
-  check('icon draws an svg', iconTree?.type === 'svg', String(iconTree?.type))
-  check('icon has prism paths', flatten(iconTree).length >= 3, String(flatten(iconTree).length))
-
-  // The main-panel registration wraps LatexPanel in a closure component, so resolve
-  // the element it returns and call that component directly.
-  const element = panelBody.body({ t: key => en.get(key) ?? key })
-  const body = typeof element?.type === 'function' ? element.type(element.props) : element
-  const nodes = flatten(body)
-  const text = textOf(body)
-  check('panel root', nodes[0]?.props?.className === 'oprilx-panel', String(nodes[0]?.props?.className))
-  check('panel title', text.includes('LaTeX'))
-  check('refresh control', nodes.some(node => node.type === 'button'
-    && node.props['aria-label'] === 'Refresh'))
-  check('session guidance without a session', text.includes('Open a conversation'),
-    text.slice(0, 160))
+  const { slots } = mount(makeReact(undefined))
+  check('left rail icon is gone',
+    slots.every(entry => entry.options?.name !== 'sidebar.panellist'))
+  check('main panel registration is gone',
+    slots.every(entry => entry.options?.name !== 'main'))
+  check('the conversation view is the only surface',
+    slots.some(entry => entry.options?.name === 'conversation.view'))
 }
 
 section('conversation view')
@@ -539,7 +517,7 @@ section('conversation view')
 section('panel source mode')
 {
   const { slots, en } = mount(makeReact(undefined))
-  const entry = slots.find(candidate => candidate.options?.name === 'main')
+  const entry = slots.find(candidate => candidate.options?.name === 'conversation.view')
   const tree = entry.body({ t: key => en.get(key) ?? key })
   const nodes = flatten(tree)
   const modes = nodes.filter(node => node.props?.className === 'oprilx-mode')
@@ -553,7 +531,7 @@ section('sidebar panel with a session')
   globalThis.localStorage = { getItem: () => JSON.stringify({ sessionId: 'sess-1' }) }
   try {
     const { slots, en } = mount(makeReact(undefined))
-    const panelBody = slots.find(entry => entry.options?.name === 'main')
+    const panelBody = slots.find(entry => entry.options?.name === 'conversation.view')
     const element = panelBody.body({ t: key => en.get(key) ?? key })
     const body = typeof element?.type === 'function' ? element.type(element.props) : element
     const text = textOf(body)
