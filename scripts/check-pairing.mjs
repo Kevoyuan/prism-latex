@@ -23,6 +23,13 @@ const modulePath = join(directory, 'pairing.mjs')
 writeFileSync(modulePath,
   `${block}\nexport { matchDelimiterAt, bracketDecorations, matchEnvironmentAt, rangeDecorations,
     findMatches, completionAt, filterCompletions, collectLabels }\n`)
+// Address helpers live outside the tokenizer block; lift them separately.
+const addressStart = source.indexOf('    const SESSION_RESOURCE_PREFIX')
+const addressEnd = source.indexOf('    function base64ToBytes', addressStart)
+const addressModulePath = join(directory, 'addresses.mjs')
+writeFileSync(addressModulePath, `${source.slice(addressStart, addressEnd)}\nexport { parseFileAddress, isLatexAddress }\n`)
+const { parseFileAddress, isLatexAddress } = await import(pathToFileURL(addressModulePath).href)
+
 const { matchDelimiterAt, bracketDecorations, matchEnvironmentAt, rangeDecorations, findMatches,
   completionAt, filterCompletions, collectLabels } = await import(pathToFileURL(modulePath).href)
 
@@ -152,6 +159,22 @@ section('completion')
   check('prefix matches rank first', filtered[0] === 'text' || filtered[0] === 'textsc',
     JSON.stringify(filtered))
   check('candidates are capped', filterCompletions(Array.from({ length: 40 }, (_, index) => `c${index}`), '').length === 8)
+}
+
+section('file addresses')
+{
+  const session = parseFileAddress('dsh-resource://file/session/sess-1/demo/example.tex')
+  check('session address parsed', session?.sessionId === 'sess-1' && session?.path === 'demo/example.tex',
+    JSON.stringify(session))
+  const absolute = parseFileAddress('dsh-resource://file/absolute/Volumes/SSD/demo/a%20b.tex')
+  check('absolute address parsed', absolute?.absolute === true
+    && absolute?.path === 'Volumes/SSD/demo/a b.tex', JSON.stringify(absolute))
+  check('absolute address has no session', absolute?.sessionId === undefined)
+  check('other schemes are refused', parseFileAddress('dsh-resource://plan/x.tex') === undefined)
+  check('junk is refused without throwing', parseFileAddress(undefined) === undefined
+    && parseFileAddress('') === undefined)
+  check('suffix check accepts LaTeX files', isLatexAddress('dsh-resource://file/absolute/tmp/x.latex') === true)
+  check('suffix check rejects other files', isLatexAddress('dsh-resource://file/session/s/x.md') === false)
 }
 
 section('line decorations')

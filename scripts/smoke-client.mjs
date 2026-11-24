@@ -559,7 +559,13 @@ section('right sidebar tab type')
     tabType?.title('dsh-resource://file/session/s1/demo/example.tex') === 'example.tex',
     String(tabType?.title?.('dsh-resource://file/session/s1/demo/example.tex')))
   check('claims session file addresses', tabType?.canOpen(ADDRESS) === true)
-  check('refuses absolute addresses', tabType?.canOpen('dsh-resource://file/absolute/tmp/x.tex') === false)
+  // `claim(address, kind)` throws when canOpen refuses, so it must accept every address
+  // the patterns matched, including the absolute form.
+  check('accepts absolute file addresses',
+    tabType?.canOpen('dsh-resource://file/absolute/tmp/x.tex') === true)
+  check('still rejects other suffixes', tabType?.canOpen('dsh-resource://file/session/s/x.md') === false)
+  check('canOpen never throws on junk', tabType?.canOpen(undefined) === false
+    && tabType?.canOpen(42) === false)
 }
 
 section('right sidebar tab chip')

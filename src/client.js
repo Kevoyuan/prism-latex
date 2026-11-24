@@ -8,6 +8,7 @@ window.__ModuleLoader__.load({
     /** Shown in the panel header: which client bundle the page actually loaded. */
     const CLIENT_BUILD = '0.1.0+latex-tab'
     const SESSION_RESOURCE_PREFIX = 'dsh-resource://file/session/'
+    const ABSOLUTE_RESOURCE_PREFIX = 'dsh-resource://file/absolute/'
     const FIXED_ZOOM_STEPS = [0.5, 0.75, 1, 1.25, 1.5, 2, 3]
     const RENDER_URL = 'api/dsh-openprism-latex/render'
     const PAGES_INSET = 24
@@ -1311,6 +1312,34 @@ window.__ModuleLoader__.load({
       return { sessionId, path: filePath }
     }
 
+    /**
+     * Any file address this plug-in can show: `…/file/session/<id>/<path>` and
+     * `…/file/absolute/<path>`. An absolute address has no session, so callers fall
+     * back to the session on screen when they need a workspace root.
+     */
+    function parseFileAddress(address) {
+      const scoped = parseSessionAddress(address)
+      if (scoped !== undefined) return { ...scoped, absolute: false }
+      if (typeof address !== 'string' || !address.startsWith(ABSOLUTE_RESOURCE_PREFIX)) return undefined
+      const rest = address.slice(ABSOLUTE_RESOURCE_PREFIX.length)
+      if (rest === '') return undefined
+      let filePath
+      try {
+        filePath = rest.split('/').map(segment => decodeURIComponent(segment)).join('/')
+      } catch {
+        return undefined
+      }
+      if (filePath === '') return undefined
+      return { sessionId: undefined, path: filePath, absolute: true }
+    }
+
+    /** Whether an address ends in a LaTeX suffix: the only thing `canOpen` may check. */
+    function isLatexAddress(address) {
+      if (typeof address !== 'string') return false
+      const clean = address.split('?')[0].split('#')[0]
+      return /\.(tex|latex|ltx)$/i.test(clean)
+    }
+
     function base64ToBytes(value) {
       const binary = atob(String(value === undefined ? '' : value))
       const bytes = new Uint8Array(binary.length)
@@ -2270,7 +2299,8 @@ window.__ModuleLoader__.load({
       const t = typeof props.t === 'function' ? props.t : boundT
       const tabInfo = typeof props.useTabInfo === 'function' ? props.useTabInfo() : undefined
       const tabSignal = tabInfo?.tab?.signal
-      const address = useMemo(() => parseSessionAddress(props.resourceAddress), [props.resourceAddress])
+      const address = useMemo(() => parseFileAddress(props.resourceAddress), [props.resourceAddress])
+      const sessionId = address?.sessionId ?? readCurrentSessionId()
       const resource = typeof props.useResource === 'function'
         ? props.useResource(props.resourceAddress)
         : undefined
@@ -2280,7 +2310,7 @@ window.__ModuleLoader__.load({
       const contentRef = useRef(content)
       contentRef.current = content
 
-      const addressKey = address === undefined ? '' : `${address.sessionId}\u0000${address.path}`
+      const addressKey = address === undefined ? '' : `${address.sessionId ?? 'absolute'}\u0000${address.path}`
       const [state, setState] = useState({ status: 'compiling' })
       const [zoom, setZoomState] = useState(() => (
         addressKey === '' ? 'fit' : (zoomMemory.get(addressKey) ?? 'fit')))
@@ -2333,7 +2363,7 @@ window.__ModuleLoader__.load({
         const renderer = contentRef.current
         if (renderer === undefined || renderer === null || renderer.kind !== 'renderer') return undefined
 
-        const target = parseSessionAddress(props.resourceAddress)
+        const target = parseFileAddress(props.resourceAddress)
         if (target === undefined) {
           setState({ status: 'error', error: { code: 'bad-address' } })
           try {
@@ -2382,7 +2412,10 @@ window.__ModuleLoader__.load({
           ? { ...previous, refreshing: true }
           : { status: 'compiling' }))
 
-        const query = new URLSearchParams({ session: target.sessionId, path: target.path })
+        const query = new URLSearchParams({
+          session: target.sessionId ?? readCurrentSessionId() ?? '',
+          path: target.path,
+        })
         fetch(`${RENDER_URL}?${query.toString()}`, { signal, cache: 'no-store' })
           .then(async response => {
             let body
@@ -3377,7 +3410,10 @@ window.__ModuleLoader__.load({
       const tabInfo = typeof props.useTabInfo === 'function' ? props.useTabInfo() : undefined
       const tab = tabInfo?.tab
       const address = typeof tab?.contentId === 'string' ? tab.contentId : undefined
-      const target = useMemo(() => parseSessionAddress(address ?? ''), [address])
+      const target = useMemo(() => parseFileAddress(address ?? ''), [address])
+      // An absolute address carries no session; the workspace root comes from the session
+      // on screen.
+      const sessionId = target?.sessionId ?? readCurrentSessionId()
       const tabSignal = tab?.signal
       const [mode, setMode] = useState('preview')
       // The tab opens to compile immediately, so the toolbar reports work from frame one.
@@ -3443,7 +3479,7 @@ window.__ModuleLoader__.load({
         setState(previous => (previous.status === 'ready'
           ? { ...previous, refreshing: true }
           : { status: 'compiling' }))
-        const query = new URLSearchParams({ session: target.sessionId, path: target.path })
+        const query = new URLSearchParams({ session: sessionId, path: target.path })
         query.set('engine', engine)
         fetch(`${RENDER_URL}?${query.toString()}`, { signal, cache: 'no-store' })
           .then(async response => {
@@ -3514,7 +3550,7 @@ window.__ModuleLoader__.load({
         const controller = new AbortController()
         let cancelled = false
         setSource({ status: 'loading', path: target.path })
-        const query = new URLSearchParams({ session: target.sessionId, path: target.path })
+        const query = new URLSearchParams({ session: sessionId, path: target.path })
         fetch(`api/dsh-openprism-latex/source?${query.toString()}`, {
           signal: controller.signal,
           cache: 'no-store',
@@ -3625,7 +3661,7 @@ window.__ModuleLoader__.load({
           method: 'POST',
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify({
-            session: target.sessionId,
+            session: sessionId,
             path: target.path,
             text,
             expectedVersion: current.version,
@@ -4290,7 +4326,10 @@ window.__ModuleLoader__.load({
         ],
         priority: 'extension',
         title: address => titleOfAddress(address),
-        canOpen: address => parseSessionAddress(address) !== undefined,
+        // DSH's `claim(address, kind)` THROWS when this refuses, and the open flow then
+        // leaves the pane half-updated. The patterns already restrict the suffix, so only
+        // re-check that and never refuse a matched file address.
+        canOpen: address => isLatexAddress(address),
       }
       const registerTabType = () => {
         disposeTabType = ctx.sidebarRightTabs.register(tabDefinition)
