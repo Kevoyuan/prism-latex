@@ -524,6 +524,18 @@ section('sidebar panel entry')
     text.slice(0, 160))
 }
 
+section('panel source mode')
+{
+  const { slots, en } = mount(makeReact(undefined))
+  const entry = slots.find(candidate => candidate.options?.name === 'main')
+  const tree = entry.body({ t: key => en.get(key) ?? key })
+  const nodes = flatten(tree)
+  const modes = nodes.filter(node => node.props?.className === 'oprilx-mode')
+  check('panel offers preview and source', modes.length === 2, String(modes.length))
+  check('panel mode buttons are labelled', modes.every(node =>
+    typeof node.props['aria-label'] === 'string' && node.props['aria-label'] !== ''))
+}
+
 section('sidebar panel with a session')
 {
   globalThis.localStorage = { getItem: () => JSON.stringify({ sessionId: 'sess-1' }) }

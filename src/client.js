@@ -4130,6 +4130,12 @@ window.__ModuleLoader__.load({
       const [download, setDownload] = useState({ status: 'idle' })
       const [paneWidth, setPaneWidth] = useState(0)
       const [copied, setCopied] = useState(false)
+      // Source mode: the panel can edit the file in place. This is the surface the editor
+      // features live in while the right-sidebar tab type claims nothing.
+      const [mode, setMode] = useState('preview')
+      const [source, setSource] = useState({ status: 'idle' })
+      const [draft, setDraft] = useState(undefined)
+      const [codeFont, setCodeFont] = useState(() => readCodeFont())
       const docRef = useRef(null)
       const urlsRef = useRef([])
       const timersRef = useRef([])
@@ -4324,8 +4330,108 @@ window.__ModuleLoader__.load({
           tr(t, 'panelLoading')))
       }
 
+      // Source is read on demand, once per file, and kept while the panel stays open.
+      useEffect(() => {
+        if (mode !== 'source' || sessionId === undefined || selected === undefined) return undefined
+        if (source.status === 'ready' && source.path === selected) return undefined
+        const controller = new AbortController()
+        let cancelled = false
+        setSource({ status: 'loading', path: selected })
+        const query = new URLSearchParams({ session: sessionId, path: selected })
+        fetch(`api/dsh-openprism-latex/source?${query.toString()}`, {
+          signal: controller.signal,
+          cache: 'no-store',
+        })
+          .then(async response => {
+            let body
+            try {
+              body = await response.json()
+            } catch {
+              body = undefined
+            }
+            if (cancelled) return
+            if (body?.ok !== true) {
+              setSource({
+                status: 'error',
+                path: selected,
+                message: body?.error?.message ? String(body.error.message) : `HTTP ${response.status}`,
+              })
+              return
+            }
+            setSource({
+              status: 'ready',
+              path: selected,
+              text: typeof body.text === 'string' ? body.text : '',
+              version: typeof body.version === 'string' ? body.version : '',
+              truncated: body.truncated === true,
+            })
+          })
+          .catch(error => {
+            if (cancelled || error?.name === 'AbortError') return
+            setSource({ status: 'error', path: selected, message: error?.message ? String(error.message) : '' })
+          })
+        return () => {
+          cancelled = true
+          controller.abort()
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, [mode, sessionId, selected])
+
+      const saveSourceFile = () => {
+        if (draft === undefined || sessionId === undefined || selected === undefined) return
+        const text = draft
+        setDraft(undefined)
+        setSource(previous => ({ ...previous, text }))
+        fetch('api/dsh-openprism-latex/write', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ session: sessionId, path: selected, text, expectedVersion: source.version }),
+        })
+          .then(async response => {
+            let body
+            try {
+              body = await response.json()
+            } catch {
+              body = undefined
+            }
+            if (body?.ok === true) {
+              setSource(previous => ({ ...previous, text, version: String(body.version ?? '') }))
+              setAttempt(value => value + 1)
+              return
+            }
+            // Keep the edit so nothing is lost when the write is refused.
+            setDraft(text)
+          })
+          .catch(() => setDraft(text))
+      }
+
       const doc = []
-      if (renderState.status === 'compiling') {
+      if (mode === 'source') {
+        if (source.status === 'ready' && source.truncated !== true) {
+          doc.push(h(SourceEditor, {
+            key: `editor:${selected}`,
+            t,
+            text: draft === undefined ? source.text : draft,
+            resetToken: source.version,
+            onInput: value => setDraft(value),
+            onSave: saveSourceFile,
+            onCompile: saveSourceFile,
+            fontSize: codeFont,
+            onZoom: delta => {
+              const next = delta === 0
+                ? CODE_FONT_DEFAULT
+                : Math.min(CODE_FONT_MAX, Math.max(CODE_FONT_MIN, codeFont + delta))
+              setCodeFont(next)
+              rememberCodeFont(next)
+            },
+          }))
+        } else {
+          doc.push(h('div', { className: 'oprilx-panel-note', key: 'source-state' },
+            source.status === 'error'
+              ? `${tr(t, 'sourceError')}${source.message ? ` · ${source.message}` : ''}`
+              : source.truncated === true ? tr(t, 'readOnlyTooLarge') : tr(t, 'sourceLoading')))
+        }
+      } else if (renderState.status === 'compiling') {
         doc.push(renderCompiling(t))
       } else if (renderState.status === 'error') {
         doc.push(renderError(t, renderState.error, {
@@ -4357,6 +4463,15 @@ window.__ModuleLoader__.load({
           h('div', { className: 'oprilx-panel-heading', key: 'heading' }, [
             h('div', { className: 'oprilx-panel-title', key: 'title' }, tr(t, 'panelTitle')),
             h('div', { className: 'oprilx-panel-sub', key: 'sub' }, `${heading}  ·  ${CLIENT_BUILD}`),
+          ]),
+          h('div', {
+            className: 'oprilx-modes',
+            key: 'modes',
+            role: 'group',
+            'aria-label': tr(t, 'viewMode'),
+          }, [
+            modeButton(t, 'preview', 'modePreview', mode, setMode),
+            modeButton(t, 'source', 'modeSource', mode, setMode),
           ]),
           h('button', {
             type: 'button',
