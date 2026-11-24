@@ -1057,6 +1057,8 @@ window.__ModuleLoader__.load({
   flex-direction: column;
   height: 100%;
   min-height: 0;
+  max-height: 100%;
+  overflow: hidden;
   box-sizing: border-box;
   background: var(--dsw-alias-bg-base, #fff);
   color: var(--dsw-alias-label-primary, #1c1c1e);
@@ -4721,6 +4723,7 @@ window.__ModuleLoader__.load({
       const [pendingJump, setPendingJump] = useState(undefined)
       const [codeFont, setCodeFont] = useState(() => readCodeFont())
       const docRef = useRef(null)
+      const rootRef = useRef(null)
       const urlsRef = useRef([])
       const timersRef = useRef([])
       const sessionId = documentSession ?? readCurrentSessionId()
@@ -5134,7 +5137,76 @@ window.__ModuleLoader__.load({
         doc.push(h('div', { className: 'oprilx-panel-note', key: 'intro' }, tr(t, 'panelIntro')))
       }
 
-      return h('div', { className: 'oprilx-panel' }, [
+      /**
+       * Fill the shell's viewport instead of growing with the document.
+       *
+       * The panel sits in a `overflow: auto` body with no definite height, so `height: 100%`
+       * resolves to `auto`: the editor's height pushed the panel to its content height and the
+       * shell then scrolled the whole view — header, outline and composer alike. Measuring the
+       * scrolling ancestor and pinning that many pixels keeps every column fixed and gives the
+       * editor its own scrollbar.
+       */
+      const scrollHost = node => {
+        let parent = node === null || node === undefined ? undefined : node.parentElement
+        for (let depth = 0; parent !== undefined && parent !== null && depth < 12; depth += 1) {
+          const style = typeof getComputedStyle === 'function' ? getComputedStyle(parent) : undefined
+          const overflow = style?.overflowY ?? ''
+          if ((overflow === 'auto' || overflow === 'scroll')
+            && Number(parent.scrollHeight) > Number(parent.clientHeight) + 1) {
+            return parent
+          }
+          parent = parent.parentElement
+        }
+        return undefined
+      }
+      const [paneHeight, setPaneHeight] = useState(0)
+      const measurePane = () => {
+        const node = rootRef.current
+        if (node === null || node === undefined || typeof node.getBoundingClientRect !== 'function') return
+        const host = scrollHost(node)
+        let next = 0
+        if (host !== undefined) {
+          const rect = node.getBoundingClientRect()
+          const hostRect = host.getBoundingClientRect()
+          next = Math.round(hostRect.bottom - rect.top)
+        } else if (typeof window !== 'undefined' && Number(window.innerHeight) > 0) {
+          next = Math.max(320, Math.round(window.innerHeight - node.getBoundingClientRect().top - 96))
+        }
+        if (next > 0) setPaneHeight(previous => (previous === next ? previous : next))
+      }
+      useEffect(() => {
+        const node = rootRef.current
+        if (node === null || node === undefined) return undefined
+        let observer
+        if (typeof ResizeObserver === 'function') {
+          observer = new ResizeObserver(() => measurePane())
+        }
+        const host = scrollHost(node)
+        if (observer !== undefined) {
+          observer.observe(host ?? node)
+          if (typeof document !== 'undefined' && document.body !== null) observer.observe(document.body)
+        }
+        const frame = typeof requestAnimationFrame === 'function'
+          ? requestAnimationFrame(measurePane)
+          : (measurePane(), 0)
+        if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+          window.addEventListener('resize', measurePane)
+        }
+        return () => {
+          if (typeof cancelAnimationFrame === 'function' && frame !== 0) cancelAnimationFrame(frame)
+          if (observer !== undefined) observer.disconnect()
+          if (typeof window !== 'undefined' && typeof window.removeEventListener === 'function') {
+            window.removeEventListener('resize', measurePane)
+          }
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, [])
+
+      return h('div', {
+        className: 'oprilx-panel',
+        ref: node => { rootRef.current = node },
+        style: paneHeight > 0 ? { height: `${paneHeight}px`, maxHeight: `${paneHeight}px` } : undefined,
+      }, [
         h('style', { key: 'style' }, CSS),
         h('div', { className: 'oprilx-panel-head', key: 'head' }, [
           h('div', { className: 'oprilx-panel-heading', key: 'heading' }, [
