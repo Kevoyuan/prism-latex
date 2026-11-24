@@ -1402,6 +1402,18 @@ window.__ModuleLoader__.load({
      */
     let lastJump
     const jumpListeners = new Set()
+    /** Last few jump steps, reported with the diagnostic so a silent miss is diagnosable. */
+    const jumpTrace = []
+    let diagFlush = () => {}
+    const traceJump = (step, detail) => {
+      jumpTrace.push({ step, ...detail, at: Date.now() })
+      if (jumpTrace.length > 8) jumpTrace.shift()
+      try {
+        setTimeout(() => diagFlush(), 250)
+      } catch {
+        /* the diagnostic is best effort */
+      }
+    }
 
     /** Publish one SyncTeX hit to every mounted surface. */
     function publishJump(next) {
@@ -1415,6 +1427,7 @@ window.__ModuleLoader__.load({
         sessionId: typeof next.sessionId === 'string' ? next.sessionId : undefined,
         at: Date.now(),
       }
+      traceJump('publish', { line: lastJump.line, column: lastJump.column, path: lastJump.path })
       for (const listener of [...jumpListeners]) {
         try {
           listener(lastJump)
@@ -3185,6 +3198,7 @@ window.__ModuleLoader__.load({
       // Follow the error card's jump request.
       useEffect(() => {
         if (jump === undefined || !Number.isFinite(jump?.line)) return
+        traceJump('apply', { line: jump.line, column: jump.column, seq: jump.seq })
         goToLine(jump.line, jump.column)
         // eslint-disable-next-line react-hooks/exhaustive-deps
       }, [jump?.seq])
@@ -4852,6 +4866,7 @@ window.__ModuleLoader__.load({
         if (jump === null || jump === undefined || !Number.isFinite(jump.line)) return
         const session = sessionRef.current
         if (session !== undefined && jump.sessionId !== undefined && jump.sessionId !== session) return
+        traceJump('receive', { line: jump.line, path: jump.path, selected: selectedRef.current })
         if (selectedRef.current !== jump.path) setSelected(jump.path)
         setPendingJump({ line: jump.line, column: jump.column ?? 0, seq: jump.at ?? Date.now() })
       }), [])
@@ -5504,6 +5519,7 @@ window.__ModuleLoader__.load({
         }
       }
 
+      diagFlush = () => { sendDiagnostic() }
       const sendDiagnostic = () => {
         try {
           const sessionId = readCurrentSessionId()
@@ -5512,6 +5528,7 @@ window.__ModuleLoader__.load({
           const report = {
             build: CLIENT_BUILD,
             scrollChain: scrollChain(),
+            jumpTrace: [...jumpTrace],
             tabTypeState,
             tabTypeError,
             tabTypeRecovered,
