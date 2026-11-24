@@ -4746,32 +4746,6 @@ window.__ModuleLoader__.load({
             h('div', { className: 'oprilx-panel-title', key: 'title' }, tr(t, 'panelTitle')),
             h('div', { className: 'oprilx-panel-sub', key: 'sub' }, `${heading}  ·  ${CLIENT_BUILD}`),
           ]),
-          outline.length === 0
-            ? null
-            : h('div', { className: 'oprilx-panel-outline', key: 'outline', role: 'navigation' }, [
-              h('div', { className: 'oprilx-panel-outline-title', key: 'label' }, tr(t, 'outlineLabel')),
-              ...outline.map((entry, index) => h('button', {
-                type: 'button',
-                key: `${entry.line}:${entry.title}`,
-                className: 'oprilx-panel-outline-row',
-                style: { paddingLeft: `${(entry.level - 3) * 10 + 8}px` },
-                title: entry.title,
-                onClick: () => sourceLine(index),
-              }, `§${entry.level} ${entry.title}`)),
-            ]),
-          outline.length === 0
-            ? null
-            : h('div', { className: 'oprilx-panel-outline', key: 'outline', role: 'navigation' }, [
-              h('div', { className: 'oprilx-panel-outline-title', key: 'label' }, tr(t, 'outlineLabel')),
-              ...outline.map((entry, index) => h('button', {
-                type: 'button',
-                key: `${entry.line}:${entry.title}`,
-                className: 'oprilx-panel-outline-row',
-                style: { paddingLeft: `${(entry.level - 3) * 10 + 8}px` },
-                title: entry.title,
-                onClick: () => sourceLine(index),
-              }, `§${entry.level} ${entry.title}`)),
-            ]),
           h('div', {
             className: 'oprilx-modes',
             key: 'modes',
@@ -4798,8 +4772,25 @@ window.__ModuleLoader__.load({
             style: { color: 'var(--dsw-alias-state-error-primary, #c0392b)' },
           }, tr(t, 'panelTypeMissing'))
           : null,
-        h('div', { className: 'oprilx-panel-list', key: 'list', role: 'list' }, rows),
-        h('div', { className: 'oprilx-panel-doc', key: 'doc', ref: node => { docRef.current = node } }, doc),
+        h('div', { className: 'oprilx-workspace', key: 'workspace' }, [
+          h('div', { className: 'oprilx-files', key: 'files' }, [
+            h('div', { className: 'oprilx-panel-list', key: 'list', role: 'list' }, rows),
+            outline.length === 0
+              ? null
+              : h('div', { className: 'oprilx-panel-outline', key: 'outline', role: 'navigation' }, [
+                h('div', { className: 'oprilx-panel-outline-title', key: 'label' }, tr(t, 'outlineLabel')),
+                ...outline.map((entry, index) => h('button', {
+                  type: 'button',
+                  key: `${entry.line}:${entry.title}`,
+                  className: 'oprilx-panel-outline-row',
+                  style: { paddingLeft: `${(entry.level - 3) * 10 + 8}px` },
+                  title: entry.title,
+                  onClick: () => sourceLine(index),
+                }, `§${entry.level} ${entry.title}`)),
+              ]),
+          ]),
+          h('div', { className: 'oprilx-panel-doc', key: 'doc', ref: node => { docRef.current = node } }, doc),
+        ]),
       ])
     }
 

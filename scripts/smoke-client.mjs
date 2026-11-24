@@ -491,6 +491,23 @@ section('zoom steps follow the fit scale in a narrow pane')
   check('zoom in available', zoomIn?.props?.disabled === false, String(zoomIn?.props?.disabled))
 }
 
+section('workspace layout')
+{
+  const { slots, en } = mount(makeReact(undefined))
+  const view = slots.find(entry => entry.options?.name === 'conversation.view')
+  const tree = view.body({ t: key => en.get(key) ?? key })
+  const nodes = flatten(tree)
+  const workspace = nodes.find(node => node.props?.className === 'oprilx-workspace')
+  check('the view is one two-column workspace', workspace !== undefined)
+  const files = nodes.find(node => node.props?.className === 'oprilx-files')
+  const doc = nodes.find(node => node.props?.className === 'oprilx-panel-doc')
+  check('file column and document column are siblings', files !== undefined && doc !== undefined)
+  check('file column comes first', nodes.indexOf(files) < nodes.indexOf(doc))
+  // The outline only exists once a source loads; the container is what the layout owns.
+  check('outline is rendered from the file column', files !== undefined
+    && nodes.some(node => node.props?.className === 'oprilx-panel-outline') === false)
+}
+
 section('entry points')
 {
   const { slots } = mount(makeReact(undefined))
