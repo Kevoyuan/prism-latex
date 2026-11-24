@@ -61,6 +61,8 @@ window.__ModuleLoader__.load({
       outlineShow: 'Show the outline',
       outlineHide: 'Hide the outline',
       resizeOutline: 'Resize the outline',
+      viewPreviewShow: 'Show the preview',
+      viewPreviewHide: 'Hide the preview',
       viewMode: 'View mode',
       modePreview: 'Preview',
       modeSource: 'Source',
@@ -1145,6 +1147,10 @@ window.__ModuleLoader__.load({
 .oprilx-outline-row:focus-visible {
   outline: 2px solid var(--dsw-alias-label-primary, #1c1c1e);
   outline-offset: -2px;
+}
+.oprilx-workspace[data-preview="false"] .oprilx-editor-pane {
+  flex: 1 1 100%;
+  border-right: 0;
 }
 .oprilx-workspace > .oprilx-divider {
   flex: 0 0 6px;
@@ -2471,6 +2477,15 @@ window.__ModuleLoader__.load({
         return h('svg', { ...frame, key: 'glyph' }, [
           h('path', { key: 'plane', d: 'M20.4 3.6 3.6 10.4l6.6 2.9 2.9 6.6z' }),
           h('path', { key: 'fold', d: 'M10.2 13.3 20.4 3.6' }),
+        ])
+      }
+      if (name === 'eye') {
+        return h('svg', { ...frame, key: 'glyph' }, [
+          h('path', {
+            key: 'lid',
+            d: 'M2.6 12s3.5-5.4 9.4-5.4S21.4 12 21.4 12s-3.5 5.4-9.4 5.4S2.6 12 2.6 12Z',
+          }),
+          h('circle', { key: 'pupil', cx: 12, cy: 12, r: 2.5 }),
         ])
       }
       if (name === 'outline') {
@@ -3964,6 +3979,30 @@ window.__ModuleLoader__.load({
       }
     }
 
+    /** Whether the view's own preview column is shown; hidden by default. */
+    const VIEW_PREVIEW_KEY = 'dsh-openprism-latex.view-preview'
+
+    /** @returns the remembered visibility of the view's preview column. */
+    function readViewPreview() {
+      try {
+        const raw = typeof localStorage === 'undefined' ? null : localStorage.getItem(VIEW_PREVIEW_KEY)
+        return raw === 'open'
+      } catch {
+        return false
+      }
+    }
+
+    /** @param open - whether the preview column is shown; stored best effort. */
+    function rememberViewPreview(open) {
+      try {
+        if (typeof localStorage !== 'undefined') {
+          localStorage.setItem(VIEW_PREVIEW_KEY, open ? 'open' : 'hidden')
+        }
+      } catch {
+        /* preference storage is best effort */
+      }
+    }
+
     /** The session the app currently shows, read from that key. */
     function readCurrentSessionId() {
       try {
@@ -4615,8 +4654,8 @@ window.__ModuleLoader__.load({
     }
 
     /**
-     * The LaTeX workspace panel: every `.tex` file of the current session's workspace,
-     * compiled in place. This is the discoverable entry the renderer alone lacks.
+     * The LaTeX conversation view: the source of the document the right sidebar is showing,
+     * beside the Outline column, with an optional preview of the compiled page.
      */
     function LatexPanel(props) {
       const t = typeof props.t === 'function' ? props.t : boundT
@@ -4634,6 +4673,9 @@ window.__ModuleLoader__.load({
       // right sidebar, and the editor sits beside the outline.
       const [outlineWidth, setOutlineWidth] = useState(() => readOutlineWidth())
       const [outlineOpen, setOutlineOpen] = useState(() => readOutlineOpen())
+      // The view's own preview is optional: the right sidebar already shows the page most
+      // of the time, so this column starts hidden and the editor gets the space.
+      const [preview, setPreview] = useState(() => readViewPreview())
       const [source, setSource] = useState({ status: 'idle' })
       const [draft, setDraft] = useState(undefined)
       const [pendingJump, setPendingJump] = useState(undefined)
@@ -4652,7 +4694,7 @@ window.__ModuleLoader__.load({
       outlineWidthRef.current = outlineWidth
 
       useEffect(() => {
-        if (sessionId === undefined || selected === undefined) {
+        if (preview !== true || sessionId === undefined || selected === undefined) {
           setRenderState({ status: 'idle' })
           return undefined
         }
@@ -4733,7 +4775,7 @@ window.__ModuleLoader__.load({
           revoke(created.filter(url => !urlsRef.current.includes(url)))
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-      }, [sessionId, selected, attempt])
+      }, [preview, sessionId, selected, attempt])
 
       useEffect(() => () => {
         for (const timer of timersRef.current) clearTimeout(timer)
@@ -4749,7 +4791,7 @@ window.__ModuleLoader__.load({
 
       useEffect(() => {
         const node = docRef.current
-        if (node === null || node === undefined) return undefined
+        if (preview !== true || node === null || node === undefined) return undefined
         const measure = () => setPaneWidth(node.clientWidth)
         measure()
         if (typeof ResizeObserver === 'function') {
@@ -4759,7 +4801,7 @@ window.__ModuleLoader__.load({
         }
         window.addEventListener('resize', measure)
         return () => window.removeEventListener('resize', measure)
-      }, [])
+      }, [preview])
 
       // One subscription: a page double-click anywhere in this plugin instance lands the
       // caret here, in the file the jump names. A jump never changes the layout.
@@ -4990,6 +5032,14 @@ window.__ModuleLoader__.load({
         })
       }
 
+      const togglePreview = () => {
+        setPreview(open => {
+          const next = open !== true
+          rememberViewPreview(next)
+          return next
+        })
+      }
+
       const editor = []
       if (source.status === 'ready' && source.path === selected && source.truncated !== true) {
         editor.push(h(SourceEditor, {
@@ -5060,12 +5110,22 @@ window.__ModuleLoader__.load({
             'aria-pressed': outlineOpen ? 'true' : 'false',
             onClick: toggleOutline,
           }, glyph('outline', 15)),
+          h('button', {
+            type: 'button',
+            className: 'oprilx-icon-button',
+            key: 'preview-toggle',
+            'aria-label': tr(t, preview ? 'viewPreviewHide' : 'viewPreviewShow'),
+            title: tr(t, preview ? 'viewPreviewHide' : 'viewPreviewShow'),
+            'aria-pressed': preview ? 'true' : 'false',
+            onClick: togglePreview,
+          }, glyph('eye', 15)),
         ]),
         h('div', {
           className: 'oprilx-workspace',
           key: 'workspace',
           style: { '--opr-outline-width': `${outlineWidth}px` },
           'data-outline': outlineOpen ? 'true' : 'false',
+          'data-preview': preview ? 'true' : 'false',
         }, [
           outlineOpen
             ? h('div', { className: 'oprilx-outline', key: 'outline', role: 'navigation' }, [
@@ -5103,7 +5163,9 @@ window.__ModuleLoader__.load({
             key: 'editor',
             'data-pane': 'source',
           }, editor),
-          h('div', { className: 'oprilx-panel-doc', key: 'doc', ref: node => { docRef.current = node } }, doc),
+          preview
+            ? h('div', { className: 'oprilx-panel-doc', key: 'doc', ref: node => { docRef.current = node } }, doc)
+            : null,
         ]),
       ])
     }

@@ -120,8 +120,8 @@ function makeTabReact(options = {}) {
  */
 function makePanelReact(options = {}) {
   const order = ['attempt', 'selected', 'documentSession', 'renderState', 'zoom', 'download',
-    'paneWidth', 'copied', 'outlineWidth', 'outlineOpen', 'source', 'draft', 'pendingJump',
-    'codeFont']
+    'paneWidth', 'copied', 'outlineWidth', 'outlineOpen', 'preview', 'source', 'draft',
+    'pendingJump', 'codeFont']
   const values = { ...options }
   const log = {}
   let calls = 0
@@ -761,7 +761,7 @@ section('conversation view')
     node.props?.className === 'oprilx-panel'))
 }
 
-section('panel: editor and preview are both permanent')
+section('panel: the shown preview sits beside the editor')
 {
   const source = {
     status: 'ready',
@@ -791,10 +791,10 @@ section('panel: editor and preview are both permanent')
   globalThis.localStorage = { getItem: () => JSON.stringify({ sessionId: 'sess-1' }) }
   try {
     const react = makePanelReact({
-      listing: { status: 'ready', files: ['demo/example.tex'] },
       selected: 'demo/example.tex',
       renderState,
       paneWidth: 800,
+      preview: true,
       source,
     })
     const { slots, en } = mount(react, { fetch })
@@ -849,6 +849,82 @@ section('panel: editor and preview are both permanent')
   }
 }
 
+section('preview column: hidden by default, toggled independently')
+{
+  // Default: no preview column in the tree, and the header offers to open it.
+  const hidden = makePanelReact({})
+  const hiddenMount = mount(hidden)
+  const hiddenView = hiddenMount.slots.find(entry => entry.options?.name === 'conversation.view')
+  const hiddenNodes = flatten(hiddenView.body({ t: key => hiddenMount.en.get(key) ?? key }))
+  check('the preview column is hidden by default',
+    !hiddenNodes.some(node => node.props?.className === 'oprilx-panel-doc'))
+  const eye = hiddenNodes.find(node => node.type === 'button'
+    && node.props['aria-label'] === 'Show the preview')
+  check('a header control opens the preview', eye !== undefined)
+  const toggleStorage = fakeStorage({
+    'dsh.sessions.current': JSON.stringify({ sessionId: 'sess-1' }),
+  })
+  globalThis.localStorage = toggleStorage
+  try {
+    const toggled = makePanelReact({})
+    const toggledMount = mount(toggled)
+    const toggledView = toggledMount.slots.find(entry => entry.options?.name === 'conversation.view')
+    const nodes = flatten(toggledView.body({ t: key => toggledMount.en.get(key) ?? key }))
+    const button = nodes.find(node => node.type === 'button'
+      && node.props['aria-label'] === 'Show the preview')
+    button.props.onClick()
+    check('the eye toggle shows the preview', toggled.__log.preview?.at(-1) === true,
+      JSON.stringify(toggled.__log.preview))
+    check('the preview choice is persisted', toggleStorage.writes.some(entry =>
+      entry[0] === 'dsh-openprism-latex.view-preview' && entry[1] === 'open'),
+    JSON.stringify(toggleStorage.writes))
+  } finally {
+    delete globalThis.localStorage
+  }
+
+  // A remembered open preview is read back and rendered.
+  globalThis.localStorage = fakeStorage({
+    'dsh-openprism-latex.view-preview': 'open',
+    'dsh.sessions.current': JSON.stringify({ sessionId: 'sess-1' }),
+  })
+  try {
+    const stored = makePanelReact({})
+    const storedMount = mount(stored)
+    const storedView = storedMount.slots.find(entry => entry.options?.name === 'conversation.view')
+    const nodes = flatten(storedView.body({ t: key => storedMount.en.get(key) ?? key }))
+    check('the stored preview choice is read back',
+      nodes.some(node => node.props?.className === 'oprilx-panel-doc'))
+    check('the open preview offers a way back', nodes.some(node => node.type === 'button'
+      && node.props['aria-label'] === 'Hide the preview'))
+  } finally {
+    delete globalThis.localStorage
+  }
+
+  // Both toggles are independent.
+  const bothOff = makePanelReact({ outlineOpen: false, preview: false })
+  const bothOffMount = mount(bothOff)
+  const bothOffView = bothOffMount.slots.find(entry => entry.options?.name === 'conversation.view')
+  const bothOffNodes = flatten(bothOffView.body({ t: key => bothOffMount.en.get(key) ?? key }))
+  check('hiding both lists leaves the editor full width',
+    bothOffNodes.some(node => node.props?.className === 'oprilx-editor-pane')
+    && !bothOffNodes.some(node => node.props?.className === 'oprilx-outline')
+    && !bothOffNodes.some(node => node.props?.className === 'oprilx-panel-doc'))
+  const outlineOnly = makePanelReact({ outlineOpen: true, preview: false })
+  const outlineOnlyMount = mount(outlineOnly)
+  const outlineOnlyView = outlineOnlyMount.slots.find(entry => entry.options?.name === 'conversation.view')
+  const outlineOnlyNodes = flatten(outlineOnlyView.body({ t: key => outlineOnlyMount.en.get(key) ?? key }))
+  check('the two toggles are independent (outline only)',
+    outlineOnlyNodes.some(node => node.props?.className === 'oprilx-outline')
+    && !outlineOnlyNodes.some(node => node.props?.className === 'oprilx-panel-doc'))
+  const previewOnly = makePanelReact({ outlineOpen: false, preview: true })
+  const previewOnlyMount = mount(previewOnly)
+  const previewOnlyView = previewOnlyMount.slots.find(entry => entry.options?.name === 'conversation.view')
+  const previewOnlyNodes = flatten(previewOnlyView.body({ t: key => previewOnlyMount.en.get(key) ?? key }))
+  check('the two toggles are independent (preview only)',
+    previewOnlyNodes.some(node => node.props?.className === 'oprilx-panel-doc')
+    && !previewOnlyNodes.some(node => node.props?.className === 'oprilx-outline'))
+}
+
 section('panel: the render request carries the remembered engine')
 {
   // The view has no engine picker of its own, so it compiles with the engine choice the
@@ -856,6 +932,7 @@ section('panel: the render request carries the remembered engine')
   globalThis.localStorage = {
     getItem: key => {
       if (key === 'dsh-openprism-latex.engine') return 'xelatex'
+      if (key === 'dsh-openprism-latex.view-preview') return 'open'
       if (key === 'dsh.sessions.current') return JSON.stringify({ sessionId: 'sess-1' })
       return null
     },
@@ -884,6 +961,29 @@ section('panel: the render request carries the remembered engine')
     const renderRequest = requests.find(url => String(url).includes('/render?'))
     check('the view compiles with the remembered engine',
       String(renderRequest).includes('engine=xelatex'), String(renderRequest))
+
+    // With the preview hidden there is no compile at all.
+    globalThis.localStorage = {
+      getItem: key => (key === 'dsh.sessions.current'
+        ? JSON.stringify({ sessionId: 'sess-1' })
+        : null),
+    }
+    const hiddenRequests = []
+    const hiddenFetch = url => {
+      hiddenRequests.push(String(url))
+      return Promise.resolve({ ok: true, status: 200, json: async () => ({ ok: false }) })
+    }
+    const hiddenReact = {
+      ...makePanelReact({ selected: 'demo/example.tex' }),
+      useEffect(fn) {
+        fn()
+      },
+    }
+    const hiddenMount = mount(hiddenReact, { fetch: hiddenFetch })
+    const hiddenEntry = hiddenMount.slots.find(candidate => candidate.options?.name === 'conversation.view')
+    flatten(hiddenEntry.body({ t: key => hiddenMount.en.get(key) ?? key }))
+    check('a hidden preview issues no compile request',
+      !hiddenRequests.some(url => String(url).includes('/render?')), JSON.stringify(hiddenRequests))
   } finally {
     delete globalThis.localStorage
   }
@@ -945,6 +1045,7 @@ section('view follows the document the right sidebar publishes')
   // The conversation view subscribes; both channels replay what the sidebar published.
   const viewEntry = bundle.slots.find(candidate => candidate.options?.name === 'conversation.view')
   const viewTree = flatten(viewEntry.body({ t: key => bundle.en.get(key) ?? key }), [], 0, react)
+  react.__effects(false)
   check('the view follows the published document',
     (react.__log.selected ?? []).includes('demo/other.tex'),
     JSON.stringify(react.__log.selected))
@@ -958,6 +1059,9 @@ section('view follows the document the right sidebar publishes')
   check('the view grew an outline column and no file list',
     viewNodes.some(node => node.props?.className === 'oprilx-outline')
     && !viewNodes.some(node => node.props?.className === 'oprilx-panel-list'))
+  check('the view preview stays hidden while the jump lands',
+    !viewNodes.some(node => node.props?.className === 'oprilx-panel-doc')
+    && viewNodes.some(node => node.props?.className === 'oprilx-editor-pane'))
 }
 
 section('view without a published document')

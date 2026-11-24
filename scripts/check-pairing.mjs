@@ -339,6 +339,24 @@ section('outline-only conversation view')
     !source.includes('searchTex') && !source.includes('panelFileCount'))
 }
 
+section('view preview toggle')
+{
+  check('the view has an eye toggle for its preview',
+    source.includes("preview ? 'viewPreviewHide' : 'viewPreviewShow'"))
+  check('the preview column is optional',
+    source.includes("'data-preview': preview ? 'true' : 'false'")
+    && source.includes("className: 'oprilx-panel-doc'"))
+  check('the preview is hidden by default',
+    source.includes('function readViewPreview') && source.includes("return raw === 'open'"))
+  check('the preview choice is persisted',
+    source.includes('function rememberViewPreview')
+    && source.includes("dsh-openprism-latex.view-preview"))
+  check('a hidden preview skips the compile',
+    source.includes('if (preview !== true || sessionId === undefined || selected === undefined)'))
+  check('the editor widens when the preview is hidden',
+    source.includes('.oprilx-workspace[data-preview="false"] .oprilx-editor-pane'))
+}
+
 section('inverse search only publishes')
 {
   const marker = '      const inverseSearchAt = (index, event) => {'
