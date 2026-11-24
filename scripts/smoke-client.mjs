@@ -636,6 +636,52 @@ section('right sidebar tab body: error state')
     && node.props['aria-label'] === 'Retry'))
 }
 
+section('right sidebar tab body: inverse search')
+{
+  const readyState = {
+    status: 'ready',
+    pages: [{ url: 'blob:t1', width: 1191, height: 1684 }],
+    pageCount: 1,
+    durationMs: 800,
+    dpi: 144,
+    pdfUrl: 'api/dsh-openprism-latex/pdf?session=sess-1&path=demo/example.tex',
+    truncated: false,
+  }
+  const requests = []
+  const fetch = url => {
+    requests.push(String(url))
+    return Promise.resolve({
+      ok: true,
+      status: 200,
+      json: async () => ({ ok: true, path: 'demo/example.tex', line: 12 }),
+    })
+  }
+  const { slots, en } = mount(makeTabReact({ state: readyState }), { fetch })
+  const entry = slots.find(candidate => candidate.options?.name === 'sidebar.right.pane.tab')
+  const tree = entry.body({
+    t: key => en.get(key) ?? key,
+    useTabInfo: () => ({ tab: { contentId: ADDRESS, signal: new AbortController().signal } }),
+  })
+  const image = flatten(tree).find(node => node.type === 'img')
+  check('page accepts a double-click', typeof image?.props?.onDoubleClick === 'function')
+  check('page hints at inverse search',
+    image?.props?.title === 'Double-click to find the source line', String(image?.props?.title))
+  image.props.onDoubleClick({
+    currentTarget: {
+      naturalWidth: 400,
+      naturalHeight: 560,
+      getBoundingClientRect: () => ({ left: 0, top: 0, width: 200, height: 280 }),
+    },
+    clientX: 100,
+    clientY: 50,
+  })
+  const url = String(requests[0])
+  // 200 px rendered from 400 px at 144 dpi: 100 pt across, 50 pt down.
+  check('coordinates are PDF points', url.includes('page=1') && url.includes('x=100.00')
+    && url.includes('y=50.00'), url)
+  check('inverse search carries the engine', url.includes('engine='), url)
+}
+
 section('right sidebar tab body: error report actions')
 {
   const errorState = {

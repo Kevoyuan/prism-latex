@@ -106,6 +106,9 @@ window.__ModuleLoader__.load({
       completionLabel: 'Completions',
       engineLabel: 'Engine',
       jumpToLine: 'Jump to line {line}',
+      synctexHint: 'Double-click to find the source line',
+      synctexMiss: 'No source line found at that spot',
+      synctexElsewhere: 'In {path} line {line}',
       copyError: 'Copy the error',
       sendToChat: 'Send the error to the chat',
       copied: 'Copied',
@@ -1521,7 +1524,7 @@ window.__ModuleLoader__.load({
     }
 
     function renderReady(context) {
-      const { t, address, state, zoom, setZoom, fitScale, download, onDownload } = context
+      const { t, address, state, zoom, setZoom, fitScale, download, onDownload, onPageDoubleClick } = context
       const dpi = Number.isFinite(state.dpi) && state.dpi > 0 ? state.dpi : 144
       const fit = zoom === 'fit'
       const pages = state.pages.map((page, index) => {
@@ -1537,9 +1540,13 @@ window.__ModuleLoader__.load({
           width: pixelWidth,
           height: pixelHeight,
           alt: tr(t, 'pageAlt', { index: index + 1 }),
+          title: typeof onPageDoubleClick === 'function' ? tr(t, 'synctexHint') : undefined,
           loading: 'lazy',
           decoding: 'async',
           draggable: false,
+          onDoubleClick: typeof onPageDoubleClick === 'function'
+            ? event => onPageDoubleClick(index, event)
+            : undefined,
         }))
       })
 
@@ -3430,6 +3437,7 @@ window.__ModuleLoader__.load({
       const [fontBadge, setFontBadge] = useState(undefined)
       const [engine, setEngine] = useState(() => readEngine())
       const [jump, setJump] = useState(undefined)
+      const [hint, setHint] = useState(undefined)
       const [splitRatio, setSplitRatio] = useState(() => readSplitRatio())
       const splitRef = useRef(null)
       const ratioRef = useRef(splitRatio)
@@ -3449,6 +3457,56 @@ window.__ModuleLoader__.load({
         setMode(previous => (previous === 'split' ? previous : 'split'))
         setJump(previous => ({ line: Number(line), seq: (previous?.seq ?? 0) + 1 }))
       }
+
+      /**
+       * Inverse search: the page pixel under the pointer becomes a PDF point, SyncTeX maps
+       * it back to the source line, and the editor jumps there.
+       */
+      const inverseSearchAt = (index, event) => {
+        const image = event?.currentTarget
+        if (target === undefined || image === null || image === undefined) return
+        const rect = typeof image.getBoundingClientRect === 'function' ? image.getBoundingClientRect() : undefined
+        if (rect === undefined || rect.width <= 0 || rect.height <= 0) return
+        const naturalWidth = Number(image.naturalWidth) > 0 ? Number(image.naturalWidth) : rect.width
+        const naturalHeight = Number(image.naturalHeight) > 0 ? Number(image.naturalHeight) : rect.height
+        const pixelX = (event.clientX - rect.left) * (naturalWidth / rect.width)
+        const pixelY = (event.clientY - rect.top) * (naturalHeight / rect.height)
+        const dpi = Number(state.dpi) > 0 ? Number(state.dpi) : 144
+        const query = new URLSearchParams({
+          session: sessionId ?? '',
+          path: target.path,
+          page: String(index + 1),
+          x: (pixelX * 72 / dpi).toFixed(2),
+          y: (pixelY * 72 / dpi).toFixed(2),
+          engine,
+        })
+        fetch(`api/dsh-openprism-latex/synctex?${query.toString()}`, { cache: 'no-store' })
+          .then(async response => {
+            let body
+            try {
+              body = await response.json()
+            } catch {
+              body = undefined
+            }
+            if (body?.ok !== true) {
+              setHint(tr(t, 'synctexMiss'))
+              setTimeout(() => setHint(undefined), 2400)
+              return
+            }
+            if (body.path === target.path) {
+              jumpToSourceLine(body.line)
+              return
+            }
+            // The spot came from an \input or \include sibling: report where it is.
+            setHint(tr(t, 'synctexElsewhere', { path: body.path, line: body.line }))
+            setTimeout(() => setHint(undefined), 3200)
+          })
+          .catch(() => {
+            setHint(tr(t, 'synctexMiss'))
+            setTimeout(() => setHint(undefined), 2400)
+          })
+      }
+
 
       useEffect(() => {
         if (target === undefined) {
@@ -3644,6 +3702,7 @@ window.__ModuleLoader__.load({
           fitScale: fitScaleFor(paneWidth, { ...state.pages[0], dpi: state.dpi }),
           download,
           onDownload: () => startDownload(state.pdfUrl, pdfFilename(target), setDownload),
+          onPageDoubleClick: inverseSearchAt,
         }))
       }
 
@@ -3910,8 +3969,9 @@ window.__ModuleLoader__.load({
               key: 'status',
               role: 'status',
               'aria-live': 'polite',
-              title: heading,
-            }, status.text),
+              title: hint === undefined ? heading : hint,
+              'data-hint': hint === undefined ? 'false' : 'true',
+            }, hint === undefined ? status.text : hint),
           ]),
           h('div', { className: 'oprilx-tabactions', key: 'actions' }, [
             h('select', {
