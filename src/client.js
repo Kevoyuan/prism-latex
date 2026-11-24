@@ -5,6 +5,9 @@ window.__ModuleLoader__.load({
     const h = React.createElement
     const { useEffect, useMemo, useRef, useState } = React
 
+    /** Last uncaught client error, reported with the diagnostic so a crash is diagnosable. */
+    let lastClientError
+
     /** Shown in the panel header: which client bundle the page actually loaded. */
     const CLIENT_BUILD = '0.1.0+latex-tab'
     const SESSION_RESOURCE_PREFIX = 'dsh-resource://file/session/'
@@ -4390,6 +4393,27 @@ window.__ModuleLoader__.load({
       const t = ctx.locale.bind('openprismLatex')
       boundT = t
 
+      ctx.effect(() => {
+        if (typeof window === 'undefined' || typeof window.addEventListener !== 'function') {
+          return () => {}
+        }
+        const record = error => {
+          lastClientError = {
+            message: String(error?.message ?? error ?? 'unknown client error'),
+            stack: String(error?.stack ?? '').slice(0, 1200),
+            at: Date.now(),
+          }
+        }
+        const onError = event => record(event?.error ?? event?.message)
+        const onRejection = event => record(event?.reason)
+        window.addEventListener('error', onError)
+        window.addEventListener('unhandledrejection', onRejection)
+        return () => {
+          window.removeEventListener('error', onError)
+          window.removeEventListener('unhandledrejection', onRejection)
+        }
+      })
+
       const definition = {
         id: 'dsh-openprism-latex',
         extensions: ['tex', 'latex', 'ltx'],
@@ -4546,7 +4570,28 @@ window.__ModuleLoader__.load({
         name: 'sidebar.right.pane.tab',
         key: 'dsh-openprism-latex',
         locale: 'openprismLatex',
-      }, LatexTab)))
+      }, function GuardedLatexTab(props) {
+        // A throw during render would unmount the tab and blank the pane; show the error
+        // instead, and keep it for the diagnostic report.
+        try {
+          return LatexTab(props)
+        } catch (error) {
+          lastClientError = {
+            message: String(error?.message ?? error),
+            stack: String(error?.stack ?? '').slice(0, 1200),
+            at: Date.now(),
+          }
+          return React.createElement('div', {
+            style: {
+              padding: '12px',
+              color: '#f85149',
+              fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+              fontSize: '12px',
+              whiteSpace: 'pre-wrap',
+            },
+          }, `LaTeX pane failed: ${String(error?.message ?? error)}\n\n${String(error?.stack ?? '').split('\n').slice(0, 6).join('\n')}`)
+        }
+      })))
 
       // Self report: the browser cannot expose its registries to the Host any other way, so
       // the tab registry's answer for this plugin is written to a temp file by the /files
@@ -4614,6 +4659,7 @@ window.__ModuleLoader__.load({
             })(),
             sampleAddress,
             sessionKnown: sessionId !== undefined,
+            clientError: lastClientError,
           }
           const encoded = encodeURIComponent(btoa(JSON.stringify(report)))
           fetch(`api/dsh-openprism-latex/files?session=diag&diag=${encoded}`, { cache: 'no-store' })
