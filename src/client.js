@@ -4407,7 +4407,6 @@ window.__ModuleLoader__.load({
           ]),
         ]),
         body,
-        h(ChatBar, { key: 'chat', t, inputActions: props.inputActions }),
       ])
     }
 
@@ -5119,6 +5118,36 @@ window.__ModuleLoader__.load({
         order: 30,
         label: () => t('panelTitle'),
       }, PanelIcon)))
+      // A Conversation view: the shell draws the view tabs and the native composer around it,
+      // so this is the surface that gets the real input box without re-implementing chat.
+      const ConvView = props => h(LatexPanel, { ...props, loader })
+      ctx.effect(() => ctx.slots.inject('conversation.view', () => ctx.slots.register({
+        name: 'conversation.view',
+        id: 'dsh-openprism-latex',
+        order: 40,
+        locale: 'openprismLatex',
+        label: () => t('panelTitle'),
+      }, function GuardedConvView(props) {
+        try {
+          return ConvView(props)
+        } catch (error) {
+          lastClientError = {
+            message: String(error?.message ?? error),
+            stack: String(error?.stack ?? '').slice(0, 1200),
+            at: Date.now(),
+          }
+          return React.createElement('div', {
+            style: {
+              padding: '12px',
+              color: '#f85149',
+              fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+              fontSize: '12px',
+              whiteSpace: 'pre-wrap',
+            },
+          }, `LaTeX view failed: ${String(error?.message ?? error)}`)
+        }
+      })))
+
       ctx.effect(() => ctx.slots.inject('main', () => ctx.slots.register({
         name: 'main',
         key: 'dsh-openprism-latex',

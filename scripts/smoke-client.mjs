@@ -524,6 +524,18 @@ section('sidebar panel entry')
     text.slice(0, 160))
 }
 
+section('conversation view')
+{
+  const { slots, en } = mount(makeReact(undefined))
+  const entry = slots.find(candidate => candidate.options?.name === 'conversation.view')
+  check('LaTeX registered as a conversation view', entry !== undefined)
+  check('view id is namespaced', entry?.options?.id === 'dsh-openprism-latex', String(entry?.options?.id))
+  check('view has a label thunk', typeof entry?.options?.label === 'function')
+  const tree = entry.body({ t: key => en.get(key) ?? key })
+  check('view renders the workspace panel', flatten(tree).some(node =>
+    node.props?.className === 'oprilx-panel'))
+}
+
 section('chat bar')
 {
   const { slots, en } = mount(makeReact(undefined))
