@@ -119,8 +119,8 @@ function makeTabReact(options = {}) {
  * so a click can be observed without a real re-render.
  */
 function makePanelReact(options = {}) {
-  const order = ['tick', 'refresh', 'attempt', 'listing', 'selected', 'documentSession',
-    'renderState', 'zoom', 'download', 'paneWidth', 'copied', 'source', 'draft', 'pendingJump',
+  const order = ['attempt', 'selected', 'documentSession', 'renderState', 'zoom', 'download',
+    'paneWidth', 'copied', 'outlineWidth', 'outlineOpen', 'source', 'draft', 'pendingJump',
     'codeFont']
   const values = { ...options }
   const log = {}
@@ -637,26 +637,105 @@ section('zoom steps follow the fit scale in a narrow pane')
   check('zoom in available', zoomIn?.props?.disabled === false, String(zoomIn?.props?.disabled))
 }
 
-section('workspace layout')
+section('outline column layout')
 {
-  const { slots, en } = mount(makeReact(undefined))
+  const { slots, en } = mount(makePanelReact({}))
   const view = slots.find(entry => entry.options?.name === 'conversation.view')
   const tree = view.body({ t: key => en.get(key) ?? key })
   const nodes = flatten(tree)
   const workspace = nodes.find(node => node.props?.className === 'oprilx-workspace')
-  check('the view is one three-column workspace', workspace !== undefined)
-  const files = nodes.find(node => node.props?.className === 'oprilx-files')
+  check('the view is one workspace', workspace !== undefined)
+  const outline = nodes.find(node => node.props?.className === 'oprilx-outline')
+  const divider = nodes.find(node => node.props?.className === 'oprilx-divider')
   const editor = nodes.find(node => node.props?.className === 'oprilx-editor-pane')
-  const doc = nodes.find(node => node.props?.className === 'oprilx-panel-doc')
-  check('file, editor and page columns are siblings', files !== undefined
-    && editor !== undefined && doc !== undefined)
-  check('columns are ordered files, editor, page',
-    nodes.indexOf(files) < nodes.indexOf(editor) && nodes.indexOf(editor) < nodes.indexOf(doc))
+  check('the outline column is on the left', outline !== undefined && editor !== undefined)
+  check('no .tex file list or rows are rendered',
+    !nodes.some(node => node.props?.className === 'oprilx-panel-list'
+      || node.props?.className === 'oprilx-panel-row'
+      || node.props?.className === 'oprilx-files'))
+  check('a separator sits between the outline and the editor',
+    divider !== undefined && nodes.indexOf(outline) < nodes.indexOf(divider)
+    && nodes.indexOf(divider) < nodes.indexOf(editor))
+  check('the separator is an accessible splitter', divider?.props?.role === 'separator'
+    && divider?.props?.['aria-orientation'] === 'vertical'
+    && divider?.props?.['aria-valuenow'] === 196
+    && divider?.props?.['aria-valuemin'] === 140
+    && divider?.props?.['aria-valuemax'] === 360
+    && divider?.props?.tabIndex === 0, JSON.stringify(divider?.props))
+  check('the outline column has a title', nodes.some(node =>
+    node.props?.className === 'oprilx-outline-title'))
+  check('no file-count subtitle remains', !/\d+ documents/.test(textOf(tree)), textOf(tree).slice(0, 120))
   check('no preview/source mode switch in this view',
     !nodes.some(node => node.props?.className === 'oprilx-mode'))
-  // The outline only exists once a source loads; the container is what the layout owns.
-  check('outline is rendered from the file column', files !== undefined
-    && nodes.some(node => node.props?.className === 'oprilx-panel-outline') === false)
+}
+
+section('outline column: resize and hide')
+{
+  // Hidden: neither the column nor its divider renders, and the toggle still offers itself.
+  const hidden = makePanelReact({ outlineOpen: false })
+  const hiddenMount = mount(hidden)
+  const hiddenView = hiddenMount.slots.find(entry => entry.options?.name === 'conversation.view')
+  const hiddenNodes = flatten(hiddenView.body({ t: key => hiddenMount.en.get(key) ?? key }))
+  check('hiding the outline removes the column',
+    !hiddenNodes.some(node => node.props?.className === 'oprilx-outline'))
+  check('hiding the outline removes the divider',
+    !hiddenNodes.some(node => node.props?.className === 'oprilx-divider'))
+  check('the editor survives the hidden outline',
+    hiddenNodes.some(node => node.props?.className === 'oprilx-editor-pane'))
+  check('the hidden state offers a way back',
+    hiddenNodes.some(node => node.type === 'button' && node.props['aria-label'] === 'Show the outline'))
+
+  // Persisted width and visibility are read back from localStorage.
+  globalThis.localStorage = fakeStorage({
+    'dsh-openprism-latex.outline-width': '300',
+    'dsh-openprism-latex.outline-open': 'open',
+    'dsh.sessions.current': JSON.stringify({ sessionId: 'sess-1' }),
+  })
+  try {
+    const stored = makePanelReact({})
+    const storedMount = mount(stored)
+    const storedView = storedMount.slots.find(entry => entry.options?.name === 'conversation.view')
+    const storedNodes = flatten(storedView.body({ t: key => storedMount.en.get(key) ?? key }))
+    const workspace = storedNodes.find(node => node.props?.className === 'oprilx-workspace')
+    const divider = storedNodes.find(node => node.props?.className === 'oprilx-divider')
+    check('the stored outline width is read back',
+      workspace?.props?.style?.['--opr-outline-width'] === '300px',
+      JSON.stringify(workspace?.props?.style))
+    check('the stored width reaches the separator', divider?.props?.['aria-valuenow'] === 300,
+      String(divider?.props?.['aria-valuenow']))
+    // Keyboard nudging and double-click reset both persist through the same setter.
+    divider.props.onKeyDown({ key: 'ArrowLeft', shiftKey: false, preventDefault() {} })
+    check('arrow keys resize the outline', stored.__log.outlineWidth?.at(-1) === 290,
+      JSON.stringify(stored.__log.outlineWidth))
+    divider.props.onDoubleClick()
+    check('double-click resets the outline width', stored.__log.outlineWidth?.at(-1) === 196,
+      JSON.stringify(stored.__log.outlineWidth))
+  } finally {
+    delete globalThis.localStorage
+  }
+
+  // The header toggle flips the state and remembers it.
+  const storage = fakeStorage({
+    'dsh.sessions.current': JSON.stringify({ sessionId: 'sess-1' }),
+  })
+  globalThis.localStorage = storage
+  try {
+    const toggle = makePanelReact({})
+    const toggleMount = mount(toggle)
+    const toggleView = toggleMount.slots.find(entry => entry.options?.name === 'conversation.view')
+    const nodes = flatten(toggleView.body({ t: key => toggleMount.en.get(key) ?? key }))
+    const button = nodes.find(node => node.type === 'button'
+      && node.props['aria-label'] === 'Hide the outline')
+    check('the outline toggle is rendered', button !== undefined)
+    button.props.onClick()
+    check('the toggle hides the outline', toggle.__log.outlineOpen?.at(-1) === false,
+      JSON.stringify(toggle.__log.outlineOpen))
+    check('the outline choice is persisted', storage.writes.some(entry =>
+      entry[0] === 'dsh-openprism-latex.outline-open' && entry[1] === 'hidden'),
+    JSON.stringify(storage.writes))
+  } finally {
+    delete globalThis.localStorage
+  }
 }
 
 section('entry points')
@@ -760,9 +839,11 @@ section('panel: editor and preview are both permanent')
     const staleMount = mount(staleReact, { fetch })
     const staleEntry = staleMount.slots.find(candidate => candidate.options?.name === 'conversation.view')
     const staleTree = staleEntry.body({ t: key => staleMount.en.get(key) ?? key })
+    const staleNodes = flatten(staleTree)
+    const staleText = staleNodes.map(node => (typeof node.text === 'string' ? node.text : '')).join(' ')
     check('a newly selected file never shows the previous file source',
-      flatten(staleTree).every(node => node.type !== 'textarea')
-      && textOf(staleTree).includes('Loading source'), textOf(staleTree).slice(0, 160))
+      staleNodes.every(node => node.type !== 'textarea')
+      && staleText.includes('Loading source'), staleText.slice(-160))
   } finally {
     delete globalThis.localStorage
   }
@@ -873,21 +954,27 @@ section('view follows the document the right sidebar publishes')
   check('a sidebar double-click still sets the pending caret',
     (react.__log.pendingJump ?? []).some(jump => jump !== null && jump !== undefined && jump.line === 5),
     JSON.stringify(react.__log.pendingJump))
+  const viewNodes = flatten(viewTree)
+  check('the view grew an outline column and no file list',
+    viewNodes.some(node => node.props?.className === 'oprilx-outline')
+    && !viewNodes.some(node => node.props?.className === 'oprilx-panel-list'))
 }
 
-section('sidebar panel with a session')
+section('view without a published document')
 {
   globalThis.localStorage = { getItem: () => JSON.stringify({ sessionId: 'sess-1' }) }
   try {
-    const { slots, en } = mount(makeReact(undefined))
-    const panelBody = slots.find(entry => entry.options?.name === 'conversation.view')
-    const element = panelBody.body({ t: key => en.get(key) ?? key })
-    const body = typeof element?.type === 'function' ? element.type(element.props) : element
-    const text = textOf(body)
-    check('panel renders with a session', body !== null)
-    check('loading state announced', text.includes('Looking for .tex files'), text.slice(0, 160))
-    check('refresh stays available', flatten(body).some(node => node.type === 'button'
-      && node.props['aria-label'] === 'Refresh'))
+    const { slots, en } = mount(makePanelReact({}))
+    const view = slots.find(entry => entry.options?.name === 'conversation.view')
+    const nodes = flatten(view.body({ t: key => en.get(key) ?? key }))
+    const text = nodes.map(node => (typeof node.text === 'string' ? node.text : '')).join(' ')
+    check('the view renders without a document', nodes.length > 0)
+    check('the empty view points at the right sidebar',
+      text.includes('Open a document from the right sidebar.'), text.slice(0, 160))
+    check('the outline column is still offered', nodes.some(node =>
+      node.props?.className === 'oprilx-outline'))
+    check('no file list is rendered', !nodes.some(node =>
+      node.props?.className === 'oprilx-panel-list'))
   } finally {
     delete globalThis.localStorage
   }

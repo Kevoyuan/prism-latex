@@ -56,18 +56,11 @@ window.__ModuleLoader__.load({
       pageMeta: '{count} pages · {seconds} s',
       truncated: 'First {count} pages',
       panelTitle: 'LaTeX',
-      panelFileCount: '{count} documents',
-      panelFileCountOne: '1 document',
-      panelRefresh: 'Refresh',
-      panelLoading: 'Looking for .tex files…',
-      panelEmpty: 'No .tex files in this workspace.',
-      panelEmptyHint: 'Ask the agent to write one, then refresh.',
-      panelNoSession: 'Open a conversation to browse its workspace.',
-      panelError: 'The workspace could not be read.',
-      panelUnavailable: 'Workspace files are unavailable here.',
-      panelPick: 'Pick a document above to compile it here.',
-      panelIntro: 'Compiled with the local TeX Live. Pick a document to render it in this panel.',
-      panelTypeMissing: 'The sidebar LaTeX tab type is not registered in this page.',
+      panelNoDocument: 'Open a document from the right sidebar.',
+      panelIntro: 'The compiled page appears here.',
+      outlineShow: 'Show the outline',
+      outlineHide: 'Hide the outline',
+      resizeOutline: 'Resize the outline',
       viewMode: 'View mode',
       modePreview: 'Preview',
       modeSource: 'Source',
@@ -1091,72 +1084,6 @@ window.__ModuleLoader__.load({
   font-size: 12px;
   line-height: 1.4;
 }
-.oprilx-panel-refresh {
-  flex: 0 0 auto;
-  appearance: none;
-  cursor: pointer;
-  border-radius: 7px;
-  border: 1px solid var(--dsw-alias-border-l1, rgba(0, 0, 0, .12));
-  background: var(--dsw-alias-bg-layer-1, #fff);
-  color: var(--dsw-alias-label-primary, #1c1c1e);
-  padding: 5px 12px;
-  font: inherit;
-  font-size: 13px;
-}
-.oprilx-panel-refresh:hover {
-  border-color: var(--dsw-alias-label-secondary, #6b7280);
-}
-.oprilx-panel-refresh:focus-visible {
-  outline: 2px solid var(--dsw-alias-label-primary, #1c1c1e);
-  outline-offset: 2px;
-}
-.oprilx-panel-list {
-  flex: 0 0 auto;
-  max-height: 32%;
-  overflow: auto;
-  border-top: 1px solid var(--dsw-alias-border-l1, rgba(0, 0, 0, .12));
-  border-bottom: 1px solid var(--dsw-alias-border-l1, rgba(0, 0, 0, .12));
-}
-.oprilx-panel-row {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  width: 100%;
-  box-sizing: border-box;
-  padding: 8px 16px;
-  border: 0;
-  background: transparent;
-  color: var(--dsw-alias-label-primary, #1c1c1e);
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-.oprilx-panel-row:hover {
-  background: var(--dsw-alias-bg-layer-2, #f4f5f7);
-}
-.oprilx-panel-row:focus-visible {
-  outline: 2px solid var(--dsw-alias-label-primary, #1c1c1e);
-  outline-offset: -2px;
-}
-.oprilx-panel-row[aria-current="true"] {
-  background: var(--dsw-alias-bg-layer-2, #f4f5f7);
-  box-shadow: inset 2px 0 0 var(--dsw-alias-brand-primary, #247bbf);
-}
-.oprilx-panel-name {
-  flex: 0 0 auto;
-  font-weight: 500;
-}
-.oprilx-panel-path {
-  flex: 1 1 auto;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  color: var(--dsw-alias-label-secondary, #6b7280);
-  font-size: 12px;
-  direction: rtl;
-  text-align: left;
-}
 .oprilx-panel-note {
   padding: 12px 16px;
   color: var(--dsw-alias-label-secondary, #6b7280);
@@ -1170,23 +1097,17 @@ window.__ModuleLoader__.load({
   min-width: 0;
   overflow: hidden;
 }
-.oprilx-files {
+.oprilx-outline {
   display: flex;
   flex-direction: column;
-  flex: 0 0 196px;
-  width: 196px;
+  flex: 0 0 var(--opr-outline-width, 196px);
+  width: var(--opr-outline-width, 196px);
   min-height: 0;
   min-width: 0;
-  overflow: hidden;
-  border-right: 1px solid var(--dsw-alias-border-l1, rgba(0, 0, 0, .12));
-}
-.oprilx-panel-outline {
-  flex: 1 1 auto;
-  min-height: 0;
   overflow: auto;
-  border-bottom: 1px solid var(--dsw-alias-border-l1, rgba(0, 0, 0, .12));
 }
-.oprilx-panel-outline-title {
+.oprilx-outline-title {
+  flex: 0 0 auto;
   padding: 10px 16px 4px;
   color: var(--dsw-alias-label-secondary, #6b7280);
   font-size: 11px;
@@ -1194,7 +1115,13 @@ window.__ModuleLoader__.load({
   letter-spacing: .04em;
   text-transform: uppercase;
 }
-.oprilx-panel-outline-row {
+.oprilx-outline-empty {
+  padding: 8px 16px;
+  color: var(--dsw-alias-label-secondary, #6b7280);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.oprilx-outline-row {
   appearance: none;
   display: block;
   width: 100%;
@@ -1212,12 +1139,23 @@ window.__ModuleLoader__.load({
   text-overflow: ellipsis;
   cursor: pointer;
 }
-.oprilx-panel-outline-row:hover {
+.oprilx-outline-row:hover {
   background: var(--dsw-alias-bg-layer-2, #f4f5f7);
 }
-.oprilx-panel-outline-row:focus-visible {
+.oprilx-outline-row:focus-visible {
   outline: 2px solid var(--dsw-alias-label-primary, #1c1c1e);
   outline-offset: -2px;
+}
+.oprilx-workspace > .oprilx-divider {
+  flex: 0 0 6px;
+}
+.oprilx-workspace > .oprilx-divider::before {
+  background: var(--dsw-alias-border-l1, rgba(0, 0, 0, .12));
+}
+.oprilx-workspace > .oprilx-divider:hover::before,
+.oprilx-workspace > .oprilx-divider:focus-visible::before,
+.oprilx-workspace > .oprilx-divider[data-dragging="true"]::before {
+  background: var(--dsw-alias-label-secondary, #6b7280);
 }
 .oprilx-editor-pane {
   display: flex;
@@ -2533,6 +2471,13 @@ window.__ModuleLoader__.load({
         return h('svg', { ...frame, key: 'glyph' }, [
           h('path', { key: 'plane', d: 'M20.4 3.6 3.6 10.4l6.6 2.9 2.9 6.6z' }),
           h('path', { key: 'fold', d: 'M10.2 13.3 20.4 3.6' }),
+        ])
+      }
+      if (name === 'outline') {
+        return h('svg', { ...frame, key: 'glyph' }, [
+          h('path', { key: 'head', d: 'M4.5 6.5h15' }),
+          h('path', { key: 'row-a', d: 'M4.5 12h10' }),
+          h('path', { key: 'row-b', d: 'M4.5 17.5h13' }),
         ])
       }
       if (name === 'save') {
@@ -3959,6 +3904,66 @@ window.__ModuleLoader__.load({
       }
     }
 
+    /** Outline column width in px, remembered like an IDE's sidebar width. */
+    const OUTLINE_WIDTH_KEY = 'dsh-openprism-latex.outline-width'
+    const OUTLINE_WIDTH_DEFAULT = 196
+    const OUTLINE_WIDTH_MIN = 140
+    const OUTLINE_WIDTH_MAX = 360
+
+    /** @returns the next outline width, clamped to the supported range. */
+    function clampOutlineWidth(value) {
+      const parsed = Number(value)
+      if (!Number.isFinite(parsed)) return OUTLINE_WIDTH_DEFAULT
+      return Math.min(OUTLINE_WIDTH_MAX, Math.max(OUTLINE_WIDTH_MIN, Math.round(parsed)))
+    }
+
+    /** @returns the remembered outline width, clamped to the supported range. */
+    function readOutlineWidth() {
+      try {
+        const raw = typeof localStorage === 'undefined' ? null : localStorage.getItem(OUTLINE_WIDTH_KEY)
+        const parsed = Number.parseInt(String(raw), 10)
+        if (!Number.isFinite(parsed)) return OUTLINE_WIDTH_DEFAULT
+        return clampOutlineWidth(parsed)
+      } catch {
+        return OUTLINE_WIDTH_DEFAULT
+      }
+    }
+
+    /** @param width - next outline width in px; stored clamped. */
+    function rememberOutlineWidth(width) {
+      try {
+        if (typeof localStorage !== 'undefined') {
+          localStorage.setItem(OUTLINE_WIDTH_KEY, String(clampOutlineWidth(width)))
+        }
+      } catch {
+        /* preference storage is best effort */
+      }
+    }
+
+    /** Whether the outline column is shown; shown by default, like an IDE's sidebar. */
+    const OUTLINE_OPEN_KEY = 'dsh-openprism-latex.outline-open'
+
+    /** @returns the remembered visibility of the outline column. */
+    function readOutlineOpen() {
+      try {
+        const raw = typeof localStorage === 'undefined' ? null : localStorage.getItem(OUTLINE_OPEN_KEY)
+        return raw !== 'hidden'
+      } catch {
+        return true
+      }
+    }
+
+    /** @param open - whether the outline column is shown; stored best effort. */
+    function rememberOutlineOpen(open) {
+      try {
+        if (typeof localStorage !== 'undefined') {
+          localStorage.setItem(OUTLINE_OPEN_KEY, open ? 'open' : 'hidden')
+        }
+      } catch {
+        /* preference storage is best effort */
+      }
+    }
+
     /** The session the app currently shows, read from that key. */
     function readCurrentSessionId() {
       try {
@@ -4615,11 +4620,7 @@ window.__ModuleLoader__.load({
      */
     function LatexPanel(props) {
       const t = typeof props.t === 'function' ? props.t : boundT
-      const [tick, setTick] = useState(0)
-      const [refresh, setRefresh] = useState(0)
       const [attempt, setAttempt] = useState(0)
-      const [listing, setListing] = useState(() => (
-        readCurrentSessionId() === undefined ? { status: 'no-session' } : { status: 'idle' }))
       const [selected, setSelected] = useState(undefined)
       // The session of the document published by the right sidebar; the app's current
       // session is only the fallback for when nothing has been published yet.
@@ -4629,8 +4630,10 @@ window.__ModuleLoader__.load({
       const [download, setDownload] = useState({ status: 'idle' })
       const [paneWidth, setPaneWidth] = useState(0)
       const [copied, setCopied] = useState(false)
-      // Both panes are permanent: the source editor sits between the file column and the
-      // page. There is no mode to switch, and a double-click on the page moves the caret.
+      // The Outline column is the only list this view owns; the document comes from the
+      // right sidebar, and the editor sits beside the outline.
+      const [outlineWidth, setOutlineWidth] = useState(() => readOutlineWidth())
+      const [outlineOpen, setOutlineOpen] = useState(() => readOutlineOpen())
       const [source, setSource] = useState({ status: 'idle' })
       const [draft, setDraft] = useState(undefined)
       const [pendingJump, setPendingJump] = useState(undefined)
@@ -4645,41 +4648,8 @@ window.__ModuleLoader__.load({
       selectedRef.current = selected
       const sessionRef = useRef(sessionId)
       sessionRef.current = sessionId
-
-      // The app keeps the current session in its own preference key; re-render on a
-      // quiet timer so switching sessions updates the list without an event to bind.
-      useEffect(() => {
-        const timer = setInterval(() => setTick(value => value + 1), 2000)
-        return () => clearInterval(timer)
-      }, [])
-
-      useEffect(() => {
-        if (sessionId === undefined) {
-          setListing({ status: 'no-session' })
-          return undefined
-        }
-        const controller = new AbortController()
-        let cancelled = false
-        setListing({ status: 'loading' })
-        Promise.resolve()
-          .then(() => props.loader.searchTex(sessionId, controller.signal))
-          .then(files => {
-            if (cancelled) return
-            setListing({ status: 'ready', files })
-            setSelected(previous => (previous !== undefined && files.includes(previous)
-              ? previous
-              : files.length > 0 ? files[0] : undefined))
-          })
-          .catch(error => {
-            if (cancelled || error?.name === 'AbortError') return
-            setListing({ status: 'error', message: error instanceof Error ? error.message : '' })
-          })
-        return () => {
-          cancelled = true
-          controller.abort()
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-      }, [sessionId, refresh])
+      const outlineWidthRef = useRef(outlineWidth)
+      outlineWidthRef.current = outlineWidth
 
       useEffect(() => {
         if (sessionId === undefined || selected === undefined) {
@@ -4810,59 +4780,17 @@ window.__ModuleLoader__.load({
         if (document.sessionId !== undefined) setDocumentSession(document.sessionId)
       }), [])
 
-      const typeReady = typeof props.loader?.typeReady === 'function' ? props.loader.typeReady() : undefined
-      const files = listing.status === 'ready' ? listing.files : []
-      const heading = listing.status === 'ready'
-        ? tr(t, files.length === 1 ? 'panelFileCountOne' : 'panelFileCount', { count: files.length })
-        : listing.status === 'no-session'
-          ? tr(t, 'panelNoSession')
-          : listing.status === 'error'
-            ? tr(t, 'panelError')
-            : tr(t, 'panelLoading')
-
-      const rows = []
-      if (listing.status === 'ready') {
-        if (files.length === 0) {
-          rows.push(h('div', { className: 'oprilx-panel-note', key: 'empty' }, [
-            h('div', { key: 'empty-line' }, tr(t, 'panelEmpty')),
-            h('div', { key: 'empty-hint' }, tr(t, 'panelEmptyHint')),
-          ]))
-        }
-        for (const file of files) {
-          const parts = file.split('/')
-          const name = parts[parts.length - 1]
-          const directory = parts.slice(0, -1).join('/')
-          rows.push(h('button', {
-            type: 'button',
-            key: file,
-            className: 'oprilx-panel-row',
-            'aria-current': selected === file ? 'true' : undefined,
-            title: file,
-            onClick: () => {
-              // A landed jump belongs to the file it landed in; another pick drops it so a
-              // fresh editor does not replay the old line.
-              setPendingJump(undefined)
-              setSelected(file)
-            },
-          }, [
-            h('span', { className: 'oprilx-panel-name', key: 'name' }, name),
-            directory === '' ? null : h('span', { className: 'oprilx-panel-path', key: 'path' }, directory),
-          ]))
-        }
-      } else if (listing.status === 'error') {
-        rows.push(h('div', {
-          className: 'oprilx-panel-note', key: 'error', role: 'alert',
-        }, listing.message === '' ? tr(t, 'panelError') : listing.message))
-      } else if (listing.status === 'no-session') {
-        rows.push(h('div', { className: 'oprilx-panel-note', key: 'session' }, tr(t, 'panelNoSession')))
-      } else {
-        rows.push(h('div', { className: 'oprilx-panel-note', key: 'loading', role: 'status' },
-          tr(t, 'panelLoading')))
-      }
+      const documentName = selected === undefined ? undefined : (() => {
+        const parts = selected.split('/')
+        return parts[parts.length - 1]
+      })()
+      const heading = documentName === undefined ? tr(t, 'panelNoDocument') : documentName
 
       // Source is read on demand, once per file, and kept while the panel stays open.
       useEffect(() => {
         if (sessionId === undefined || selected === undefined) return undefined
+        // A jump belongs to the file it landed in; never replay it in another document.
+        if (pendingJump !== undefined && pendingJump.path !== selected) setPendingJump(undefined)
         if (source.status === 'ready' && source.path === selected) return undefined
         // A draft belongs to the file it was typed in; never carry it into another file.
         if (draft !== undefined) setDraft(undefined)
@@ -4940,7 +4868,7 @@ window.__ModuleLoader__.load({
       const outline = source.status === 'ready' ? collectSections(source.text) : []
       const sourceLine = idx => {
         if (source.status !== 'ready') return
-        setPendingJump({ line: outline[idx].line, seq: Date.now() })
+        setPendingJump({ line: outline[idx].line, seq: Date.now(), path: selected })
       }
 
       /**
@@ -4983,10 +4911,83 @@ window.__ModuleLoader__.load({
               line: body.line,
               column: body.column ?? 0,
               seq: Date.now(),
+              path: selected,
             })
             publishJump({ line: body.line, column: body.column, path: body.path, sessionId })
           })
           .catch(() => {})
+      }
+
+      const commitOutlineWidth = width => {
+        const next = clampOutlineWidth(width)
+        outlineWidthRef.current = next
+        setOutlineWidth(next)
+        rememberOutlineWidth(next)
+      }
+
+      /** Drag the outline/editor divider: the pointer delta becomes the outline's pixels. */
+      const startOutlineDrag = event => {
+        if (typeof event.preventDefault === 'function') event.preventDefault()
+        const startX = Number(event.clientX)
+        if (!Number.isFinite(startX)) return
+        const startWidth = outlineWidthRef.current
+        const target = event.currentTarget
+        if (target !== null && target !== undefined && typeof target.setPointerCapture === 'function') {
+          try {
+            target.setPointerCapture(event.pointerId)
+          } catch {
+            /* capture is a nicety */
+          }
+        }
+        if (typeof target === 'object' && target !== null) target.dataset.dragging = 'true'
+        const move = moveEvent => {
+          const clientX = Number(moveEvent.clientX)
+          if (!Number.isFinite(clientX)) return
+          const next = clampOutlineWidth(startWidth + (clientX - startX))
+          outlineWidthRef.current = next
+          setOutlineWidth(next)
+        }
+        const stop = () => {
+          if (typeof target === 'object' && target !== null && target.dataset !== undefined) {
+            target.dataset.dragging = 'false'
+          }
+          if (typeof window !== 'undefined') {
+            window.removeEventListener('pointermove', move)
+            window.removeEventListener('pointerup', stop)
+            window.removeEventListener('pointercancel', stop)
+          }
+          rememberOutlineWidth(outlineWidthRef.current)
+        }
+        if (typeof window !== 'undefined') {
+          window.addEventListener('pointermove', move)
+          window.addEventListener('pointerup', stop)
+          window.addEventListener('pointercancel', stop)
+        }
+      }
+
+      const nudgeOutlineWidth = event => {
+        const step = event.shiftKey ? 40 : 10
+        if (event.key === 'ArrowLeft') {
+          event.preventDefault()
+          commitOutlineWidth(outlineWidth - step)
+        } else if (event.key === 'ArrowRight') {
+          event.preventDefault()
+          commitOutlineWidth(outlineWidth + step)
+        } else if (event.key === 'Home') {
+          event.preventDefault()
+          commitOutlineWidth(OUTLINE_WIDTH_MIN)
+        } else if (event.key === 'End') {
+          event.preventDefault()
+          commitOutlineWidth(OUTLINE_WIDTH_MAX)
+        }
+      }
+
+      const toggleOutline = () => {
+        setOutlineOpen(open => {
+          const next = open !== true
+          rememberOutlineOpen(next)
+          return next
+        })
       }
 
       const editor = []
@@ -4999,7 +5000,7 @@ window.__ModuleLoader__.load({
           onInput: value => setDraft(value),
           onSave: saveSourceFile,
           onCompile: saveSourceFile,
-          jump: pendingJump,
+          jump: pendingJump !== undefined && pendingJump.path === selected ? pendingJump : undefined,
           fontSize: codeFont,
           onZoom: delta => {
             const next = delta === 0
@@ -5011,9 +5012,11 @@ window.__ModuleLoader__.load({
         }))
       } else {
         editor.push(h('div', { className: 'oprilx-panel-note', key: 'source-state' },
-          source.status === 'error'
-            ? `${tr(t, 'sourceError')}${source.message ? ` · ${source.message}` : ''}`
-            : source.truncated === true ? tr(t, 'readOnlyTooLarge') : tr(t, 'sourceLoading')))
+          selected === undefined
+            ? tr(t, 'panelNoDocument')
+            : source.status === 'error'
+              ? `${tr(t, 'sourceError')}${source.message ? ` · ${source.message}` : ''}`
+              : source.truncated === true ? tr(t, 'readOnlyTooLarge') : tr(t, 'sourceLoading')))
       }
 
       const doc = []
@@ -5038,10 +5041,7 @@ window.__ModuleLoader__.load({
           onPageDoubleClick: inverseSearchAt,
         }))
       } else {
-        doc.push(h('div', { className: 'oprilx-panel-note', key: 'intro' }, [
-          h('div', { key: 'intro-line' }, tr(t, 'panelIntro')),
-          selected === undefined ? null : h('div', { key: 'pick-line' }, tr(t, 'panelPick')),
-        ]))
+        doc.push(h('div', { className: 'oprilx-panel-note', key: 'intro' }, tr(t, 'panelIntro')))
       }
 
       return h('div', { className: 'oprilx-panel' }, [
@@ -5054,37 +5054,50 @@ window.__ModuleLoader__.load({
           h('button', {
             type: 'button',
             className: 'oprilx-icon-button',
-            key: 'refresh',
-            'aria-label': tr(t, 'panelRefresh'),
-            title: tr(t, 'panelRefresh'),
-            onClick: () => setRefresh(value => value + 1),
-          }, glyph('refresh', 15)),
+            key: 'outline-toggle',
+            'aria-label': tr(t, outlineOpen ? 'outlineHide' : 'outlineShow'),
+            title: tr(t, outlineOpen ? 'outlineHide' : 'outlineShow'),
+            'aria-pressed': outlineOpen ? 'true' : 'false',
+            onClick: toggleOutline,
+          }, glyph('outline', 15)),
         ]),
-        typeReady === false
-          ? h('div', {
-            className: 'oprilx-panel-note',
-            key: 'type-missing',
-            role: 'alert',
-            style: { color: 'var(--dsw-alias-state-error-primary, #c0392b)' },
-          }, tr(t, 'panelTypeMissing'))
-          : null,
-        h('div', { className: 'oprilx-workspace', key: 'workspace' }, [
-          h('div', { className: 'oprilx-files', key: 'files' }, [
-            h('div', { className: 'oprilx-panel-list', key: 'list', role: 'list' }, rows),
-            outline.length === 0
-              ? null
-              : h('div', { className: 'oprilx-panel-outline', key: 'outline', role: 'navigation' }, [
-                h('div', { className: 'oprilx-panel-outline-title', key: 'label' }, tr(t, 'outlineLabel')),
-                ...outline.map((entry, index) => h('button', {
+        h('div', {
+          className: 'oprilx-workspace',
+          key: 'workspace',
+          style: { '--opr-outline-width': `${outlineWidth}px` },
+          'data-outline': outlineOpen ? 'true' : 'false',
+        }, [
+          outlineOpen
+            ? h('div', { className: 'oprilx-outline', key: 'outline', role: 'navigation' }, [
+              h('div', { className: 'oprilx-outline-title', key: 'label' }, tr(t, 'outlineLabel')),
+              outline.length === 0
+                ? h('div', { className: 'oprilx-outline-empty', key: 'empty' }, tr(t, 'outlineEmpty'))
+                : outline.map((entry, index) => h('button', {
                   type: 'button',
                   key: `${entry.line}:${entry.title}`,
-                  className: 'oprilx-panel-outline-row',
+                  className: 'oprilx-outline-row',
                   style: { paddingLeft: `${(entry.level - 3) * 10 + 8}px` },
                   title: entry.title,
                   onClick: () => sourceLine(index),
                 }, `§${entry.level} ${entry.title}`)),
-              ]),
-          ]),
+            ])
+            : null,
+          outlineOpen
+            ? h('div', {
+              className: 'oprilx-divider',
+              key: 'outline-divider',
+              role: 'separator',
+              'aria-orientation': 'vertical',
+              'aria-label': tr(t, 'resizeOutline'),
+              'aria-valuenow': outlineWidth,
+              'aria-valuemin': OUTLINE_WIDTH_MIN,
+              'aria-valuemax': OUTLINE_WIDTH_MAX,
+              tabIndex: 0,
+              onPointerDown: startOutlineDrag,
+              onDoubleClick: () => commitOutlineWidth(OUTLINE_WIDTH_DEFAULT),
+              onKeyDown: nudgeOutlineWidth,
+            })
+            : null,
           h('div', {
             className: 'oprilx-editor-pane',
             key: 'editor',
@@ -5161,7 +5174,7 @@ window.__ModuleLoader__.load({
 
       // A Conversation view: the shell draws the view tabs and the native composer around it,
       // so this is the surface that gets the real input box without re-implementing chat.
-      const ConvView = props => h(LatexPanel, { ...props, loader })
+      const ConvView = props => h(LatexPanel, props)
       ctx.effect(() => ctx.slots.inject('conversation.view', () => ctx.slots.register({
         name: 'conversation.view',
         id: 'dsh-openprism-latex',
@@ -5367,45 +5380,6 @@ window.__ModuleLoader__.load({
       setTimeout(sendDiagnostic, 800)
       setTimeout(sendDiagnostic, 3000)
       setTimeout(sendDiagnostic, 8000)
-
-      // The visible entry: one sidebar icon and the LaTeX workspace panel it opens.
-      /** List the workspace's LaTeX documents through this plugin's own Host route. */
-      const searchTex = async (sessionId, signal) => {
-        const query = new URLSearchParams({ session: sessionId })
-        const response = await fetch(`api/dsh-openprism-latex/files?${query.toString()}`, {
-          signal,
-          cache: 'no-store',
-        })
-        let body
-        try {
-          body = await response.json()
-        } catch {
-          body = undefined
-        }
-        if (body === undefined) {
-          throw new Error(`${tr(boundT, 'panelError')} (HTTP ${response.status})`)
-        }
-        if (body.ok !== true) {
-          throw new Error(body.error?.message ? String(body.error.message) : tr(boundT, 'panelError'))
-        }
-        const files = Array.isArray(body.files) ? body.files : []
-        return files
-          .map(entry => String(entry))
-          .filter(candidate => /\.(tex|latex|ltx)$/i.test(candidate))
-      }
-      const loader = {
-        searchTex,
-        /** Whether this page's tab registry really holds the LaTeX type. */
-        typeReady: () => {
-          try {
-            const entries = ctx.sidebarRightTabs?.entries?.()
-            if (!Array.isArray(entries)) return undefined
-            return entries.some(entry => entry?.id === 'dsh-openprism-latex')
-          } catch {
-            return undefined
-          }
-        },
-      }
 
     }
 

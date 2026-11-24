@@ -322,6 +322,23 @@ section('document channel wiring')
     source.includes('useEffect(() => subscribeDocument(document =>'))
 }
 
+section('outline-only conversation view')
+{
+  check('the .tex file list markup is gone',
+    !source.includes('oprilx-panel-list') && !source.includes('oprilx-panel-row')
+    && !source.includes('oprilx-files'))
+  check('the view renders the Outline column',
+    source.includes("className: 'oprilx-outline'")
+    && source.includes("className: 'oprilx-outline-title'"))
+  check('the Outline column has an accessible splitter',
+    source.includes("'aria-label': tr(t, 'resizeOutline')")
+    && source.includes("'aria-valuemin': OUTLINE_WIDTH_MIN"))
+  check('the Outline width and visibility are persisted',
+    source.includes('function readOutlineWidth') && source.includes('function rememberOutlineOpen'))
+  check('the view no longer lists workspace files',
+    !source.includes('searchTex') && !source.includes('panelFileCount'))
+}
+
 section('inverse search only publishes')
 {
   const marker = '      const inverseSearchAt = (index, event) => {'
