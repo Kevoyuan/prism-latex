@@ -1443,6 +1443,54 @@ window.__ModuleLoader__.load({
       return typeof en[key] === 'string' ? en[key] : key
     }
 
+    /**
+     * Cross-surface inverse search. The conversation view and the right sidebar's previews
+     * are separate React trees of one plugin instance, so a page double-click in one has to
+     * reach the other through module state: a tiny replaying channel, not a service.
+     */
+    let lastJump
+    const jumpListeners = new Set()
+
+    /** Publish one SyncTeX hit to every mounted surface. */
+    function publishJump(next) {
+      if (next === null || typeof next !== 'object') return
+      if (typeof next.path !== 'string' || next.path === '') return
+      if (!Number.isFinite(Number(next.line))) return
+      lastJump = {
+        line: Number(next.line),
+        column: Number.isFinite(Number(next.column)) ? Math.max(0, Number(next.column)) : 0,
+        path: next.path,
+        sessionId: typeof next.sessionId === 'string' ? next.sessionId : undefined,
+        at: Date.now(),
+      }
+      for (const listener of [...jumpListeners]) {
+        try {
+          listener(lastJump)
+        } catch {
+          /* one bad listener must not silence the rest */
+        }
+      }
+    }
+
+    /**
+     * Subscribe to published jumps. The latest hit is mirrored on subscribe, so a surface
+     * that mounts just after a click still lands on it; returns the unsubscribe.
+     */
+    function subscribeJump(listener) {
+      if (typeof listener !== 'function') return () => {}
+      jumpListeners.add(listener)
+      if (lastJump !== undefined) {
+        try {
+          listener(lastJump)
+        } catch {
+          /* the subscriber's own failure is not the publisher's problem */
+        }
+      }
+      return () => {
+        jumpListeners.delete(listener)
+      }
+    }
+
     function interpolate(template, values) {
       if (typeof template !== 'string') return ''
       return template.replace(/\{(\w+)\}/g, (match, name) => {
@@ -2867,6 +2915,48 @@ window.__ModuleLoader__.load({
       const copyError = () => copyText(errorReport(address?.path, state.error), setCopied)
       const sendError = () => sendToComposer(props.inputActions, errorReport(address?.path, state.error))
 
+      /**
+       * Inverse search from the document-preview pages. This surface has no editor of its
+       * own, so it publishes the hit for the conversation view and never touches its own
+       * layout.
+       */
+      const previewInverseSearchAt = (index, event) => {
+        const image = event?.currentTarget
+        if (address === undefined || image === null || image === undefined) return
+        const rect = typeof image.getBoundingClientRect === 'function' ? image.getBoundingClientRect() : undefined
+        if (rect === undefined || rect.width <= 0 || rect.height <= 0) return
+        const naturalWidth = Number(image.naturalWidth) > 0 ? Number(image.naturalWidth) : rect.width
+        const naturalHeight = Number(image.naturalHeight) > 0 ? Number(image.naturalHeight) : rect.height
+        const pixelX = (event.clientX - rect.left) * (naturalWidth / rect.width)
+        const pixelY = (event.clientY - rect.top) * (naturalHeight / rect.height)
+        const dpi = Number(state.dpi) > 0 ? Number(state.dpi) : 144
+        const query = new URLSearchParams({
+          session: address.sessionId ?? readCurrentSessionId() ?? '',
+          path: address.path,
+          page: String(index + 1),
+          x: (pixelX * 72 / dpi).toFixed(2),
+          y: (pixelY * 72 / dpi).toFixed(2),
+        })
+        fetch(`api/dsh-openprism-latex/synctex?${query.toString()}`, { cache: 'no-store' })
+          .then(async response => {
+            let body
+            try {
+              body = await response.json()
+            } catch {
+              body = undefined
+            }
+            if (body?.ok !== true || typeof body.line !== 'number') return
+            if (body.path !== address.path) return
+            publishJump({
+              line: body.line,
+              column: body.column,
+              path: body.path,
+              sessionId: address.sessionId ?? readCurrentSessionId(),
+            })
+          })
+          .catch(() => {})
+      }
+
       const children = [h('style', { key: 'style' }, CSS)]
       if (state.status === 'compiling' || state.status === 'idle') {
         children.push(renderCompiling(t))
@@ -2893,6 +2983,7 @@ window.__ModuleLoader__.load({
           fitScale: fitScaleFor(paneWidth, { ...state.pages[0], dpi: state.dpi }),
           download,
           onDownload,
+          onPageDoubleClick: previewInverseSearchAt,
         }))
       }
       return h('div', { className: 'oprilx-root', ref: attachRoot }, children)
@@ -3927,7 +4018,14 @@ window.__ModuleLoader__.load({
               return
             }
             if (body.path === target.path) {
-              jumpToSourceLine(body.line, body.column)
+              // Publish only: the conversation view's editor takes the caret. This pane
+              // keeps the mode the user picked — a double-click never changes the layout.
+              publishJump({
+                line: body.line,
+                column: body.column,
+                path: body.path,
+                sessionId,
+              })
               return
             }
             // The spot came from an \input or \include sibling: report where it is.
@@ -4487,6 +4585,12 @@ window.__ModuleLoader__.load({
       const urlsRef = useRef([])
       const timersRef = useRef([])
       const sessionId = readCurrentSessionId()
+      // The jump subscription is registered once; these refs keep it reading the current
+      // selection instead of whatever was selected when it mounted.
+      const selectedRef = useRef(selected)
+      selectedRef.current = selected
+      const sessionRef = useRef(sessionId)
+      sessionRef.current = sessionId
 
       // The app keeps the current session in its own preference key; re-render on a
       // quiet timer so switching sessions updates the list without an event to bind.
@@ -4543,6 +4647,7 @@ window.__ModuleLoader__.load({
         }
         setRenderState({ status: 'compiling' })
         const query = new URLSearchParams({ session: sessionId, path: selected })
+        query.set('engine', readEngine())
         fetch(`${RENDER_URL}?${query.toString()}`, { signal: controller.signal, cache: 'no-store' })
           .then(async response => {
             let body
@@ -4632,6 +4737,16 @@ window.__ModuleLoader__.load({
         return () => window.removeEventListener('resize', measure)
       }, [])
 
+      // One subscription: a page double-click anywhere in this plugin instance lands the
+      // caret here, in the file the jump names. A jump never changes the layout.
+      useEffect(() => subscribeJump(jump => {
+        if (jump === null || jump === undefined || !Number.isFinite(jump.line)) return
+        const session = sessionRef.current
+        if (session !== undefined && jump.sessionId !== undefined && jump.sessionId !== session) return
+        if (selectedRef.current !== jump.path) setSelected(jump.path)
+        setPendingJump({ line: jump.line, column: jump.column ?? 0, seq: jump.at ?? Date.now() })
+      }), [])
+
       const typeReady = typeof props.loader?.typeReady === 'function' ? props.loader.typeReady() : undefined
       const files = listing.status === 'ready' ? listing.files : []
       const heading = listing.status === 'ready'
@@ -4660,7 +4775,12 @@ window.__ModuleLoader__.load({
             className: 'oprilx-panel-row',
             'aria-current': selected === file ? 'true' : undefined,
             title: file,
-            onClick: () => setSelected(file),
+            onClick: () => {
+              // A landed jump belongs to the file it landed in; another pick drops it so a
+              // fresh editor does not replay the old line.
+              setPendingJump(undefined)
+              setSelected(file)
+            },
           }, [
             h('span', { className: 'oprilx-panel-name', key: 'name' }, name),
             directory === '' ? null : h('span', { className: 'oprilx-panel-path', key: 'path' }, directory),
@@ -4681,6 +4801,8 @@ window.__ModuleLoader__.load({
       useEffect(() => {
         if (sessionId === undefined || selected === undefined) return undefined
         if (source.status === 'ready' && source.path === selected) return undefined
+        // A draft belongs to the file it was typed in; never carry it into another file.
+        if (draft !== undefined) setDraft(undefined)
         const controller = new AbortController()
         let cancelled = false
         setSource({ status: 'loading', path: selected })
@@ -4791,17 +4913,21 @@ window.__ModuleLoader__.load({
               body = undefined
             }
             if (body?.ok !== true || typeof body.line !== 'number') return
+            // The hit must belong to the file this page is showing; a sibling reached
+            // through \input would otherwise put the caret on the wrong line.
+            if (body.path !== selected) return
             setPendingJump({
               line: body.line,
               column: body.column ?? 0,
               seq: Date.now(),
             })
+            publishJump({ line: body.line, column: body.column, path: body.path, sessionId })
           })
           .catch(() => {})
       }
 
       const editor = []
-      if (source.status === 'ready' && source.truncated !== true) {
+      if (source.status === 'ready' && source.path === selected && source.truncated !== true) {
         editor.push(h(SourceEditor, {
           key: `editor:${selected}`,
           t,

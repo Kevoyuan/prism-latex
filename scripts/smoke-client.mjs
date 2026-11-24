@@ -86,13 +86,20 @@ function makeTabReact(options = {}) {
     save: options.save ?? { status: 'idle' },
   }
   const order = ['mode', 'state', 'source', 'attempt', 'zoom', 'download', 'paneWidth', 'draft', 'save']
+  const log = { mode: [] }
   let calls = 0
   return {
     ...React,
+    __calls: log,
     useState(initial) {
       const key = order[calls]
       calls += 1
-      if (key !== undefined) return [values[key], () => {}]
+      if (key !== undefined) {
+        const setter = key === 'mode'
+          ? next => log.mode.push(typeof next === 'function' ? next(values.mode) : next)
+          : () => {}
+        return [values[key], setter]
+      }
       return [typeof initial === 'function' ? initial() : initial, () => {}]
     },
     useEffect() {},
@@ -403,6 +410,48 @@ section('state: ready (fit width)')
     && buttons.some(button => button.props['aria-label'] === 'Zoom out'))
 }
 
+section('state: ready (document preview inverse search)')
+{
+  const ready = {
+    status: 'ready',
+    pages: [{ url: 'blob:page-1', width: 1191, height: 1684 }],
+    pageCount: 1,
+    durationMs: 500,
+    dpi: 144,
+    pdfUrl: 'api/dsh-openprism-latex/pdf?session=sess-1&path=demo/example.tex',
+    truncated: false,
+  }
+  const requests = []
+  const fetch = url => {
+    requests.push(String(url))
+    return Promise.resolve({
+      ok: true,
+      status: 200,
+      json: async () => ({ ok: true, path: 'demo/example.tex', line: 7, column: 4 }),
+    })
+  }
+  const { slot, en } = mount(makeReact(ready), { fetch })
+  const tree = slot.body(baseProps({ t: key => en.get(key) ?? key }))
+  const image = flatten(tree).find(node => node.type === 'img')
+  check('document preview accepts a double-click', typeof image?.props?.onDoubleClick === 'function')
+  check('document preview hints at inverse search',
+    image?.props?.title === 'Double-click to find the source line', String(image?.props?.title))
+  image.props.onDoubleClick({
+    currentTarget: {
+      naturalWidth: 400,
+      naturalHeight: 560,
+      getBoundingClientRect: () => ({ left: 0, top: 0, width: 200, height: 280 }),
+    },
+    clientX: 100,
+    clientY: 50,
+  })
+  const url = String(requests[0])
+  check('the document preview asks SyncTeX for the clicked point',
+    url.includes('/synctex?') && url.includes('page=1') && url.includes('x=100.00')
+    && url.includes('y=50.00'), url)
+  check('the document preview request names the file', url.includes('path=demo%2Fexample.tex'), url)
+}
+
 section('state: ready (fixed zoom)')
 {
   const { slot, en } = mount(makeReact({
@@ -642,6 +691,60 @@ section('panel: editor and preview are both permanent')
     check('the request names the selected file and session',
       request.includes('session=sess-1') && request.includes('path=demo%2Fexample.tex'), request)
     check('the request carries the engine', request.includes('engine=latexmk'), request)
+
+    // The editor is permanent, so a source loaded for the previous file must not appear
+    // under the newly selected file's name.
+    const staleReact = makePanelReact({
+      listing: { status: 'ready', files: ['demo/example.tex', 'demo/other.tex'] },
+      selected: 'demo/other.tex',
+      source: { status: 'ready', path: 'demo/example.tex', text: 'old file', version: '1-1', truncated: false },
+    })
+    const staleMount = mount(staleReact, { fetch })
+    const staleEntry = staleMount.slots.find(candidate => candidate.options?.name === 'conversation.view')
+    const staleTree = staleEntry.body({ t: key => staleMount.en.get(key) ?? key })
+    check('a newly selected file never shows the previous file source',
+      flatten(staleTree).every(node => node.type !== 'textarea')
+      && textOf(staleTree).includes('Loading source'), textOf(staleTree).slice(0, 160))
+  } finally {
+    delete globalThis.localStorage
+  }
+}
+
+section('panel: the render request carries the remembered engine')
+{
+  // The view has no engine picker of its own, so it compiles with the engine choice the
+  // tab's picker remembers — the same value its SyncTeX lookup uses.
+  globalThis.localStorage = {
+    getItem: key => {
+      if (key === 'dsh-openprism-latex.engine') return 'xelatex'
+      if (key === 'dsh.sessions.current') return JSON.stringify({ sessionId: 'sess-1' })
+      return null
+    },
+  }
+  try {
+    const requests = []
+    const fetch = url => {
+      requests.push(String(url))
+      return Promise.resolve({ ok: true, status: 200, json: async () => ({ ok: false }) })
+    }
+    const react = {
+      ...makePanelReact({
+        listing: { status: 'ready', files: ['demo/example.tex'] },
+        selected: 'demo/example.tex',
+      }),
+      // Run effects so the compile request is issued; these render states issue none of
+      // the editor's DOM effects because no source is loaded yet.
+      useEffect(fn) {
+        fn()
+      },
+    }
+    const { slots, en } = mount(react, { fetch })
+    const entry = slots.find(candidate => candidate.options?.name === 'conversation.view')
+    // Flattening invokes the panel component, which is what runs its effects.
+    flatten(entry.body({ t: key => en.get(key) ?? key }))
+    const renderRequest = requests.find(url => String(url).includes('/render?'))
+    check('the view compiles with the remembered engine',
+      String(renderRequest).includes('engine=xelatex'), String(renderRequest))
   } finally {
     delete globalThis.localStorage
   }
@@ -779,7 +882,8 @@ section('right sidebar tab body: inverse search')
       json: async () => ({ ok: true, path: 'demo/example.tex', line: 12 }),
     })
   }
-  const { slots, en } = mount(makeTabReact({ state: readyState }), { fetch })
+  const react = makeTabReact({ state: readyState })
+  const { slots, en } = mount(react, { fetch })
   const entry = slots.find(candidate => candidate.options?.name === 'sidebar.right.pane.tab')
   const tree = entry.body({
     t: key => en.get(key) ?? key,
@@ -803,6 +907,10 @@ section('right sidebar tab body: inverse search')
   check('coordinates are PDF points', url.includes('page=1') && url.includes('x=100.00')
     && url.includes('y=50.00'), url)
   check('inverse search carries the engine', url.includes('engine='), url)
+  // The pane must keep the mode the user picked; the jump is delivered elsewhere.
+  await new Promise(resolve => setTimeout(resolve, 0))
+  check('double-click never changes the pane mode', react.__calls.mode.length === 0,
+    JSON.stringify(react.__calls.mode))
 }
 
 section('right sidebar tab body: error report actions')

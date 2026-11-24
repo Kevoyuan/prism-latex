@@ -32,6 +32,17 @@ writeFileSync(addressModulePath,
 const { parseFileAddress, isLatexAddress, lineStartOffset, lineNumberAt, collectSections } =
   await import(pathToFileURL(addressModulePath).href)
 
+// The cross-surface jump channel is module state too; lift it to test replay and cleanup.
+const jumpStart = source.indexOf('    let lastJump\n')
+const jumpEnd = source.indexOf('    function interpolate', jumpStart)
+if (jumpStart < 0 || jumpEnd < 0) {
+  console.error('FAIL — the jump channel block moved; update this script')
+  process.exit(1)
+}
+const jumpModulePath = join(directory, 'jumps.mjs')
+writeFileSync(jumpModulePath, `${source.slice(jumpStart, jumpEnd)}\nexport { publishJump, subscribeJump }\n`)
+const { publishJump, subscribeJump } = await import(pathToFileURL(jumpModulePath).href)
+
 const { matchDelimiterAt, bracketDecorations, matchEnvironmentAt, rangeDecorations, findMatches,
   completionAt, filterCompletions, collectLabels } = await import(pathToFileURL(modulePath).href)
 
@@ -43,6 +54,24 @@ function check(label, ok, detail = '') {
   }
   failures += 1
   console.log(`FAIL  ${label}${detail === '' ? '' : ` — ${detail}`}`)
+}
+
+/** The balanced source text of one `const name = (...) => { ... }` block. */
+function functionBlock(marker, from = 0) {
+  const start = source.indexOf(marker, from)
+  if (start < 0) return undefined
+  const arrow = source.indexOf('=>', start)
+  const open = arrow < 0 ? -1 : source.indexOf('{', arrow)
+  if (open < 0) return undefined
+  let depth = 0
+  for (let index = open; index < source.length; index += 1) {
+    if (source[index] === '{') depth += 1
+    else if (source[index] === '}') {
+      depth -= 1
+      if (depth === 0) return source.slice(start, index + 1)
+    }
+  }
+  return undefined
 }
 
 section('brace pairing')
@@ -221,6 +250,58 @@ section('line decorations')
   check('closer on the last line', decorations.get(2)?.[0]?.at === 0,
     JSON.stringify([...decorations]))
   check('untouched line has no decorations', decorations.get(1) === undefined)
+}
+
+section('jump channel')
+{
+  const seen = []
+  const first = subscribeJump(jump => seen.push(jump))
+  publishJump({ line: 4, column: 2, path: 'demo/a.tex', sessionId: 's1' })
+  check('published jump reaches a subscriber', seen.length === 1
+    && seen[0].line === 4 && seen[0].column === 2 && seen[0].path === 'demo/a.tex',
+    JSON.stringify(seen))
+  check('jump carries the session and a timestamp', seen[0].sessionId === 's1'
+    && Number.isFinite(seen[0].at))
+  first()
+  publishJump({ line: 9, path: 'demo/a.tex', sessionId: 's1' })
+  check('unsubscribe stops delivery', seen.length === 1, String(seen.length))
+  const late = []
+  const off = subscribeJump(jump => late.push(jump))
+  check('a late subscriber replays the latest jump', late.length === 1 && late[0].line === 9,
+    JSON.stringify(late))
+  off()
+  publishJump({ line: Number.NaN, path: 'demo/a.tex' })
+  publishJump({ line: 3 })
+  publishJump(null)
+  const strict = []
+  const stop = subscribeJump(jump => strict.push(jump))
+  publishJump({ line: 11, path: 'demo/a.tex' })
+  stop()
+  check('malformed jumps are refused', strict.length === 2 && strict[1].line === 11,
+    JSON.stringify(strict.map(jump => jump.line)))
+  check('a jump without a column starts at zero', strict[1]?.column === 0,
+    JSON.stringify(strict[1]))
+}
+
+section('inverse search only publishes')
+{
+  const marker = '      const inverseSearchAt = (index, event) => {'
+  const tabStart = source.indexOf(marker)
+  const panelStart = source.indexOf(marker, tabStart + 1)
+  const tabInverse = functionBlock(marker)
+  const panelInverse = functionBlock(marker, tabStart + 1)
+  check('the tab body has an inverse search', tabInverse !== undefined)
+  check('the conversation view has an inverse search', panelInverse !== undefined
+    && panelStart > tabStart)
+  for (const [name, block] of [['tab', tabInverse], ['panel', panelInverse]]) {
+    check(`${name} inverse search publishes the jump`, block?.includes('publishJump(') === true)
+    check(`${name} inverse search never switches the mode`, block?.includes('setMode(') === false)
+    check(`${name} inverse search never retargets its own pane`,
+      block?.includes('jumpToSourceLine(') === false)
+  }
+  check('the document preview publishes too', source.includes('onPageDoubleClick: previewInverseSearchAt'))
+  check('the conversation view subscribes to the channel',
+    source.includes('useEffect(() => subscribeJump('))
 }
 
 function section(title) {
