@@ -1106,6 +1106,12 @@ window.__ModuleLoader__.load({
   width: var(--opr-outline-width, 196px);
   min-height: 0;
   min-width: 0;
+  /* The outline is a fixed rail: it never moves with the editor's scroll. It sticks to the
+   * top of whatever scrolls around it and keeps its own scrollbar for long documents. */
+  position: sticky;
+  top: 0;
+  align-self: flex-start;
+  max-height: 100%;
   overflow: auto;
 }
 .oprilx-outline-title {
