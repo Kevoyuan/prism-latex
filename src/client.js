@@ -106,6 +106,9 @@ window.__ModuleLoader__.load({
       completionLabel: 'Completions',
       engineLabel: 'Engine',
       jumpToLine: 'Jump to line {line}',
+      jumpToSection: 'Jump to {title}',
+      outlineLabel: 'Outline',
+      outlineEmpty: 'No sections found',
       synctexHint: 'Double-click to find the source line',
       synctexMiss: 'No source line found at that spot',
       synctexElsewhere: 'In {path} line {line}',
@@ -598,6 +601,41 @@ window.__ModuleLoader__.load({
   flex: 1 1 auto;
   min-height: 0;
   box-sizing: border-box;
+}
+.oprilx-sticky {
+  appearance: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 22px;
+  padding: 0 14px;
+  border: 0;
+  border-bottom: 1px solid #1f2329;
+  background: rgba(15, 17, 19, .95);
+  color: #c6ced8;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+  text-align: left;
+  cursor: pointer;
+}
+.oprilx-sticky:hover {
+  background: #1b1f26;
+  color: #fff;
+}
+.oprilx-sticky-level {
+  flex: 0 0 auto;
+  color: #7c8695;
+}
+.oprilx-sticky-text {
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .oprilx-complete {
   position: absolute;
@@ -1340,6 +1378,55 @@ window.__ModuleLoader__.load({
       }
       if (filePath === '') return undefined
       return { sessionId: undefined, path: filePath, absolute: true }
+    }
+
+    /** Sectioning commands the outline knows about, in nesting order. */
+    const SECTION_PATTERN = /^\s*\\(part|chapter|section|subsection|subsubsection|paragraph)\*?\s*\{/
+
+    /**
+     * The document outline: one entry per sectioning command with its 1-based line, depth
+     * and plain-text title. Drives the sticky header and the panel's Outline list.
+     */
+    function collectSections(text) {
+      const sections = []
+      if (typeof text !== 'string' || text === '') return sections
+      const lines = text.split('\n')
+      const depth = { part: 1, chapter: 2, section: 3, subsection: 4, subsubsection: 5, paragraph: 6 }
+      for (let index = 0; index < lines.length; index += 1) {
+        const match = SECTION_PATTERN.exec(lines[index])
+        if (match === null) continue
+        const start = lines[index].indexOf('{', match.index)
+        if (start === -1) continue
+        let raw = ''
+        let line = index
+        let scan = start + 1
+        while (line < lines.length && raw.length < 400) {
+          const source = lines[line]
+          let closed = false
+          for (; scan < source.length; scan += 1) {
+            if (source[scan] === '}') {
+              closed = true
+              break
+            }
+            raw += source[scan]
+          }
+          if (closed || line === index + 3) break
+          raw += ' '
+          line += 1
+          scan = 0
+        }
+        const title = raw
+          .replace(/\\[A-Za-z@]+\*?/g, ' ')
+          .replace(/[{}]/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim()
+        sections.push({
+          line: index + 1,
+          level: depth[match[1]] ?? 3,
+          title: title === '' ? `\\${match[1]}` : title,
+        })
+      }
+      return sections
     }
 
     /** Offset of the first character of a 1-based line, clamped to the document. */
@@ -2585,6 +2672,17 @@ window.__ModuleLoader__.load({
       const [composing, setComposing] = useState(false)
       const [caret, setCaret] = useState(-1)
       const [flashLine, setFlashLine] = useState(undefined)
+      const sections = collectSections(text)
+      /** Section index that owns the first visible line; -1 when the view is above all. */
+      const sectionAtTop = () => {
+        let index = -1
+        for (let scan = 0; scan < sections.length; scan += 1) {
+          if (sections[scan].line <= 1) index = scan
+          else break
+        }
+        return index
+      }
+      const [activeSection, setActiveSection] = useState(() => sectionAtTop())
       const flashTimer = useRef(undefined)
       const [finder, setFinder] = useState({
         open: false,
@@ -2677,6 +2775,26 @@ window.__ModuleLoader__.load({
         }
       }, [resetToken])
 
+      /** Section owning the top of the viewport, recomputed on scroll only. */
+      const refreshSection = () => {
+        const area = areaRef.current
+        if (area === null || area === undefined || sections.length === 0) return
+        const row = lineHeight()
+        if (!(row > 0)) return
+        const topLine = Math.max(1, Math.floor((Number(area.scrollTop) - 10) / row) + 1)
+        let next = -1
+        for (let index = 0; index < sections.length; index += 1) {
+          if (sections[index].line <= topLine) next = index
+          else break
+        }
+        setActiveSection(previous => (previous === next ? previous : next))
+      }
+
+      useEffect(() => {
+        refreshSection()
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, [text, resetToken])
+
       const sync = () => {
         const area = areaRef.current
         const code = codeRef.current
@@ -2687,6 +2805,7 @@ window.__ModuleLoader__.load({
           code.scrollLeft = area.scrollLeft
         }
         if (gutter !== null && gutter !== undefined) gutter.scrollTop = area.scrollTop
+        refreshSection()
       }
 
       // Completion follows the caret; it closes while an IME composition is running.
@@ -3200,6 +3319,9 @@ window.__ModuleLoader__.load({
         }
       }
 
+      const section = activeSection >= 0 && activeSection < sections.length
+        ? sections[activeSection]
+        : undefined
       const popup = []
       if (completion !== undefined) {
         const area = areaRef.current
@@ -3272,6 +3394,17 @@ window.__ModuleLoader__.load({
                 onInput(event.currentTarget.value)
               },
             }),
+            section === undefined ? null : h('button', {
+              className: 'oprilx-sticky',
+              key: 'sticky',
+              type: 'button',
+              'aria-label': tr(t, 'jumpToSection', { title: section.title }),
+              title: tr(t, 'jumpToSection', { title: section.title }),
+              onClick: () => goToLine(section.line),
+            }, [
+              h('span', { key: 'level', className: 'oprilx-sticky-level' }, `§${section.level}`),
+              h('span', { key: 'title', className: 'oprilx-sticky-text' }, section.title),
+            ]),
             ...popup,
           ]),
         ]),
@@ -4135,6 +4268,7 @@ window.__ModuleLoader__.load({
       const [mode, setMode] = useState('preview')
       const [source, setSource] = useState({ status: 'idle' })
       const [draft, setDraft] = useState(undefined)
+      const [pendingJump, setPendingJump] = useState(undefined)
       const [codeFont, setCodeFont] = useState(() => readCodeFont())
       const docRef = useRef(null)
       const urlsRef = useRef([])
@@ -4405,6 +4539,14 @@ window.__ModuleLoader__.load({
           .catch(() => setDraft(text))
       }
 
+      const outline = mode === 'source' && source.status === 'ready'
+        ? collectSections(source.text)
+        : []
+      const sourceLine = idx => {
+        if (source.status !== 'ready') return
+        setPendingJump({ line: outline[idx].line, seq: Date.now() })
+      }
+
       const doc = []
       if (mode === 'source') {
         if (source.status === 'ready' && source.truncated !== true) {
@@ -4416,6 +4558,7 @@ window.__ModuleLoader__.load({
             onInput: value => setDraft(value),
             onSave: saveSourceFile,
             onCompile: saveSourceFile,
+            jump: pendingJump,
             fontSize: codeFont,
             onZoom: delta => {
               const next = delta === 0
@@ -4464,6 +4607,32 @@ window.__ModuleLoader__.load({
             h('div', { className: 'oprilx-panel-title', key: 'title' }, tr(t, 'panelTitle')),
             h('div', { className: 'oprilx-panel-sub', key: 'sub' }, `${heading}  ·  ${CLIENT_BUILD}`),
           ]),
+          outline.length === 0
+            ? null
+            : h('div', { className: 'oprilx-panel-outline', key: 'outline', role: 'navigation' }, [
+              h('div', { className: 'oprilx-panel-outline-title', key: 'label' }, tr(t, 'outlineLabel')),
+              ...outline.map((entry, index) => h('button', {
+                type: 'button',
+                key: `${entry.line}:${entry.title}`,
+                className: 'oprilx-panel-outline-row',
+                style: { paddingLeft: `${(entry.level - 3) * 10 + 8}px` },
+                title: entry.title,
+                onClick: () => sourceLine(index),
+              }, `§${entry.level} ${entry.title}`)),
+            ]),
+          outline.length === 0
+            ? null
+            : h('div', { className: 'oprilx-panel-outline', key: 'outline', role: 'navigation' }, [
+              h('div', { className: 'oprilx-panel-outline-title', key: 'label' }, tr(t, 'outlineLabel')),
+              ...outline.map((entry, index) => h('button', {
+                type: 'button',
+                key: `${entry.line}:${entry.title}`,
+                className: 'oprilx-panel-outline-row',
+                style: { paddingLeft: `${(entry.level - 3) * 10 + 8}px` },
+                title: entry.title,
+                onClick: () => sourceLine(index),
+              }, `§${entry.level} ${entry.title}`)),
+            ]),
           h('div', {
             className: 'oprilx-modes',
             key: 'modes',

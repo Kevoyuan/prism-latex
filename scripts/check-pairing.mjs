@@ -28,8 +28,8 @@ const addressStart = source.indexOf('    const SESSION_RESOURCE_PREFIX')
 const addressEnd = source.indexOf('    function base64ToBytes', addressStart)
 const addressModulePath = join(directory, 'addresses.mjs')
 writeFileSync(addressModulePath,
-  `${source.slice(addressStart, addressEnd)}\nexport { parseFileAddress, isLatexAddress, lineStartOffset, lineNumberAt }\n`)
-const { parseFileAddress, isLatexAddress, lineStartOffset, lineNumberAt } =
+  `${source.slice(addressStart, addressEnd)}\nexport { parseFileAddress, isLatexAddress, lineStartOffset, lineNumberAt, collectSections }\n`)
+const { parseFileAddress, isLatexAddress, lineStartOffset, lineNumberAt, collectSections } =
   await import(pathToFileURL(addressModulePath).href)
 
 const { matchDelimiterAt, bracketDecorations, matchEnvironmentAt, rangeDecorations, findMatches,
@@ -161,6 +161,26 @@ section('completion')
   check('prefix matches rank first', filtered[0] === 'text' || filtered[0] === 'textsc',
     JSON.stringify(filtered))
   check('candidates are capped', filterCompletions(Array.from({ length: 40 }, (_, index) => `c${index}`), '').length === 8)
+}
+
+section('document outline')
+{
+  const doc = [
+    '\\documentclass{article}',
+    '\\begin{document}',
+    '\\section{Alpha}',
+    'text',
+    '\\subsection{Beta $x^2$}',
+    '\\section*{Gamma}',
+  ].join('\n')
+  const sections = collectSections(doc)
+  check('every sectioning command is found', sections.length === 3, JSON.stringify(sections))
+  check('lines are 1-based', sections[0].line === 3 && sections[1].line === 5)
+  check('levels follow the command', sections[0].level === 3 && sections[1].level === 4)
+  check('titles are plain text', sections[0].title === 'Alpha' && sections[1].title === 'Beta $x^2$',
+    JSON.stringify(sections.map(entry => entry.title)))
+  check('starred sections count', sections[2].title === 'Gamma')
+  check('empty documents have no outline', collectSections('').length === 0)
 }
 
 section('line offsets')
