@@ -18,8 +18,16 @@ project already paid for, with the exact code that caused each one.
   regressions were a misplaced React cleanup and a refused address, not the claim itself; see
   `POSTMORTEM.md` §1 and §3.
 - **One entry point: the `conversation.view` named LaTeX.** The left-rail icon and the `main`
-  panel were removed. The view draws three columns — files (196px, with Outline), the source
-  editor, and the preview — plus the shell's native composer underneath.
+  panel were removed. The view is the *editor*: an Outline column on the left (drag-resize
+  140–360px, hideable) and the source editor filling the rest; its own preview column is hidden
+  by default behind an eye toggle and, while hidden, does not compile at all. The shell's native
+  composer sits underneath.
+- **The view's document comes from the right sidebar.** `LatexTab` publishes its address through
+  the module-level `publishDocument` channel; the view adopts that path and session. There is no
+  file list in the view, by the user's decision: files are opened from the right sidebar tabs.
+- **A page double-click only publishes.** `publishJump({line, column, path, sessionId})` feeds
+  the view's caret; nothing in that path may call `setMode` or `jumpToSourceLine`, so the preview
+  pane keeps whatever mode the user chose.
 - Host routes are loopback-only and origin-guarded: `/render`, `/pdf`, `/files`, `/source`,
   `/synctex`, `POST /write`. Anything new repeats those guards.
 - Compile with the local engine (`/Library/TeX/texbin`). Never ship a TeX engine.

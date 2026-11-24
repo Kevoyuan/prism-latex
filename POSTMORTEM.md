@@ -183,7 +183,9 @@ on the real page, and the suite asserts only structure — never appearance.
   what renders this plugin's preview in the right sidebar. The claim is only safe because
   `canOpen` never refuses a matched address and every effect that touches a ref lives in the
   component that declares it.
-- One entry point remains: the `conversation.view` named **LaTeX** (three columns plus the
-  shell's native composer). The left-rail icon and the `main` panel are gone.
+- One entry point remains: the `conversation.view` named **LaTeX** — Outline column (resizable,
+  hideable) + source editor + optional preview column behind a toggle, with the shell's native
+  composer underneath. The left-rail icon, the `main` panel and the in-view `.tex` file list are
+  gone; the view follows the document the right sidebar is showing.
 - A page double-click publishes a jump through a module-level channel and **never changes the
   preview pane's mode**; the conversation view's editor column takes the caret.
