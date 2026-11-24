@@ -105,6 +105,45 @@ function makeTabReact(options = {}) {
   }
 }
 
+/** React stub matching the conversation view's hook order: every field is seedable. */
+function makePanelReact(options = {}) {
+  const values = {
+    tick: 0,
+    refresh: 0,
+    attempt: 0,
+    listing: options.listing ?? { status: 'idle' },
+    selected: options.selected,
+    renderState: options.renderState ?? { status: 'idle' },
+    zoom: options.zoom ?? 'fit',
+    download: options.download ?? { status: 'idle' },
+    paneWidth: options.paneWidth ?? 0,
+    copied: false,
+    source: options.source ?? { status: 'idle' },
+    draft: options.draft,
+    pendingJump: undefined,
+    codeFont: 12,
+  }
+  const order = ['tick', 'refresh', 'attempt', 'listing', 'selected', 'renderState', 'zoom',
+    'download', 'paneWidth', 'copied', 'source', 'draft', 'pendingJump', 'codeFont']
+  let calls = 0
+  return {
+    ...React,
+    useState(initial) {
+      const key = order[calls]
+      calls += 1
+      if (key !== undefined) return [values[key], () => {}]
+      return [typeof initial === 'function' ? initial() : initial, () => {}]
+    },
+    useEffect() {},
+    useMemo(factory) {
+      return factory()
+    },
+    useRef(value) {
+      return { current: value }
+    },
+  }
+}
+
 /** Load a fresh copy of the bundle and apply it to a stand-in client context. */
 function mount(react, globals = {}) {
   let registration
@@ -498,11 +537,16 @@ section('workspace layout')
   const tree = view.body({ t: key => en.get(key) ?? key })
   const nodes = flatten(tree)
   const workspace = nodes.find(node => node.props?.className === 'oprilx-workspace')
-  check('the view is one two-column workspace', workspace !== undefined)
+  check('the view is one three-column workspace', workspace !== undefined)
   const files = nodes.find(node => node.props?.className === 'oprilx-files')
+  const editor = nodes.find(node => node.props?.className === 'oprilx-editor-pane')
   const doc = nodes.find(node => node.props?.className === 'oprilx-panel-doc')
-  check('file column and document column are siblings', files !== undefined && doc !== undefined)
-  check('file column comes first', nodes.indexOf(files) < nodes.indexOf(doc))
+  check('file, editor and page columns are siblings', files !== undefined
+    && editor !== undefined && doc !== undefined)
+  check('columns are ordered files, editor, page',
+    nodes.indexOf(files) < nodes.indexOf(editor) && nodes.indexOf(editor) < nodes.indexOf(doc))
+  check('no preview/source mode switch in this view',
+    !nodes.some(node => node.props?.className === 'oprilx-mode'))
   // The outline only exists once a source loads; the container is what the layout owns.
   check('outline is rendered from the file column', files !== undefined
     && nodes.some(node => node.props?.className === 'oprilx-panel-outline') === false)
@@ -531,16 +575,76 @@ section('conversation view')
     node.props?.className === 'oprilx-panel'))
 }
 
-section('panel source mode')
+section('panel: editor and preview are both permanent')
 {
-  const { slots, en } = mount(makeReact(undefined))
-  const entry = slots.find(candidate => candidate.options?.name === 'conversation.view')
-  const tree = entry.body({ t: key => en.get(key) ?? key })
-  const nodes = flatten(tree)
-  const modes = nodes.filter(node => node.props?.className === 'oprilx-mode')
-  check('panel offers preview and source', modes.length === 2, String(modes.length))
-  check('panel mode buttons are labelled', modes.every(node =>
-    typeof node.props['aria-label'] === 'string' && node.props['aria-label'] !== ''))
+  const source = {
+    status: 'ready',
+    path: 'demo/example.tex',
+    text: '\\section{Alpha}\nbody',
+    version: '1-1',
+    truncated: false,
+  }
+  const renderState = {
+    status: 'ready',
+    pages: [{ url: 'blob:view-1', width: 1191, height: 1684 }],
+    pageCount: 1,
+    durationMs: 500,
+    dpi: 144,
+    pdfUrl: 'api/dsh-openprism-latex/pdf?session=sess-1&path=demo/example.tex',
+    truncated: false,
+  }
+  const requests = []
+  const fetch = url => {
+    requests.push(String(url))
+    return Promise.resolve({
+      ok: true,
+      status: 200,
+      json: async () => ({ ok: true, path: 'demo/example.tex', line: 3, column: 2 }),
+    })
+  }
+  globalThis.localStorage = { getItem: () => JSON.stringify({ sessionId: 'sess-1' }) }
+  try {
+    const react = makePanelReact({
+      listing: { status: 'ready', files: ['demo/example.tex'] },
+      selected: 'demo/example.tex',
+      renderState,
+      paneWidth: 800,
+      source,
+    })
+    const { slots, en } = mount(react, { fetch })
+    const entry = slots.find(candidate => candidate.options?.name === 'conversation.view')
+    const tree = entry.body({ t: key => en.get(key) ?? key })
+    const nodes = flatten(tree)
+    const textarea = nodes.find(node => node.type === 'textarea')
+    const image = nodes.find(node => node.type === 'img')
+    check('editor pane is on screen', textarea !== undefined)
+    check('preview pane is on screen at the same time', image !== undefined)
+    check('both panes live in the single workspace',
+      nodes.some(node => node.props?.className === 'oprilx-workspace'))
+    check('no preview/source mode switch in this view',
+      !nodes.some(node => node.props?.className === 'oprilx-mode'))
+    check('preview accepts a double-click', typeof image?.props?.onDoubleClick === 'function')
+    check('preview hints at inverse search',
+      image?.props?.title === 'Double-click to find the source line', String(image?.props?.title))
+    image.props.onDoubleClick({
+      currentTarget: {
+        naturalWidth: 400,
+        naturalHeight: 560,
+        getBoundingClientRect: () => ({ left: 0, top: 0, width: 200, height: 280 }),
+      },
+      clientX: 100,
+      clientY: 50,
+    })
+    const request = String(requests[0])
+    check('the double-click asks SyncTeX for the clicked point',
+      request.includes('/synctex?') && request.includes('page=1')
+      && request.includes('x=100.00') && request.includes('y=50.00'), request)
+    check('the request names the selected file and session',
+      request.includes('session=sess-1') && request.includes('path=demo%2Fexample.tex'), request)
+    check('the request carries the engine', request.includes('engine=latexmk'), request)
+  } finally {
+    delete globalThis.localStorage
+  }
 }
 
 section('sidebar panel with a session')

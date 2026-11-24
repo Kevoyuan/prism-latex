@@ -1163,9 +1163,84 @@ window.__ModuleLoader__.load({
   font-size: 13px;
   line-height: 1.5;
 }
+.oprilx-workspace {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+.oprilx-files {
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 196px;
+  width: 196px;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+  border-right: 1px solid var(--dsw-alias-border-l1, rgba(0, 0, 0, .12));
+}
+.oprilx-panel-outline {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  border-bottom: 1px solid var(--dsw-alias-border-l1, rgba(0, 0, 0, .12));
+}
+.oprilx-panel-outline-title {
+  padding: 10px 16px 4px;
+  color: var(--dsw-alias-label-secondary, #6b7280);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+.oprilx-panel-outline-row {
+  appearance: none;
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 4px 10px;
+  border: 0;
+  background: transparent;
+  color: var(--dsw-alias-label-primary, #1c1c1e);
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.5;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+.oprilx-panel-outline-row:hover {
+  background: var(--dsw-alias-bg-layer-2, #f4f5f7);
+}
+.oprilx-panel-outline-row:focus-visible {
+  outline: 2px solid var(--dsw-alias-label-primary, #1c1c1e);
+  outline-offset: -2px;
+}
+.oprilx-editor-pane {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 46%;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+  border-right: 1px solid var(--dsw-alias-border-l1, rgba(0, 0, 0, .12));
+  background: #282c34;
+  color: #abb2bf;
+}
+.oprilx-editor-pane > .oprilx-editor-shell {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.oprilx-editor-pane .oprilx-panel-note {
+  color: #7d8799;
+}
 .oprilx-panel-doc {
   position: relative;
-  flex: 1 1 auto;
+  flex: 1 1 54%;
+  min-width: 0;
   min-height: 0;
   overflow: auto;
   background: var(--dsw-alias-bg-document-preview, var(--dsw-alias-bg-layer-2, #f1f2f4));
@@ -4402,9 +4477,8 @@ window.__ModuleLoader__.load({
       const [download, setDownload] = useState({ status: 'idle' })
       const [paneWidth, setPaneWidth] = useState(0)
       const [copied, setCopied] = useState(false)
-      // Source mode: the panel can edit the file in place. This is the surface the editor
-      // features live in while the right-sidebar tab type claims nothing.
-      const [mode, setMode] = useState('preview')
+      // Both panes are permanent: the source editor sits between the file column and the
+      // page. There is no mode to switch, and a double-click on the page moves the caret.
       const [source, setSource] = useState({ status: 'idle' })
       const [draft, setDraft] = useState(undefined)
       const [pendingJump, setPendingJump] = useState(undefined)
@@ -4605,7 +4679,7 @@ window.__ModuleLoader__.load({
 
       // Source is read on demand, once per file, and kept while the panel stays open.
       useEffect(() => {
-        if (mode !== 'source' || sessionId === undefined || selected === undefined) return undefined
+        if (sessionId === undefined || selected === undefined) return undefined
         if (source.status === 'ready' && source.path === selected) return undefined
         const controller = new AbortController()
         let cancelled = false
@@ -4648,7 +4722,7 @@ window.__ModuleLoader__.load({
           controller.abort()
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-      }, [mode, sessionId, selected])
+      }, [sessionId, selected])
 
       const saveSourceFile = () => {
         if (draft === undefined || sessionId === undefined || selected === undefined) return
@@ -4678,42 +4752,83 @@ window.__ModuleLoader__.load({
           .catch(() => setDraft(text))
       }
 
-      const outline = mode === 'source' && source.status === 'ready'
-        ? collectSections(source.text)
-        : []
+      const outline = source.status === 'ready' ? collectSections(source.text) : []
       const sourceLine = idx => {
         if (source.status !== 'ready') return
         setPendingJump({ line: outline[idx].line, seq: Date.now() })
       }
 
+      /**
+       * Inverse search: the page pixel under the pointer becomes a PDF point, SyncTeX maps
+       * it back to the source line, and the already-mounted editor takes the caret there.
+       * Nothing about the layout changes: both columns were on screen to begin with.
+       */
+      const inverseSearchAt = (index, event) => {
+        const image = event?.currentTarget
+        if (sessionId === undefined || selected === undefined) return
+        if (image === null || image === undefined) return
+        const rect = typeof image.getBoundingClientRect === 'function' ? image.getBoundingClientRect() : undefined
+        if (rect === undefined || rect.width <= 0 || rect.height <= 0) return
+        const naturalWidth = Number(image.naturalWidth) > 0 ? Number(image.naturalWidth) : rect.width
+        const naturalHeight = Number(image.naturalHeight) > 0 ? Number(image.naturalHeight) : rect.height
+        const pixelX = (event.clientX - rect.left) * (naturalWidth / rect.width)
+        const pixelY = (event.clientY - rect.top) * (naturalHeight / rect.height)
+        const dpi = Number(renderState.dpi) > 0 ? Number(renderState.dpi) : 144
+        const query = new URLSearchParams({
+          session: sessionId,
+          path: selected,
+          page: String(index + 1),
+          x: (pixelX * 72 / dpi).toFixed(2),
+          y: (pixelY * 72 / dpi).toFixed(2),
+          engine: readEngine(),
+        })
+        fetch(`api/dsh-openprism-latex/synctex?${query.toString()}`, { cache: 'no-store' })
+          .then(async response => {
+            let body
+            try {
+              body = await response.json()
+            } catch {
+              body = undefined
+            }
+            if (body?.ok !== true || typeof body.line !== 'number') return
+            setPendingJump({
+              line: body.line,
+              column: body.column ?? 0,
+              seq: Date.now(),
+            })
+          })
+          .catch(() => {})
+      }
+
+      const editor = []
+      if (source.status === 'ready' && source.truncated !== true) {
+        editor.push(h(SourceEditor, {
+          key: `editor:${selected}`,
+          t,
+          text: draft === undefined ? source.text : draft,
+          resetToken: source.version,
+          onInput: value => setDraft(value),
+          onSave: saveSourceFile,
+          onCompile: saveSourceFile,
+          jump: pendingJump,
+          fontSize: codeFont,
+          onZoom: delta => {
+            const next = delta === 0
+              ? CODE_FONT_DEFAULT
+              : Math.min(CODE_FONT_MAX, Math.max(CODE_FONT_MIN, codeFont + delta))
+            setCodeFont(next)
+            rememberCodeFont(next)
+          },
+        }))
+      } else {
+        editor.push(h('div', { className: 'oprilx-panel-note', key: 'source-state' },
+          source.status === 'error'
+            ? `${tr(t, 'sourceError')}${source.message ? ` · ${source.message}` : ''}`
+            : source.truncated === true ? tr(t, 'readOnlyTooLarge') : tr(t, 'sourceLoading')))
+      }
+
       const doc = []
-      if (mode === 'source') {
-        if (source.status === 'ready' && source.truncated !== true) {
-          doc.push(h(SourceEditor, {
-            key: `editor:${selected}`,
-            t,
-            text: draft === undefined ? source.text : draft,
-            resetToken: source.version,
-            onInput: value => setDraft(value),
-            onSave: saveSourceFile,
-            onCompile: saveSourceFile,
-            jump: pendingJump,
-            fontSize: codeFont,
-            onZoom: delta => {
-              const next = delta === 0
-                ? CODE_FONT_DEFAULT
-                : Math.min(CODE_FONT_MAX, Math.max(CODE_FONT_MIN, codeFont + delta))
-              setCodeFont(next)
-              rememberCodeFont(next)
-            },
-          }))
-        } else {
-          doc.push(h('div', { className: 'oprilx-panel-note', key: 'source-state' },
-            source.status === 'error'
-              ? `${tr(t, 'sourceError')}${source.message ? ` · ${source.message}` : ''}`
-              : source.truncated === true ? tr(t, 'readOnlyTooLarge') : tr(t, 'sourceLoading')))
-        }
-      } else if (renderState.status === 'compiling') {
+      if (renderState.status === 'compiling') {
         doc.push(renderCompiling(t))
       } else if (renderState.status === 'error') {
         doc.push(renderError(t, renderState.error, {
@@ -4731,6 +4846,7 @@ window.__ModuleLoader__.load({
           fitScale: fitScaleFor(paneWidth, { ...renderState.pages[0], dpi: renderState.dpi }),
           download,
           onDownload: () => startDownload(renderState.pdfUrl, pdfFilename({ path: selected }), setDownload),
+          onPageDoubleClick: inverseSearchAt,
         }))
       } else {
         doc.push(h('div', { className: 'oprilx-panel-note', key: 'intro' }, [
@@ -4745,15 +4861,6 @@ window.__ModuleLoader__.load({
           h('div', { className: 'oprilx-panel-heading', key: 'heading' }, [
             h('div', { className: 'oprilx-panel-title', key: 'title' }, tr(t, 'panelTitle')),
             h('div', { className: 'oprilx-panel-sub', key: 'sub' }, `${heading}  ·  ${CLIENT_BUILD}`),
-          ]),
-          h('div', {
-            className: 'oprilx-modes',
-            key: 'modes',
-            role: 'group',
-            'aria-label': tr(t, 'viewMode'),
-          }, [
-            modeButton(t, 'preview', 'modePreview', mode, setMode),
-            modeButton(t, 'source', 'modeSource', mode, setMode),
           ]),
           h('button', {
             type: 'button',
@@ -4789,6 +4896,11 @@ window.__ModuleLoader__.load({
                 }, `§${entry.level} ${entry.title}`)),
               ]),
           ]),
+          h('div', {
+            className: 'oprilx-editor-pane',
+            key: 'editor',
+            'data-pane': 'source',
+          }, editor),
           h('div', { className: 'oprilx-panel-doc', key: 'doc', ref: node => { docRef.current = node } }, doc),
         ]),
       ])
