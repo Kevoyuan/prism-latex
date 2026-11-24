@@ -1,0 +1,72 @@
+# dsh-openprism-latex
+
+DSH bundle: a LaTeX preview for DeepSeek Harness. Host half is a Cordis plugin (`src/host.js`),
+client half is a single classic script loaded by the DSH module loader (`src/client.js`).
+No build step; the only runtime dependency is the user's own TeX Live.
+
+Read `POSTMORTEM.md` before touching the right sidebar. It lists the six regressions this
+project already paid for, with the exact code that caused each one.
+
+## Facts that decide the design
+
+- **Client changes need a full relaunch.** DSH serves client bundles as immutable per launch, so
+  `Cmd + R` keeps the old bytes. A client change is unverified until the app is quit and reopened.
+- The client bundle may only `require('react')`. No JSX, no `@deepseek-ai/*` imports, no eval.
+- **No document tab type claims a file.** The type is registered with
+  `canOpen: () => false`, so `candidates()` never ranks it and `.tex` files keep the editor that
+  claimed them. Every build that let this type win a `.tex` address had the right sidebar close
+  on the next interaction. The render is reachable from the left rail's **LaTeX** panel.
+- Host routes are loopback-only and origin-guarded: `/render`, `/pdf`, `/files`, `/source`,
+  `/synctex`, `POST /write`. Anything new repeats those guards.
+- Compile with the local engine (`/Library/TeX/texbin`). Never ship a TeX engine.
+
+## Hard rules (each one is a bug that already happened)
+
+1. **An effect that touches a ref lives in the component that declares that ref.** A cleanup in
+   the wrong component throws `ReferenceError` on unmount, which unmounts the pane.
+2. **Never refuse an address your patterns matched.** DSH's `claim()` throws on refusal and the
+   open flow aborts half-way. `canOpen` may only re-check the suffix.
+3. **Never dispose a registration unconditionally.** Re-apply registers again by id; an old
+   cleanup that disposes the current entry leaves a kind with no type.
+4. **Do not call `openTab` while the dock has no mounted surface.** Show the panel with
+   `layout.openRightbar` first, then retry.
+5. **Do not port code without its dependencies.** After any cherry-pick or block copy, grep every
+   new identifier for a definition in the *current* tree. `lineStartOffset` and `reportDiagnostic`
+   were both missing and both blanked the pane.
+6. **A patch script is a loaded gun.** Replace on explicit `start`/`end` slices, not on a marker
+   whose boundary may contain other code. Run `git diff --stat` and `node --check` before tests,
+   and `git tag` before a large edit.
+7. **Green suites are not evidence for dock behaviour.** The three suites run against a stand-in
+   context; they cannot see `claim()` throwing, a missing surface, or a stale registration.
+   Anything touching tabs needs one real relaunch check, and only one feature per step.
+8. **Do not change the architecture while debugging.** Claim → yield → owned tab → claim rotated
+   the symptom and cost five rounds. Fix the smallest thing, keep the other variables fixed,
+   and tag the last known-good state before an experiment.
+
+## Checks before claiming anything is done
+
+```bash
+node --check src/host.js && node --check src/client.js
+node scripts/smoke-host.mjs
+OPRILX_REACT_PATH="$DSH_PROFILE_DIR/node_modules/react" node scripts/smoke-client.mjs
+node scripts/check-pairing.mjs
+git diff --stat
+```
+
+Then one real page check: relaunch, open a rendered document, switch tabs, confirm the right
+sidebar survives. Report what you verified and what you did not.
+
+## Skill routing
+
+When the user's request matches an available skill, invoke it via the Skill tool. Route only to
+skills in the session's available-skills list; answer directly for quick questions or small
+scoped edits.
+
+- Product ideas/brainstorming → `/office-hours`
+- Strategy/scope → `/plan-ceo-review`
+- Architecture/plan review → `/plan-eng-review` or `/autoplan`
+- Bugs/errors → fix directly: one read-only check of the cause first, then the fix and its test
+- QA/testing → `/qa` or `/qa-only`
+- Code review → `/review`
+- Visual polish → `/design-review`
+- Ship/PR → `/ship`
