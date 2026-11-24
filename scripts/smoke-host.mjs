@@ -196,6 +196,8 @@ async function main() {
     if (synctex.ok === true) {
       check('synctex reports the source file', synctex.path === 'demo/showcase.tex', String(synctex.path))
       check('synctex reports a line', Number.isInteger(synctex.line) && synctex.line >= 1, String(synctex.line))
+      check('synctex reports a column', Number.isInteger(synctex.column) && synctex.column >= 0,
+        String(synctex.column))
     }
     const missing = await route.resource(new Request(
       `${ORIGIN}/api/dsh-openprism-latex/synctex?session=smoke-session&path=demo/showcase.tex&page=1`))

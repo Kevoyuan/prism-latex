@@ -1166,12 +1166,76 @@ async function runSynctexQuery(shared, context, point) {
     }
   }
   const sourceLine = Number(line[1])
+  const resolvedLine = Number.isFinite(sourceLine) && sourceLine > 0 ? sourceLine : 1
+  const reportedColumn = /^Column:(\d+)$/m.exec(stdout)
+  const column = reportedColumn === null
+    ? await refineSynctexColumn(artifacts.synctexBinary, artifacts, absolute, resolvedLine, point.x)
+    : Number(reportedColumn[1])
   return {
     body: {
       ok: true,
       path: relative,
-      line: Number.isFinite(sourceLine) && sourceLine > 0 ? sourceLine : 1,
+      line: resolvedLine,
+      column: Number.isFinite(column) && column >= 0 ? column : 0,
     },
+  }
+}
+
+/**
+ * Estimate the character column inside a line from the clicked x.
+ *
+ * TeX records one box per line (`h`, `W`), not per glyph, so the click is mapped by
+ * proportion and then snapped to the nearest word or command boundary. A caret inside a
+ * word would be wrong more often than a caret at its start.
+ *
+ * @param lineText - the source line, without the newline.
+ * @param fraction - 0 at the line's left edge, 1 at its right edge.
+ * @returns a 0-based column in that line.
+ */
+function columnFromFraction(lineText, fraction) {
+  if (typeof lineText !== 'string' || lineText === '') return 0
+  const clamped = Math.min(1, Math.max(0, Number.isFinite(fraction) ? fraction : 0))
+  let column = Math.round(clamped * lineText.length)
+  while (column > 0 && /\s/.test(lineText[column])) column -= 1
+  // Inside a `\command`, snap to its backslash: the whole control sequence is a token.
+  const commandStart = lineText.lastIndexOf('\\', column)
+  if (commandStart >= 0) {
+    const segment = lineText.slice(commandStart, column)
+    if (segment.length < 32 && /^\\[A-Za-z@]*$/.test(segment)) return commandStart
+  }
+  while (column > 0 && !/\s/.test(lineText[column - 1])) {
+    // Walk back to the start of this word, unless a command start comes first.
+    if (lineText[column - 1] === '\\') return column - 1
+    column -= 1
+  }
+  return column
+}
+
+/**
+ * Refine a synctex hit to a character column: read the line and the box, then map the
+ * clicked x into it. Always returns a usable column (0 when nothing can be measured).
+ */
+async function refineSynctexColumn(synctexBinary, artifacts, inputPath, lineNumber, clickX) {
+  try {
+    const spec = `${lineNumber}:0:${inputPath}`
+    const run = await runChildProcess(synctexBinary, ['view', '-i', spec, '-o', artifacts.pdfPath], {
+      cwd: artifacts.workDir,
+      env: process.env,
+      timeoutMs: 10000,
+    })
+    const stdout = String(run.stdout ?? '')
+    const h = /^h:([-\d.]+)$/m.exec(stdout)
+    const w = /^W:([-\d.]+)$/m.exec(stdout)
+    if (h === null || w === null) return 0
+    const left = Number(h[1])
+    const width = Number(w[1])
+    if (!Number.isFinite(left) || !Number.isFinite(width) || width <= 0) return 0
+    const lines = fs.readFileSync(inputPath, 'utf8').split('\n')
+    const lineText = lines[lineNumber - 1]
+    if (typeof lineText !== 'string') return 0
+    return columnFromFraction(lineText, (clickX - left) / width)
+  } catch {
+    return 0
   }
 }
 
