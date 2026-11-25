@@ -14,6 +14,8 @@ All notable changes to this project are documented here. The format follows
   `Idle` pill no longer appears before the first compile, and the view measures and reserves the
   height the shell's composer covers, so the editor's last lines and a jumped-to caret stay
   visible.
+- **The header toggles show their state** (design audit F4): the Outline and preview icon buttons
+  paint a filled surface while pressed, so which column is open is visible without hovering.
 
 ## [0.1.0] — 2026-11-25
 

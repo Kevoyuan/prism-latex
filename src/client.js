@@ -1381,6 +1381,13 @@ window.__ModuleLoader__.load({
   background: var(--opr-surface-2);
   color: #fff;
 }
+/* Pressed is a state, not a hover. The Outline and preview toggles already carry
+ * aria-pressed, so the header can show which column is on without a pointer, and the
+ * fill survives hovering the control it describes. */
+.oprilx-icon-button[aria-pressed="true"] {
+  background: var(--dsw-alias-bg-layer-2, rgba(127, 127, 127, .16));
+  color: var(--dsw-alias-label-primary, #1c1c1e);
+}
 .oprilx-icon-button:disabled {
   opacity: .45;
 }
