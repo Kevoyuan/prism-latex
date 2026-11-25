@@ -13,8 +13,8 @@ implementation, not a fork; see [Credits and provenance](#credits-and-provenance
 
 ![The LaTeX view: outline rail, source editor, rendered page](docs/view.png)
 
-<sub>Screenshots from 0.1.0 on macOS (dark theme). The header, outline highlight and status pill
-have since been refined; replace these images after the next capture.</sub>
+<sub>Captured from the running app on macOS (dark theme): the Conversation view with its outline
+rail, status pill and black editor; the right sidebar page stack.</sub>
 
 ---
 
@@ -181,7 +181,7 @@ MIT — see [`LICENSE`](LICENSE). Third-party notices: [`THIRD_PARTY_NOTICES.md`
 
 ![LaTeX 视图：左侧 Outline、中间源码编辑器、右侧渲染页](docs/view.png)
 
-<sub>截图取自 0.1.0，macOS 深色主题。头部、Outline 高亮与状态胶囊之后又做了细化，下次截图时替换。</sub>
+<sub>取自实机运行（macOS 深色主题）：会话视图的 Outline 轨道、状态胶囊与纯黑编辑器；右侧边栏的页面栈。</sub>
 
 ### 这是什么
 
