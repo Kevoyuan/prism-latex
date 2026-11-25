@@ -1192,6 +1192,7 @@ async function runSynctexQuery(shared, context, point) {
  * @param fraction - 0 at the line's left edge, 1 at its right edge.
  * @returns a 0-based column in that line.
  */
+/* pairing: columnFromFraction — kept pure so the mapping can be tested without TeX. */
 function columnFromFraction(lineText, fraction) {
   if (typeof lineText !== 'string' || lineText === '') return 0
   const clamped = Math.min(1, Math.max(0, Number.isFinite(fraction) ? fraction : 0))
@@ -1203,11 +1204,8 @@ function columnFromFraction(lineText, fraction) {
     const segment = lineText.slice(commandStart, column)
     if (segment.length < 32 && /^\\[A-Za-z@]*$/.test(segment)) return commandStart
   }
-  while (column > 0 && !/\s/.test(lineText[column - 1])) {
-    // Walk back to the start of this word, unless a command start comes first.
-    if (lineText[column - 1] === '\\') return column - 1
-    column -= 1
-  }
+  // Do NOT walk back to the start of the word: the user asked for the character they
+  // clicked, and snapping turned "one or two characters off" into a whole word.
   return column
 }
 

@@ -226,6 +226,29 @@ section('document outline')
   check('empty documents have no outline', collectSections('').length === 0)
 }
 
+section('column mapping')
+{
+  const host = readFileSync(new URL('../src/host.js', import.meta.url), 'utf8')
+  const start = host.indexOf('function columnFromFraction(')
+  const end = host.indexOf('\n}\n', start) + 3
+  const source = `${host.slice(start, end)}\nexport { columnFromFraction }\n`
+  const modulePath = join(directory, 'column.mjs')
+  writeFileSync(modulePath, source)
+  const { columnFromFraction } = await import(pathToFileURL(modulePath).href)
+  const line = '\\section{Introduction}'
+  check('middle of the line lands on that character',
+    Math.abs(columnFromFraction(line, 0.5) - Math.round(0.5 * line.length)) <= 1,
+    String(columnFromFraction(line, 0.5)))
+  check('a click inside a word stays inside the word',
+    columnFromFraction('hello world', 0.55) > 4,
+    String(columnFromFraction('hello world', 0.55)))
+  check('a click on a command lands on its backslash',
+    columnFromFraction('\\usepackage{amsmath}', 0.2) === 0,
+    String(columnFromFraction('\\usepackage{amsmath}', 0.2)))
+  check('out-of-range fractions clamp', columnFromFraction('abc', -3) === 0
+    && columnFromFraction('abc', 9) === 3)
+}
+
 section('line offsets')
 {
   const doc = 'a\nbb\nccc'

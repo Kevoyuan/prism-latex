@@ -3357,7 +3357,9 @@ window.__ModuleLoader__.load({
           } catch {
             /* the element may be gone */
           }
-          scrollToOffset(offset, 'top')
+          // A jump lands with context above it; pinning the line to the top edge made the
+          // reader lose the surroundings of the hit.
+          scrollToOffset(offset, 'middle')
         }
         setCaret(caret)
         setFlashLine(target)
