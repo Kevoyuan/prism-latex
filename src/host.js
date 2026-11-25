@@ -1332,14 +1332,14 @@ async function refineSynctexColumn(synctexBinary, artifacts, inputPath, lineNumb
     const lineText = lines[lineNumber - 1]
     if (typeof lineText !== 'string') return { column: 0, debug: { missing: 'line' } }
     const fraction = (clickX - left) / width
-    const offsets = typesetOffsets(lineText)
+    const units = typesetUnits(lineText)
     return {
       column: columnFromFraction(lineText, fraction),
       debug: {
         left,
         width,
         fraction: Number(fraction.toFixed(4)),
-        typeset: offsets.length,
+        typeset: units.length,
         lineLength: lineText.length,
         boxes: (String(run.stdout ?? '').match(/^h:/gm) ?? []).length,
       },

@@ -226,6 +226,51 @@ section('document outline')
   check('empty documents have no outline', collectSections('').length === 0)
 }
 
+section('host identifiers')
+{
+  const host = readFileSync(new URL('../src/host.js', import.meta.url), 'utf8')
+  // `typesetOffsets` was renamed to `typesetUnits`, and one call site kept the old name.
+  // The refinement catches every error and returned column 0 for years of clicks, so this
+  // is checked statically: every called identifier has to exist in the file.
+  const declared = new Set()
+  for (const match of host.matchAll(/\b(?:function|const|let|var)\s+([A-Za-z_$][\w$]*)/g)) {
+    declared.add(match[1])
+  }
+  // Destructured bindings and callback parameters are declarations too.
+  for (const match of host.matchAll(/const\s*\{([^}]*)\}\s*=/g)) {
+    for (const part of match[1].split(',')) {
+      const name = part.split(':').pop().trim().split('=')[0].trim()
+      if (/^[A-Za-z_$][\w$]*$/.test(name)) declared.add(name)
+    }
+  }
+  for (const match of host.matchAll(/\(([^()]*)\)\s*=>/g)) {
+    for (const part of match[1].split(',')) {
+      const name = part.split('=')[0].trim()
+      if (/^[A-Za-z_$][\w$]*$/.test(name)) declared.add(name)
+    }
+  }
+  for (const match of host.matchAll(/function\s+[A-Za-z_$][\w$]*\s*\(([^)]*)\)/g)) {
+    for (const part of match[1].split(',')) {
+      const name = part.split('=')[0].trim()
+      if (/^[A-Za-z_$][\w$]*$/.test(name)) declared.add(name)
+    }
+  }
+  const known = new Set(['require', 'if', 'for', 'while', 'switch', 'catch', 'return',
+    'typeof', 'Number', 'String', 'Boolean', 'Array', 'Object', 'Map', 'Set', 'JSON', 'Math',
+    'Date', 'Promise', 'Error', 'parseInt', 'parseFloat', 'isFinite', 'encodeURIComponent',
+    'decodeURIComponent', 'setTimeout', 'clearTimeout', 'setInterval', 'clearInterval',
+    'import', 'async', 'btoa', 'atob', 'commands', 'spawn', 'reject', 'resolve', 'state',
+    'next', 'callback', 'handler', 'listener'])
+  const missing = new Set()
+  for (const match of host.matchAll(/(?:^|[^\w$.])([a-z][\w$]*)\s*\(/g)) {
+    const name = match[1]
+    if (declared.has(name) || known.has(name)) continue
+    missing.add(name)
+  }
+  check('no stale identifier is called in the host', missing.size === 0,
+    [...missing].join(', '))
+}
+
 section('column mapping')
 {
   const host = readFileSync(new URL('../src/host.js', import.meta.url), 'utf8')
