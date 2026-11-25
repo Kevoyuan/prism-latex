@@ -1,99 +1,71 @@
 # prism-latex
 
-**面向 [DeepSeek Harness](https://github.com/deepseek-ai) 的 Open-Prism 风格 LaTeX 编辑：模型写 `.tex`，你在源码旁边直接看到编译结果。**
+**面向 [DeepSeek Harness](https://github.com/deepseek-ai) 的 LaTeX 预览：模型写 `.tex`，你在源码旁边直接看到编译好的页面。**
 
-一个 DSH 插件：用本机 TeX Live 编译 `.tex`，并把页面显示在 DSH 里——右侧边栏可看文档，专门的 `LaTeX`
-对话视图可改源码。
-
-![架构：两个界面，一个宿主](docs/architecture.svg)
-
-![LaTeX 视图：左侧 Outline、中间源码编辑器、右侧渲染页](docs/view.png)
-
-<sub>取自实机运行（macOS 深色主题）：会话视图的 Outline 轨道、状态胶囊与纯黑编辑器；右侧边栏的页面栈。</sub>
-
-### 这是什么
-
-一个 DeepSeek Harness（DSH）插件：用本机 TeX Live 编译 `.tex`，并把编译后的页面直接显示在 DSH
-里——右侧边栏可看文档，专门的 `LaTeX` 视图可改源码。
+这个 bundle 用你本机的 TeX Live 编译 `.tex`，把页面显示在 DSH 里——右侧栏，以及一个带大纲、编辑器和预览的 `LaTeX` 视图。双击页面上的任意位置，光标就落到那个字符上。
 
 [English](README.md) · **中文**
 
-**Docs:** [Contributing](CONTRIBUTING.md) · [Changelog](CHANGELOG.md) · [Postmortem](POSTMORTEM.md) · [Design notes](SPEC.md)
+![LaTeX 视图：大纲栏、源码编辑器、渲染页面](docs/view.png)
 
-思路来自开源项目 [**assistant-ui/open-prism**](https://github.com/assistant-ui/open-prism)（AI 驱动的
-LaTeX 写作工作台 + 实时预览）。本项目是**为 DSH 插件 API 独立实现**的版本，不是 fork。
+## 快速开始
 
-### 两个界面，一个插件
+1. **安装**（见下），然后**完全退出并重开** DSH。
+2. 打开任意 `.tex`——模型给的文件链接、文件树里的都行。它会在右侧栏打开并编译。
+3. 想改稿，把对话的视图行切到 **LaTeX**。它编辑的就是右侧栏正在显示的那个文件。
+4. 双击渲染页面上的某处，光标跳到对应字符。
 
-| 界面 | 作用 |
-|---|---|
-| **右侧边栏标签** | 看文档：接管 `.tex` / `.latex` / `.ltx`，编译后按页显示，支持适应宽度、缩放、下载 PDF、切换引擎，以及「预览 / 源码 / 并排」三种模式。 |
-| **对话视图 `LaTeX`** | 写文档：左侧 Outline（可拖拽调宽、可隐藏），中间源码编辑器，右侧预览列（默认收起，眼睛图标展开），底部是 DSH 原生输入框。该视图会跟随右侧边栏当前打开的 `.tex`。 |
+手边没有 `.tex`？打开 `demo/showcase.tex`：标题、摘要、章节、公式、表格，两页。
 
-<p>
-  <img src="docs/preview.png" width="420" alt="右侧边栏：编译后的页面栈与引擎选择" />
-  <img src="docs/editor.png" width="420" alt="编辑器：语法着色与粘性章节条" />
-</p>
+## 安装
 
-### 功能
+需要 DSH 桌面版、本机 TeX Live（`latexmk` 或 `pdflatex`；要中文就装 `xelatex`）、以及渲染页面用的 Ghostscript。
 
-- **真的编译**：在文件所在目录调用本机 TeX Live，`\input`、`\includegraphics`、相对路径的行为与本地
-  构建一致。默认 `latexmk`（多遍 + BibTeX，目录与参考文献能解析），可切 `pdflatex`、`xelatex`（中文）、
-  `lualatex`，选择会被记住。
-- **按页渲染**：Ghostscript 栅格化，适应宽度、最高 300% 缩放、显示页数与编译耗时、可下载 PDF。
-- **报错可读可跳**：显示错误信息、行号、日志尾部；点行号直接跳到源码对应行。
-- **源码编辑**：LaTeX 语法着色、行号、纯黑代码区；头部显示文件名、未保存脏点与章节数（构建号在 tooltip
-  里）；预览收起时头部有状态胶囊（`Ready · N 页` / `Compiling` / `Error` / `Idle`），点它展开预览；
-  没有文档时显示一行空状态而不是空列。
-- **Outline 联动**：滚动时高亮当前章节；查找替换、命令补全、括号与 `\begin…\end` 配对；
-  `⌘S` 保存并重编译（文件被他人改动时拒绝覆盖并提示）、`⌘=` / `⌘-` / `⌘0` 调字号、`⌘↩` 编译。
-- **粘性章节条**：滚动时当前 `\section` 吸顶显示，点击可跳转；与左侧 Outline 同源。
-- **SyncTeX 反向跳转**：在渲染页上双击，编辑器光标落到**你点的那个字符**上并闪烁该行。点击位置只在
-  「会排版的字符」上做映射，所以 `\textbf{…}`、`$e^{i\pi}$`、`\LaTeX{}`、`\texttt{.tex}` 等标记不会造成偏移。
-  双击**不会**改变浏览界面的模式或布局，只发布一次跳转。
-
-### 环境要求
-
-- DeepSeek Harness 桌面版（带 Web 客户端）。
-- 本机 TeX Live（按需提供 `latexmk` / `pdflatex` / `xelatex` / `lualatex`）与 Ghostscript。默认查找
-  `/Library/TeX/texbin` 与 `PATH`。
-- 无 Node 依赖、无构建步骤：`src/host.js` 与 `src/client.js` 直接发布。
-
-### 安装
-
-`prism-latex` 已发布到 npm。与普通 DSH 插件相同：把本包加入 profile 依赖，把包名加入
-`dsh.profile.bundles`，然后重启 DSH。宿主半（`cordis.patch.yml`）与客户端半（`dsh.client`）由包清单声明。
+把 bundle 加进 DSH profile，然后重启应用：
 
 ```jsonc
-// profile package.json（节选）
+// ~/.dsh/profiles/<profile>/package.json
 {
   "dependencies": { "prism-latex": "^0.2.0" },
   "dsh": { "profile": { "bundles": ["prism-latex"] } }
 }
 ```
 
-本地开发用 `link:` 指向检出目录效果相同；Release 里的 tarball 用 `file:` 规格安装。
+```bash
+cd ~/.dsh/profiles/<profile> && pnpm install
+```
 
-**修改 `src/client.js` 后必须完全退出并重开 DSH**：客户端包每次启动只加载一次，`⌘R` 仍是旧代码。
+在改这个插件本身？把依赖写成 `"prism-latex": "link:/path/to/checkout"`。客户端代码每次启动只加载一次：**必须完全退出再打开**，`⌘R` 拿不到新字节。
 
-### 使用
+## 你会得到
 
-1. 打开任意 `.tex`（模型给的链接、文件树或资源地址）→ 右侧边栏编译并显示。
-2. 在该标签里切换「预览 / 源码 / 并排」、选引擎、下载 PDF。
-3. 在顶部视图行点开 **`LaTeX`** 视图编辑同一篇文档：左侧 Outline、中间编辑器、右侧预览（眼睛图标展开）。
-4. 在任意渲染页上双击，光标跳到对应字符。
+| | |
+|---|---|
+| **右侧栏 tab** | 阅读面。编译你打开的文件；页面栈、适应宽度与最高 300% 缩放、引擎选择、Preview / Source / Side by side、下载 PDF，报错带可点的行号。 |
+| **`LaTeX` 视图** | 写作面。大纲栏（可拖宽、可隐藏）、带 LaTeX 高亮的编辑器、眼睛开关后的可选预览，下面是 shell 原生 composer。 |
 
-可以从 `demo/showcase.tex` 开始——它覆盖标题块、摘要、编号章节、列表、公式、表格与多页。
+<p>
+  <img src="docs/preview.png" width="420" alt="右侧栏：页面栈与引擎选择" />
+  <img src="docs/editor.png" width="420" alt="编辑器：语法高亮与吸顶章节标题" />
+</p>
 
-### 宿主路由
+## 快捷键
 
-均为仅本机、带来源校验，且路径限制在工作区内：`/render`（编译并栅格化）、`/pdf`、`/files`、
-`/source`、`/synctex`（页面坐标 → 行/列）、`POST /write`（带版本校验的保存）。
+| 按键 | 作用 |
+|---|---|
+| `⌘S` | 保存并重新编译 |
+| `⌘↩` | 编译 |
+| `⌘F` / `⌘G` | 查找替换 / 跳到行 |
+| `⌘=` `⌘−` `⌘0` | 编辑器字号（10–20 px），会记住 |
+| `⌘`/Ctrl + 滚轮 | 缩放渲染页面 |
 
-跨界面协作走两个模块级通道：`publishDocument`（右侧栏告诉视图它正显示哪个文件）与
-`publishJump`（页面点击把光标位置发给视图）。
+## 已知限制
 
-### 开发
+- 反向搜索可用（页面 → 光标），正向搜索（光标 → 页面）还没做。
+- 没有自动换行：长行横向滚动。
+- 入口只有一个——`LaTeX` 视图；左侧栏图标和 `main` 面板是刻意移除的。
+
+## 开发
 
 ```bash
 node --check src/host.js && node --check src/client.js
@@ -102,18 +74,12 @@ PRISMLX_REACT_PATH="$DSH_PROFILE_DIR/node_modules/react" node scripts/smoke-clie
 node scripts/check-pairing.mjs
 ```
 
-三套测试跑在**模拟的 DSH 上下文**上：它们证明插件自己是对的，不证明停靠栏行为。涉及标签、对话视图、
-滚动的改动必须再做一次真实重启验证。详见 `CLAUDE.md`（硬规则）与 `POSTMORTEM.md`（八个已踩过的坑）。
+三套测试跑在 DSH 的替身上下文里：它们覆盖插件本身，覆盖不了 dock。任何动到 tab、对话视图或滚动的改动，都要真机重启验一次。`CLAUDE.md` 是规则，`POSTMORTEM.md` 是这八次回退的来龙去脉，`SPEC.md` 是设计说明，[`docs/architecture.svg`](docs/architecture.svg) 是两半的图。
 
-### 已知限制
+## 出处与许可
 
-- 已有「页面 → 光标」的反向搜索；「光标 → 页面」的正向搜索尚未实现。
-- 暂无自动换行开关，长行横向滚动。
-- 启动图标与左侧面板是有意移除的：入口只有 `LaTeX` 视图一个。
+产品思路——带实时预览的 AI LaTeX 编辑器——来自
+[assistant-ui/open-prism](https://github.com/assistant-ui/open-prism)。这里是面向 DSH 插件 API 的独立实现，不是 fork；借用的行为都写在代码和
+[`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) 里。
 
-### 来源与许可
-
-- 产品与交互思路：**[assistant-ui/open-prism](https://github.com/assistant-ui/open-prism)**。
-- 这里的实现是为 DSH 插件 API 独立编写的代码；借用概念的出处（三栏编辑器、着色 token 语法、
-  适应宽度的页面栈）在代码与 `THIRD_PARTY_NOTICES.md` 中标注。
-- 许可：MIT，见 [`LICENSE`](LICENSE)。
+MIT — [`LICENSE`](LICENSE)。[贡献指南](CONTRIBUTING.md) · [更新日志](CHANGELOG.md)

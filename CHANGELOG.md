@@ -8,6 +8,14 @@ All notable changes to this project are documented here. The format follows
 
 Nothing yet.
 
+## [0.2.1] — 2026-11-25
+
+### Changed
+
+- **The README is a quick start now**: four numbered steps, the install block with the exact
+  profile JSON and `pnpm install`, a shortcuts table and the known limits — 97 lines instead of
+  182. The route tables and design notes it used to carry stay in `SPEC.md` and `CLAUDE.md`.
+
 ## [0.2.0] — 2026-11-25
 
 ### Renamed
@@ -82,7 +90,8 @@ First public release.
 The regressions that shaped the architecture are documented in `POSTMORTEM.md`; the rules that
 prevent them from returning are in `CLAUDE.md`.
 
-[Unreleased]: https://github.com/Kevoyuan/prism-latex/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/Kevoyuan/prism-latex/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/Kevoyuan/prism-latex/releases/tag/v0.2.1
 [0.2.0]: https://github.com/Kevoyuan/prism-latex/releases/tag/v0.2.0
 [0.1.1]: https://github.com/Kevoyuan/prism-latex/releases/tag/v0.1.1
 [0.1.0]: https://github.com/Kevoyuan/prism-latex/releases/tag/v0.1.0
