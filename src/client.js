@@ -1319,7 +1319,10 @@ window.__ModuleLoader__.load({
   min-width: 0;
   overflow: hidden;
   border-right: 1px solid var(--dsw-alias-border-l1, rgba(0, 0, 0, .12));
-  background: #282c34;
+  /* Same near-black surface as the sidebar's source pane (the dark block paints
+   * .oprilx-pane[data-pane="source"] with #0f1113). One Dark's #282c34 stopped at this
+   * pane's edge and read as a lighter grey box next to the sidebar editor. */
+  background: #0f1113;
   color: #abb2bf;
 }
 .oprilx-editor-pane > .oprilx-editor-shell {

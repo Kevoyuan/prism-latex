@@ -22,6 +22,9 @@ All notable changes to this project are documented here. The format follows
 - **The Outline follows the document** (design audit F6): its label sticks to the top of the
   column, and the marked row scrolls back into view inside the column when the editor moves past
   it, so a long document never leaves the rail without a "you are here".
+- **The view's editor is as black as the sidebar's**: the editor pane still carried One Dark's
+  `#282c34` while the sidebar's source pane has been `#0f1113` since the near-black surface
+  landed. They now match, so the code surface reads as one black island in both places.
 
 ## [0.1.0] — 2026-11-25
 
