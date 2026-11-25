@@ -167,7 +167,7 @@ then re-measure.
 **Symptom.** The "two-column workspace" had the right markup and still looked like a vertical
 stack in the app.
 
-**Cause.** The commit added `.oprilx-workspace` / `.oprilx-files` elements but no CSS rules for
+**Cause.** The commit added `.prismlx-workspace` / `.prismlx-files` elements but no CSS rules for
 them; the smoke suite only inspects the element tree, so nothing failed.
 
 **Fix.** The CSS ships in the same commit as the markup from now on. A layout change is verified

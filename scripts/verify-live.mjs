@@ -28,7 +28,7 @@ function check(label, condition, detail = '') {
   console.log(`FAIL  ${label}${detail ? ` — ${detail}` : ''}`)
 }
 
-const renderUrl = new URL('/api/dsh-openprism-latex/render', origin)
+const renderUrl = new URL('/api/prism-latex/render', origin)
 renderUrl.searchParams.set('session', session ?? '')
 renderUrl.searchParams.set('path', 'demo/example.tex')
 
@@ -74,7 +74,7 @@ if (body?.ok === true) {
 }
 
 console.log('\npdf route')
-const pdfUrl = new URL('/api/dsh-openprism-latex/pdf', origin)
+const pdfUrl = new URL('/api/prism-latex/pdf', origin)
 pdfUrl.searchParams.set('session', session)
 pdfUrl.searchParams.set('path', 'demo/example.tex')
 const pdfResponse = await fetch(pdfUrl)
@@ -86,7 +86,7 @@ check('PDF magic', pdfBytes.subarray(0, 5).toString('latin1') === '%PDF-')
 console.log(`      ${pdfBytes.length} bytes`)
 
 console.log('\nguards stay closed')
-const escape = new URL('/api/dsh-openprism-latex/render', origin)
+const escape = new URL('/api/prism-latex/render', origin)
 escape.searchParams.set('session', session)
 escape.searchParams.set('path', '../../../etc/hosts.tex')
 const escapeResponse = await fetch(escape)

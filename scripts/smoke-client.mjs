@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Smoke test for the Client half of dsh-openprism-latex.
+ * Smoke test for the Client half of prism-latex.
  *
  * Runs `src/client.js` the way the DSH web loader does — as a classic script in a
  * browser-like global, calling `window.__ModuleLoader__.load` — then wires a stand-in
@@ -20,7 +20,7 @@ const root = resolve(import.meta.dirname, '..')
 const require = createRequire(import.meta.url)
 /** React is not a dependency of the plugin; a dev box finds it in the DSH profile. */
 function loadReact() {
-  const candidates = [process.env.OPRILX_REACT_PATH, 'react',
+  const candidates = [process.env.PRISMLX_REACT_PATH, 'react',
     process.env.DSH_PROFILE_DIR === undefined ? undefined : join(process.env.DSH_PROFILE_DIR, 'node_modules', 'react')]
   for (const candidate of candidates) {
     if (candidate === undefined) continue
@@ -30,7 +30,7 @@ function loadReact() {
       /* try the next one */
     }
   }
-  throw new Error('React was not found; set OPRILX_REACT_PATH to a React installation')
+  throw new Error('React was not found; set PRISMLX_REACT_PATH to a React installation')
 }
 const React = loadReact()
 const source = readFileSync(join(root, 'src', 'client.js'), 'utf8')
@@ -367,12 +367,12 @@ section('bundle shape')
 {
   const bundle = mount(makeReact(undefined))
   check('one registration', bundle.registration !== undefined)
-  check('bundle id', bundle.registration.id === 'dsh-openprism-latex', String(bundle.registration.id))
+  check('bundle id', bundle.registration.id === 'prism-latex', String(bundle.registration.id))
   check('factory is a function', typeof bundle.registration.factory === 'function')
   check('classic script, no ESM import', !/^\s*import\s/m.test(source))
   const required = [...source.matchAll(/require\(['"]([^'"]+)['"]\)/g)].map(match => match[1])
   check('only react is required', required.length === 1 && required[0] === 'react', required.join(','))
-  check('plugin name', bundle.plugin.name === 'dsh-openprism-latex', String(bundle.plugin.name))
+  check('plugin name', bundle.plugin.name === 'prism-latex', String(bundle.plugin.name))
   check('declares slots, locale and the tab registry',
     JSON.stringify(bundle.plugin.inject) === JSON.stringify(['slots', 'locale', 'sidebarRightTabs']),
     JSON.stringify(bundle.plugin.inject))
@@ -406,12 +406,12 @@ section('state: compiling')
   const { slot, en } = mount(makeReact(undefined))
   const tree = slot.body(baseProps({ t: key => en.get(key) ?? key }))
   const nodes = flatten(tree)
-  check('root element', nodes[0]?.type === 'div' && nodes[0].props.className === 'oprilx-root',
+  check('root element', nodes[0]?.type === 'div' && nodes[0].props.className === 'prismlx-root',
     String(nodes[0]?.props?.className))
   check('style element', nodes.some(node => node.type === 'style'
-    && String(node.props.children).includes('.oprilx-root')))
+    && String(node.props.children).includes('.prismlx-root')))
   check('status role', nodes.some(node => node.props?.role === 'status'))
-  check('spinner', nodes.some(node => node.props?.className === 'oprilx-spinner'))
+  check('spinner', nodes.some(node => node.props?.className === 'prismlx-spinner'))
   check('localized label', textOf(tree).includes('Compiling LaTeX'), textOf(tree).slice(0, 120))
   check('scrollport attached', typeof nodes[0]?.ref === 'function')
 }
@@ -441,7 +441,7 @@ section('state: error')
   check('error headline', text.includes('This document could not be compiled'))
   check('source line', text.includes('Line 12'), text.slice(0, 200))
   check('compiler message', text.includes('Undefined control sequence'))
-  check('log block', nodes.some(node => node.type === 'pre' && node.props.className === 'oprilx-log'))
+  check('log block', nodes.some(node => node.type === 'pre' && node.props.className === 'prismlx-log'))
   check('retry button', nodes.some(node => node.type === 'button'
     && node.props['aria-label'] === 'Retry'))
 }
@@ -457,7 +457,7 @@ section('state: ready (fit width)')
     pageCount: 2,
     durationMs: 812,
     dpi: 144,
-    pdfUrl: 'api/dsh-openprism-latex/pdf?session=sess-1&path=demo/example.tex',
+    pdfUrl: 'api/prism-latex/pdf?session=sess-1&path=demo/example.tex',
     truncated: false,
   }))
   const tree = slot.body(baseProps({ t: key => en.get(key) ?? key }))
@@ -470,7 +470,7 @@ section('state: ready (fit width)')
   check('intrinsic size kept', images[0]?.props.width === 1191 && images[0]?.props.height === 1684)
   check('lazy images', images.every(image => image.props.loading === 'lazy'))
   check('accessible alt text', images[0]?.props.alt === 'Page 1', String(images[0]?.props.alt))
-  const pageWrapper = nodes.find(node => node.props?.className === 'oprilx-page')
+  const pageWrapper = nodes.find(node => node.props?.className === 'prismlx-page')
   check('page wrapper carries fit width', pageWrapper?.props?.style?.width === '100%'
     && /px$/.test(String(pageWrapper?.props?.style?.maxWidth)), JSON.stringify(pageWrapper?.props?.style))
   check('control group', nodes.some(node => node.props?.role === 'group'
@@ -491,7 +491,7 @@ section('state: ready (document preview inverse search)')
     pageCount: 1,
     durationMs: 500,
     dpi: 144,
-    pdfUrl: 'api/dsh-openprism-latex/pdf?session=sess-1&path=demo/example.tex',
+    pdfUrl: 'api/prism-latex/pdf?session=sess-1&path=demo/example.tex',
     truncated: false,
   }
   const requests = []
@@ -540,7 +540,7 @@ section('state: ready (fixed zoom)')
   const nodes = flatten(tree)
   const images = nodes.filter(node => node.type === 'img')
   check('one page image', images.length === 1, String(images.length))
-  const pageWrapper = nodes.find(node => node.props?.className === 'oprilx-page')
+  const pageWrapper = nodes.find(node => node.props?.className === 'prismlx-page')
   check('page wrapper carries scaled px width', /^\d+px$/.test(String(pageWrapper?.props?.style?.width)),
     JSON.stringify(pageWrapper?.props?.style))
   check('zoom percentage shown', textOf(tree).includes('150%'), textOf(tree).slice(0, 160))
@@ -578,7 +578,7 @@ section('state: refreshing keeps the pages on screen')
     pageCount: 1,
     durationMs: 500,
     dpi: 144,
-    pdfUrl: 'api/dsh-openprism-latex/pdf?session=sess-1&path=demo/example.tex',
+    pdfUrl: 'api/prism-latex/pdf?session=sess-1&path=demo/example.tex',
     truncated: false,
   }))
   const tree = slot.body(baseProps({ t: key => en.get(key) ?? key }))
@@ -586,7 +586,7 @@ section('state: refreshing keeps the pages on screen')
   const text = textOf(tree)
   check('pages stay visible', images.length === 1, String(images.length))
   check('refresh is announced', text.includes('Recompiling'), text.slice(0, 200))
-  check('no full-pane spinner', !flatten(tree).some(node => node.props?.className === 'oprilx-spinner'))
+  check('no full-pane spinner', !flatten(tree).some(node => node.props?.className === 'prismlx-spinner'))
 }
 
 section('state: download failure is visible')
@@ -597,7 +597,7 @@ section('state: download failure is visible')
     pageCount: 1,
     durationMs: 500,
     dpi: 144,
-    pdfUrl: 'api/dsh-openprism-latex/pdf?session=sess-1&path=demo/example.tex',
+    pdfUrl: 'api/prism-latex/pdf?session=sess-1&path=demo/example.tex',
     truncated: false,
   }
   const { slot, en } = mount(makeReact(ready, 'fit', undefined, { status: 'failed' }))
@@ -638,7 +638,7 @@ section('zoom steps follow the fit scale in a narrow pane')
     pageCount: 1,
     durationMs: 500,
     dpi: 144,
-    pdfUrl: 'api/dsh-openprism-latex/pdf?session=sess-1&path=demo/example.tex',
+    pdfUrl: 'api/prism-latex/pdf?session=sess-1&path=demo/example.tex',
     truncated: false,
   }
   const { slot, en } = mount(makeReact(ready, 'fit', 400))
@@ -661,16 +661,16 @@ section('outline column layout')
   const view = slots.find(entry => entry.options?.name === 'conversation.view')
   const tree = view.body({ t: key => en.get(key) ?? key })
   const nodes = flatten(tree)
-  const workspace = nodes.find(node => node.props?.className === 'oprilx-workspace')
+  const workspace = nodes.find(node => node.props?.className === 'prismlx-workspace')
   check('the view is one workspace', workspace !== undefined)
-  const outline = nodes.find(node => node.props?.className === 'oprilx-outline')
-  const divider = nodes.find(node => node.props?.className === 'oprilx-divider')
-  const editor = nodes.find(node => node.props?.className === 'oprilx-editor-pane')
+  const outline = nodes.find(node => node.props?.className === 'prismlx-outline')
+  const divider = nodes.find(node => node.props?.className === 'prismlx-divider')
+  const editor = nodes.find(node => node.props?.className === 'prismlx-editor-pane')
   check('the outline column is on the left', outline !== undefined && editor !== undefined)
   check('no .tex file list or rows are rendered',
-    !nodes.some(node => node.props?.className === 'oprilx-panel-list'
-      || node.props?.className === 'oprilx-panel-row'
-      || node.props?.className === 'oprilx-files'))
+    !nodes.some(node => node.props?.className === 'prismlx-panel-list'
+      || node.props?.className === 'prismlx-panel-row'
+      || node.props?.className === 'prismlx-files'))
   check('a separator sits between the outline and the editor',
     divider !== undefined && nodes.indexOf(outline) < nodes.indexOf(divider)
     && nodes.indexOf(divider) < nodes.indexOf(editor))
@@ -681,10 +681,10 @@ section('outline column layout')
     && divider?.props?.['aria-valuemax'] === 360
     && divider?.props?.tabIndex === 0, JSON.stringify(divider?.props))
   check('the outline column has a title', nodes.some(node =>
-    node.props?.className === 'oprilx-outline-title'))
+    node.props?.className === 'prismlx-outline-title'))
   check('no file-count subtitle remains', !/\d+ documents/.test(textOf(tree)), textOf(tree).slice(0, 120))
   check('no preview/source mode switch in this view',
-    !nodes.some(node => node.props?.className === 'oprilx-mode'))
+    !nodes.some(node => node.props?.className === 'prismlx-mode'))
 }
 
 section('outline column: resize and hide')
@@ -695,18 +695,18 @@ section('outline column: resize and hide')
   const hiddenView = hiddenMount.slots.find(entry => entry.options?.name === 'conversation.view')
   const hiddenNodes = flatten(hiddenView.body({ t: key => hiddenMount.en.get(key) ?? key }))
   check('hiding the outline removes the column',
-    !hiddenNodes.some(node => node.props?.className === 'oprilx-outline'))
+    !hiddenNodes.some(node => node.props?.className === 'prismlx-outline'))
   check('hiding the outline removes the divider',
-    !hiddenNodes.some(node => node.props?.className === 'oprilx-divider'))
+    !hiddenNodes.some(node => node.props?.className === 'prismlx-divider'))
   check('the editor survives the hidden outline',
-    hiddenNodes.some(node => node.props?.className === 'oprilx-editor-pane'))
+    hiddenNodes.some(node => node.props?.className === 'prismlx-editor-pane'))
   check('the hidden state offers a way back',
     hiddenNodes.some(node => node.type === 'button' && node.props['aria-label'] === 'Show the outline'))
 
   // Persisted width and visibility are read back from localStorage.
   globalThis.localStorage = fakeStorage({
-    'dsh-openprism-latex.outline-width': '300',
-    'dsh-openprism-latex.outline-open': 'open',
+    'prism-latex.outline-width': '300',
+    'prism-latex.outline-open': 'open',
     'dsh.sessions.current': JSON.stringify({ sessionId: 'sess-1' }),
   })
   try {
@@ -714,10 +714,10 @@ section('outline column: resize and hide')
     const storedMount = mount(stored)
     const storedView = storedMount.slots.find(entry => entry.options?.name === 'conversation.view')
     const storedNodes = flatten(storedView.body({ t: key => storedMount.en.get(key) ?? key }))
-    const workspace = storedNodes.find(node => node.props?.className === 'oprilx-workspace')
-    const divider = storedNodes.find(node => node.props?.className === 'oprilx-divider')
+    const workspace = storedNodes.find(node => node.props?.className === 'prismlx-workspace')
+    const divider = storedNodes.find(node => node.props?.className === 'prismlx-divider')
     check('the stored outline width is read back',
-      workspace?.props?.style?.['--opr-outline-width'] === '300px',
+      workspace?.props?.style?.['--prism-outline-width'] === '300px',
       JSON.stringify(workspace?.props?.style))
     check('the stored width reaches the separator', divider?.props?.['aria-valuenow'] === 300,
       String(divider?.props?.['aria-valuenow']))
@@ -749,7 +749,7 @@ section('outline column: resize and hide')
     check('the toggle hides the outline', toggle.__log.outlineOpen?.at(-1) === false,
       JSON.stringify(toggle.__log.outlineOpen))
     check('the outline choice is persisted', storage.writes.some(entry =>
-      entry[0] === 'dsh-openprism-latex.outline-open' && entry[1] === 'hidden'),
+      entry[0] === 'prism-latex.outline-open' && entry[1] === 'hidden'),
     JSON.stringify(storage.writes))
   } finally {
     delete globalThis.localStorage
@@ -791,7 +791,7 @@ section('outline marks the section the editor is in')
   const markedMount = mount(marked)
   const markedView = markedMount.slots.find(entry => entry.options?.name === 'conversation.view')
   const rows = flatten(markedView.body({ t: key => markedMount.en.get(key) ?? key }))
-    .filter(node => node.props?.className === 'oprilx-outline-row')
+    .filter(node => node.props?.className === 'prismlx-outline-row')
   check('the outline has one row per section', rows.length === 2, String(rows.length))
   check('the matching row is current', rows[1]?.props?.['aria-current'] === 'true'
     && rows[1]?.props?.['data-active'] === 'true',
@@ -809,7 +809,7 @@ section('outline marks the section the editor is in')
     const staleMount = mount(stale)
     const staleView = staleMount.slots.find(entry => entry.options?.name === 'conversation.view')
     const staleRows = flatten(staleView.body({ t: key => staleMount.en.get(key) ?? key }))
-      .filter(node => node.props?.className === 'oprilx-outline-row')
+      .filter(node => node.props?.className === 'prismlx-outline-row')
     check(`no row is current for ${label}`,
       staleRows.every(row => row.props?.['aria-current'] === undefined
         && row.props?.['data-active'] === 'false'),
@@ -821,7 +821,7 @@ section('outline marks the section the editor is in')
   const clickingMount = mount(clicking)
   const clickingView = clickingMount.slots.find(entry => entry.options?.name === 'conversation.view')
   const clickRows = flatten(clickingView.body({ t: key => clickingMount.en.get(key) ?? key }))
-    .filter(node => node.props?.className === 'oprilx-outline-row')
+    .filter(node => node.props?.className === 'prismlx-outline-row')
   clickRows[1].props.onClick()
   check('a clicked row becomes current immediately',
     clicking.__log.activeSection?.at(-1)?.index === 1
@@ -848,11 +848,11 @@ section('conversation view')
   const { slots, en } = mount(makeReact(undefined))
   const entry = slots.find(candidate => candidate.options?.name === 'conversation.view')
   check('LaTeX registered as a conversation view', entry !== undefined)
-  check('view id is namespaced', entry?.options?.id === 'dsh-openprism-latex', String(entry?.options?.id))
+  check('view id is namespaced', entry?.options?.id === 'prism-latex', String(entry?.options?.id))
   check('view has a label thunk', typeof entry?.options?.label === 'function')
   const tree = entry.body({ t: key => en.get(key) ?? key })
   check('view renders the workspace panel', flatten(tree).some(node =>
-    node.props?.className === 'oprilx-panel'))
+    node.props?.className === 'prismlx-panel'))
 }
 
 section('panel: the shown preview sits beside the editor')
@@ -870,7 +870,7 @@ section('panel: the shown preview sits beside the editor')
     pageCount: 1,
     durationMs: 500,
     dpi: 144,
-    pdfUrl: 'api/dsh-openprism-latex/pdf?session=sess-1&path=demo/example.tex',
+    pdfUrl: 'api/prism-latex/pdf?session=sess-1&path=demo/example.tex',
     truncated: false,
   }
   const requests = []
@@ -900,9 +900,9 @@ section('panel: the shown preview sits beside the editor')
     check('editor pane is on screen', textarea !== undefined)
     check('preview pane is on screen at the same time', image !== undefined)
     check('both panes live in the single workspace',
-      nodes.some(node => node.props?.className === 'oprilx-workspace'))
+      nodes.some(node => node.props?.className === 'prismlx-workspace'))
     check('no preview/source mode switch in this view',
-      !nodes.some(node => node.props?.className === 'oprilx-mode'))
+      !nodes.some(node => node.props?.className === 'prismlx-mode'))
     check('preview accepts a double-click', typeof image?.props?.onDoubleClick === 'function')
     check('preview hints at inverse search',
       image?.props?.title === 'Double-click to find the source line', String(image?.props?.title))
@@ -951,7 +951,7 @@ section('preview column: hidden by default, toggled independently')
   const hiddenView = hiddenMount.slots.find(entry => entry.options?.name === 'conversation.view')
   const hiddenNodes = flatten(hiddenView.body({ t: key => hiddenMount.en.get(key) ?? key }))
   check('the preview column is hidden by default',
-    !hiddenNodes.some(node => node.props?.className === 'oprilx-panel-doc'))
+    !hiddenNodes.some(node => node.props?.className === 'prismlx-panel-doc'))
   const eye = hiddenNodes.find(node => node.type === 'button'
     && node.props['aria-label'] === 'Show the preview')
   check('a header control opens the preview', eye !== undefined)
@@ -970,7 +970,7 @@ section('preview column: hidden by default, toggled independently')
     check('the eye toggle shows the preview', toggled.__log.preview?.at(-1) === true,
       JSON.stringify(toggled.__log.preview))
     check('the preview choice is persisted', toggleStorage.writes.some(entry =>
-      entry[0] === 'dsh-openprism-latex.view-preview' && entry[1] === 'open'),
+      entry[0] === 'prism-latex.view-preview' && entry[1] === 'open'),
     JSON.stringify(toggleStorage.writes))
   } finally {
     delete globalThis.localStorage
@@ -978,7 +978,7 @@ section('preview column: hidden by default, toggled independently')
 
   // A remembered open preview is read back and rendered.
   globalThis.localStorage = fakeStorage({
-    'dsh-openprism-latex.view-preview': 'open',
+    'prism-latex.view-preview': 'open',
     'dsh.sessions.current': JSON.stringify({ sessionId: 'sess-1' }),
   })
   try {
@@ -987,7 +987,7 @@ section('preview column: hidden by default, toggled independently')
     const storedView = storedMount.slots.find(entry => entry.options?.name === 'conversation.view')
     const nodes = flatten(storedView.body({ t: key => storedMount.en.get(key) ?? key }))
     check('the stored preview choice is read back',
-      nodes.some(node => node.props?.className === 'oprilx-panel-doc'))
+      nodes.some(node => node.props?.className === 'prismlx-panel-doc'))
     check('the open preview offers a way back', nodes.some(node => node.type === 'button'
       && node.props['aria-label'] === 'Hide the preview'))
   } finally {
@@ -1000,23 +1000,23 @@ section('preview column: hidden by default, toggled independently')
   const bothOffView = bothOffMount.slots.find(entry => entry.options?.name === 'conversation.view')
   const bothOffNodes = flatten(bothOffView.body({ t: key => bothOffMount.en.get(key) ?? key }))
   check('hiding both lists leaves the editor full width',
-    bothOffNodes.some(node => node.props?.className === 'oprilx-editor-pane')
-    && !bothOffNodes.some(node => node.props?.className === 'oprilx-outline')
-    && !bothOffNodes.some(node => node.props?.className === 'oprilx-panel-doc'))
+    bothOffNodes.some(node => node.props?.className === 'prismlx-editor-pane')
+    && !bothOffNodes.some(node => node.props?.className === 'prismlx-outline')
+    && !bothOffNodes.some(node => node.props?.className === 'prismlx-panel-doc'))
   const outlineOnly = makePanelReact({ outlineOpen: true, preview: false, selected: 'demo/example.tex' })
   const outlineOnlyMount = mount(outlineOnly)
   const outlineOnlyView = outlineOnlyMount.slots.find(entry => entry.options?.name === 'conversation.view')
   const outlineOnlyNodes = flatten(outlineOnlyView.body({ t: key => outlineOnlyMount.en.get(key) ?? key }))
   check('the two toggles are independent (outline only)',
-    outlineOnlyNodes.some(node => node.props?.className === 'oprilx-outline')
-    && !outlineOnlyNodes.some(node => node.props?.className === 'oprilx-panel-doc'))
+    outlineOnlyNodes.some(node => node.props?.className === 'prismlx-outline')
+    && !outlineOnlyNodes.some(node => node.props?.className === 'prismlx-panel-doc'))
   const previewOnly = makePanelReact({ outlineOpen: false, preview: true, selected: 'demo/example.tex' })
   const previewOnlyMount = mount(previewOnly)
   const previewOnlyView = previewOnlyMount.slots.find(entry => entry.options?.name === 'conversation.view')
   const previewOnlyNodes = flatten(previewOnlyView.body({ t: key => previewOnlyMount.en.get(key) ?? key }))
   check('the two toggles are independent (preview only)',
-    previewOnlyNodes.some(node => node.props?.className === 'oprilx-panel-doc')
-    && !previewOnlyNodes.some(node => node.props?.className === 'oprilx-outline'))
+    previewOnlyNodes.some(node => node.props?.className === 'prismlx-panel-doc')
+    && !previewOnlyNodes.some(node => node.props?.className === 'prismlx-outline'))
 }
 
 section('header status pill')
@@ -1049,7 +1049,7 @@ section('header status pill')
     const { slots, en } = mount(react)
     const view = slots.find(entry => entry.options?.name === 'conversation.view')
     const nodes = flatten(view.body({ t: key => en.get(key) ?? key }))
-    const pill = nodes.find(node => node.props?.className === 'oprilx-panel-status')
+    const pill = nodes.find(node => node.props?.className === 'prismlx-panel-status')
     check(`the pill shows the ${state.tone} state`,
       pill?.props?.['data-tone'] === state.tone
       && pill?.props?.role === 'status'
@@ -1070,9 +1070,9 @@ section('header status pill')
   const idleView = idleMount.slots.find(entry => entry.options?.name === 'conversation.view')
   const idleNodes = flatten(idleView.body({ t: key => idleMount.en.get(key) ?? key }))
   check('no pill before the first compile',
-    !idleNodes.some(node => node.props?.className === 'oprilx-panel-status'))
+    !idleNodes.some(node => node.props?.className === 'prismlx-panel-status'))
   check('the idle header still names the document',
-    idleNodes.some(node => node.props?.className === 'oprilx-panel-doc-name'))
+    idleNodes.some(node => node.props?.className === 'prismlx-panel-doc-name'))
 
   // The pill is the collapsed preview's state; with the preview open it steps aside.
   const open = makePanelReact({ selected: 'demo/example.tex', preview: true })
@@ -1080,7 +1080,7 @@ section('header status pill')
   const openView = openMount.slots.find(entry => entry.options?.name === 'conversation.view')
   check('no pill while the preview is open',
     !flatten(openView.body({ t: key => openMount.en.get(key) ?? key }))
-      .some(node => node.props?.className === 'oprilx-panel-status'))
+      .some(node => node.props?.className === 'prismlx-panel-status'))
 
   // Clicking it opens the preview and remembers the choice.
   const storage = fakeStorage({ 'dsh.sessions.current': JSON.stringify({ sessionId: 'sess-1' }) })
@@ -1090,12 +1090,12 @@ section('header status pill')
     const mountBundle = mount(react)
     const view = mountBundle.slots.find(entry => entry.options?.name === 'conversation.view')
     const pill = flatten(view.body({ t: key => mountBundle.en.get(key) ?? key }))
-      .find(node => node.props?.className === 'oprilx-panel-status')
+      .find(node => node.props?.className === 'prismlx-panel-status')
     pill.props.onClick()
     check('clicking the pill shows the preview', react.__log.preview?.at(-1) === true,
       JSON.stringify(react.__log.preview))
     check('clicking the pill persists the preview choice', storage.writes.some(entry =>
-      entry[0] === 'dsh-openprism-latex.view-preview' && entry[1] === 'open'),
+      entry[0] === 'prism-latex.view-preview' && entry[1] === 'open'),
     JSON.stringify(storage.writes))
   } finally {
     delete globalThis.localStorage
@@ -1108,8 +1108,8 @@ section('panel: the render request carries the remembered engine')
   // tab's picker remembers — the same value its SyncTeX lookup uses.
   globalThis.localStorage = {
     getItem: key => {
-      if (key === 'dsh-openprism-latex.engine') return 'xelatex'
-      if (key === 'dsh-openprism-latex.view-preview') return 'open'
+      if (key === 'prism-latex.engine') return 'xelatex'
+      if (key === 'prism-latex.view-preview') return 'open'
       if (key === 'dsh.sessions.current') return JSON.stringify({ sessionId: 'sess-1' })
       return null
     },
@@ -1237,11 +1237,11 @@ section('view follows the document the right sidebar publishes')
     JSON.stringify(react.__log.pendingJump))
   const viewNodes = flatten(viewTree)
   check('the view grew an outline column and no file list',
-    viewNodes.some(node => node.props?.className === 'oprilx-outline')
-    && !viewNodes.some(node => node.props?.className === 'oprilx-panel-list'))
+    viewNodes.some(node => node.props?.className === 'prismlx-outline')
+    && !viewNodes.some(node => node.props?.className === 'prismlx-panel-list'))
   check('the view preview stays hidden while the jump lands',
-    !viewNodes.some(node => node.props?.className === 'oprilx-panel-doc')
-    && viewNodes.some(node => node.props?.className === 'oprilx-editor-pane'))
+    !viewNodes.some(node => node.props?.className === 'prismlx-panel-doc')
+    && viewNodes.some(node => node.props?.className === 'prismlx-editor-pane'))
 }
 
 section('empty state with no document')
@@ -1252,25 +1252,25 @@ section('empty state with no document')
     const view = slots.find(entry => entry.options?.name === 'conversation.view')
     const nodes = flatten(view.body({ t: key => en.get(key) ?? key }))
     const text = nodes.map(node => (typeof node.text === 'string' ? node.text : '')).join(' ')
-    const blank = nodes.find(node => node.props?.className === 'oprilx-panel-blank')
+    const blank = nodes.find(node => node.props?.className === 'prismlx-panel-blank')
     check('the header survives the empty state',
-      nodes.some(node => node.props?.className === 'oprilx-panel-head'))
+      nodes.some(node => node.props?.className === 'prismlx-panel-head'))
     check('both toggles survive the empty state',
       nodes.some(node => node.type === 'button' && node.props['aria-label'] === 'Hide the outline')
       && nodes.some(node => node.type === 'button' && node.props['aria-label'] === 'Show the preview'))
     check('the columns step aside for one calm note',
       blank !== undefined
-      && !nodes.some(node => node.props?.className === 'oprilx-workspace'
-        || node.props?.className === 'oprilx-outline'
-        || node.props?.className === 'oprilx-editor-pane'
-        || node.props?.className === 'oprilx-panel-doc'))
+      && !nodes.some(node => node.props?.className === 'prismlx-workspace'
+        || node.props?.className === 'prismlx-outline'
+        || node.props?.className === 'prismlx-editor-pane'
+        || node.props?.className === 'prismlx-panel-doc'))
     check('the empty state names the situation',
       text.includes('Open a document from the right sidebar.'), text.slice(0, 180))
     check('the empty state says where documents come from',
       text.includes('Open a .tex file in the right sidebar and it appears here.'), text.slice(0, 220))
     check('the empty state offers no fake buttons', flatten(blank).every(node => node.type !== 'button'))
     check('no file list is rendered', !nodes.some(node =>
-      node.props?.className === 'oprilx-panel-list'))
+      node.props?.className === 'prismlx-panel-list'))
 
     // A document that is known but still loading keeps the small note, not the empty state.
     const loading = makePanelReact({ selected: 'demo/example.tex', documentSession: 'sess-1' })
@@ -1279,9 +1279,9 @@ section('empty state with no document')
     const loadingNodes = flatten(loadingView.body({ t: key => loadingMount.en.get(key) ?? key }))
     const loadingText = loadingNodes.map(node => (typeof node.text === 'string' ? node.text : '')).join(' ')
     check('a known document keeps the workspace while its source loads',
-      loadingNodes.some(node => node.props?.className === 'oprilx-workspace')
-      && loadingNodes.some(node => node.props?.className === 'oprilx-outline')
-      && !loadingNodes.some(node => node.props?.className === 'oprilx-panel-blank'))
+      loadingNodes.some(node => node.props?.className === 'prismlx-workspace')
+      && loadingNodes.some(node => node.props?.className === 'prismlx-outline')
+      && !loadingNodes.some(node => node.props?.className === 'prismlx-panel-blank'))
     check('the loading source keeps the small note',
       loadingText.includes('Loading source'), loadingText.slice(-140))
   } finally {
@@ -1293,7 +1293,7 @@ section('right sidebar tab type')
 {
   const { tabType } = mount(makeReact(undefined))
   check('tab type registered', tabType !== undefined)
-  check('id is the package name', tabType?.id === 'dsh-openprism-latex', String(tabType?.id))
+  check('id is the package name', tabType?.id === 'prism-latex', String(tabType?.id))
   check('own kind', tabType?.kind === 'latex', String(tabType?.kind))
   check('recognizes LaTeX suffixes',
     Array.isArray(tabType?.patterns)
@@ -1328,7 +1328,7 @@ section('right sidebar tab body')
 {
   const { slots, en } = mount(makeTabReact())
   const entry = slots.find(candidate => candidate.options?.name === 'sidebar.right.pane.tab')
-  check('body registered under the type id', entry?.options?.key === 'dsh-openprism-latex',
+  check('body registered under the type id', entry?.options?.key === 'prism-latex',
     String(entry?.options?.key))
   check('body is a component', typeof entry?.body === 'function')
 
@@ -1339,14 +1339,14 @@ section('right sidebar tab body')
 
   const compiling = entry.body(props(en))
   const nodes = flatten(compiling)
-  check('tab root', nodes[0]?.props?.className === 'oprilx-tabroot', String(nodes[0]?.props?.className))
+  check('tab root', nodes[0]?.props?.className === 'prismlx-tabroot', String(nodes[0]?.props?.className))
   check('view switch', nodes.some(node => node.props?.role === 'group'
     && node.props['aria-label'] === 'View mode'))
-  check('toolbar status', nodes.some(node => node.props?.className === 'oprilx-tabstatus'
+  check('toolbar status', nodes.some(node => node.props?.className === 'prismlx-tabstatus'
     && node.props?.role === 'status'))
-  check('status tone dot', nodes.some(node => node.props?.className === 'oprilx-dot'
+  check('status tone dot', nodes.some(node => node.props?.className === 'prismlx-dot'
     && node.props?.['data-state'] === 'compiling'))
-  const modeButtons = nodes.filter(node => node.props?.className === 'oprilx-mode')
+  const modeButtons = nodes.filter(node => node.props?.className === 'prismlx-mode')
   check('three modes', modeButtons.length === 3, String(modeButtons.length))
   check('preview is the default', modeButtons[0]?.props?.['aria-pressed'] === true)
   check('every mode has an accessible name', modeButtons.every(button =>
@@ -1391,7 +1391,7 @@ section('right sidebar tab body: inverse search')
     pageCount: 1,
     durationMs: 800,
     dpi: 144,
-    pdfUrl: 'api/dsh-openprism-latex/pdf?session=sess-1&path=demo/example.tex',
+    pdfUrl: 'api/prism-latex/pdf?session=sess-1&path=demo/example.tex',
     truncated: false,
   }
   const requests = []
@@ -1485,7 +1485,7 @@ section('right sidebar tab body: preview state')
     pageCount: 2,
     durationMs: 800,
     dpi: 144,
-    pdfUrl: 'api/dsh-openprism-latex/pdf?session=sess-1&path=demo/example.tex',
+    pdfUrl: 'api/prism-latex/pdf?session=sess-1&path=demo/example.tex',
     truncated: false,
   }
   const { slots, en } = mount(makeTabReact({ state: readyState }))
@@ -1499,7 +1499,7 @@ section('right sidebar tab body: preview state')
   check('both pages rendered in the pane', images.length === 2, String(images.length))
   check('page source', images[0]?.props?.src === 'blob:t1', String(images[0]?.props?.src))
   check('ready status text', textOf(tree).includes('2 pages'), textOf(tree).slice(0, 160))
-  check('download symbol rendered', flatten(tree).some(node => node.props?.className === 'oprilx-glyph'))
+  check('download symbol rendered', flatten(tree).some(node => node.props?.className === 'prismlx-glyph'))
   check('meta line', text.includes('2 pages') && text.includes('0.8'), text.slice(0, 200))
   check('download available', flatten(tree).some(node => node.type === 'button'
     && node.props['aria-label'] === 'Download PDF'))
@@ -1525,19 +1525,19 @@ section('right sidebar tab body: source mode')
   check('editor stays uncontrolled', area?.props?.value === undefined, String(area?.props?.value))
   check('editor is labelled', typeof area?.props?.['aria-label'] === 'string'
     && area.props['aria-label'].length > 0)
-  const codeLines = nodes.filter(node => node.props?.className === 'oprilx-codeline')
+  const codeLines = nodes.filter(node => node.props?.className === 'prismlx-codeline')
   check('highlight layer per line', codeLines.length === 2, String(codeLines.length))
-  check('tokens in the layer', nodes.some(node => node.props?.className === 'oprilx-tok'))
-  const tokenTypes = new Set(nodes.filter(node => node.props?.className === 'oprilx-tok')
+  check('tokens in the layer', nodes.some(node => node.props?.className === 'prismlx-tok'))
+  const tokenTypes = new Set(nodes.filter(node => node.props?.className === 'prismlx-tok')
     .map(node => node.props?.['data-type']))
   check('control sequences tokenized', tokenTypes.has('command'), [...tokenTypes].join(','))
   check('optional arguments tokenized', tokenTypes.has('option'), [...tokenTypes].join(','))
   check('braces tokenized', tokenTypes.has('bracket'), [...tokenTypes].join(','))
-  const gutter = nodes.filter(node => node.props?.className === 'oprilx-gutter')
+  const gutter = nodes.filter(node => node.props?.className === 'prismlx-gutter')
   check('gutter column', gutter.length === 1, String(gutter.length))
   check('gutter numbers', flatten(gutter[0]).filter(node => typeof node.text === 'string' && node.text === '1').length >= 1)
   check('no page images in source mode', nodes.every(node => node.type !== 'img'))
-  check('save hidden without edits', !nodes.some(node => node.props?.className === 'oprilx-save-button'))
+  check('save hidden without edits', !nodes.some(node => node.props?.className === 'prismlx-save-button'))
   check('compile control present', nodes.some(node => node.type === 'button'
     && String(node.props['aria-label']).startsWith('Compile')))
 }
@@ -1560,7 +1560,7 @@ section('right sidebar tab body: latex token classes')
     useTabInfo: () => ({ tab: { contentId: ADDRESS, signal: new AbortController().signal } }),
   })
   const types = new Set(flatten(tree)
-    .filter(node => node.props?.className === 'oprilx-tok')
+    .filter(node => node.props?.className === 'prismlx-tok')
     .map(node => node.props['data-type']))
   for (const type of ['command', 'option', 'bracket', 'environment', 'comment', 'math', 'section']) {
     check(`token class ${type}`, types.has(type), [...types].join(','))
@@ -1591,10 +1591,10 @@ section('right sidebar tab body: code font zoom')
     useTabInfo: () => ({ tab: { contentId: ADDRESS, signal: new AbortController().signal } }),
   })
   const nodes = flatten(tree)
-  const shell = nodes.find(node => node.props?.className === 'oprilx-editor-shell')
-  check('type size variable', shell?.props?.style?.['--opr-code-size'] === '12px',
+  const shell = nodes.find(node => node.props?.className === 'prismlx-editor-shell')
+  check('type size variable', shell?.props?.style?.['--prism-code-size'] === '12px',
     JSON.stringify(shell?.props?.style))
-  check('editor sits inside the shell', nodes.some(node => node.props?.className === 'oprilx-editor'))
+  check('editor sits inside the shell', nodes.some(node => node.props?.className === 'prismlx-editor'))
   const area = nodes.find(node => node.type === 'textarea')
   const press = key => {
     let prevented = false
@@ -1626,7 +1626,7 @@ section('right sidebar tab body: engine picker preference')
 {
   const stored = {}
   globalThis.localStorage = {
-    getItem: key => (key === 'dsh-openprism-latex.engine' ? 'xelatex' : null),
+    getItem: key => (key === 'prism-latex.engine' ? 'xelatex' : null),
     setItem: (key, value) => { stored[key] = String(value) },
   }
   try {
@@ -1641,7 +1641,7 @@ section('right sidebar tab body: engine picker preference')
     check('stored engine is selected', engine?.props?.value === 'xelatex',
       String(engine?.props?.value))
     engine.props.onChange({ target: { value: 'lualatex' } })
-    check('engine choice persists under its key', stored['dsh-openprism-latex.engine'] === 'lualatex',
+    check('engine choice persists under its key', stored['prism-latex.engine'] === 'lualatex',
       JSON.stringify(stored))
   } finally {
     delete globalThis.localStorage
@@ -1671,7 +1671,7 @@ section('right sidebar tab body: engine reaches the render request')
   check('default engine is requested', String(requests[0]).includes('engine=latexmk'),
     String(requests[0]))
   globalThis.localStorage = {
-    getItem: key => (key === 'dsh-openprism-latex.engine' ? 'xelatex' : null),
+    getItem: key => (key === 'prism-latex.engine' ? 'xelatex' : null),
     setItem: () => {},
   }
   try {
@@ -1749,7 +1749,7 @@ section('right sidebar tab body: dirty draft')
   })
   const nodes = flatten(tree)
   check('draft is shown', nodes.find(node => node.type === 'textarea')?.props?.defaultValue === 'one two')
-  check('save appears for unsaved changes', nodes.some(node => node.props?.className === 'oprilx-save-button'
+  check('save appears for unsaved changes', nodes.some(node => node.props?.className === 'prismlx-save-button'
     && node.props['aria-label'].startsWith('Save')))
 }
 
@@ -1779,7 +1779,7 @@ section('right sidebar tab body: refresh keeps pages with a progress line')
     pageCount: 1,
     durationMs: 400,
     dpi: 144,
-    pdfUrl: 'api/dsh-openprism-latex/pdf?session=sess-1&path=demo/example.tex',
+    pdfUrl: 'api/prism-latex/pdf?session=sess-1&path=demo/example.tex',
     truncated: false,
   }
   const { slots, en } = mount(makeTabReact({ state: readyState }))
@@ -1790,9 +1790,9 @@ section('right sidebar tab body: refresh keeps pages with a progress line')
   })
   const nodes = flatten(tree)
   check('pages stay visible', nodes.some(node => node.type === 'img'))
-  check('progress line', nodes.some(node => node.props?.className === 'oprilx-progress'
+  check('progress line', nodes.some(node => node.props?.className === 'prismlx-progress'
     && node.props?.role === 'progressbar'))
-  check('refreshing tone', nodes.some(node => node.props?.className === 'oprilx-dot'
+  check('refreshing tone', nodes.some(node => node.props?.className === 'prismlx-dot'
     && node.props?.['data-state'] === 'compiling'))
 }
 
@@ -1814,9 +1814,9 @@ section('right sidebar tab body: side-by-side mode')
     t: key => en.get(key) ?? key,
     useTabInfo: () => ({ tab: { contentId: ADDRESS, signal: new AbortController().signal } }),
   })
-  const panes = flatten(tree).filter(node => node.props?.className === 'oprilx-pane')
+  const panes = flatten(tree).filter(node => node.props?.className === 'prismlx-pane')
   check('two panes', panes.length === 2, String(panes.length))
-  check('pane split container', flatten(tree).some(node => node.props?.className === 'oprilx-split'))
+  check('pane split container', flatten(tree).some(node => node.props?.className === 'prismlx-split'))
   check('source pane present', panes.some(node => node.props?.['data-pane'] === 'source'))
   check('preview pane present', panes.some(node => node.props?.['data-pane'] === 'preview'))
   check('page image in the split', flatten(tree).some(node => node.type === 'img'))

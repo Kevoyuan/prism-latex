@@ -1,5 +1,5 @@
 /**
- * dsh-openprism-latex — Host half.
+ * prism-latex — Host half.
  *
  * Compiles a `.tex` file with the machine's TeX Live (in the file's own
  * directory, so `\input` and relative paths behave like a local build) and
@@ -17,12 +17,12 @@ import path from 'node:path'
 
 export const inject = ['webServer']
 
-const RENDER_PATH = '/api/dsh-openprism-latex/render'
-const PDF_PATH = '/api/dsh-openprism-latex/pdf'
-const FILES_PATH = '/api/dsh-openprism-latex/files'
-const SOURCE_PATH = '/api/dsh-openprism-latex/source'
-const SYNCTEX_PATH = '/api/dsh-openprism-latex/synctex'
-const WRITE_PATH = '/api/dsh-openprism-latex/write'
+const RENDER_PATH = '/api/prism-latex/render'
+const PDF_PATH = '/api/prism-latex/pdf'
+const FILES_PATH = '/api/prism-latex/files'
+const SOURCE_PATH = '/api/prism-latex/source'
+const SYNCTEX_PATH = '/api/prism-latex/synctex'
+const WRITE_PATH = '/api/prism-latex/write'
 /** Largest editor save accepted, in bytes of UTF-8 source. */
 const MAX_WRITE_BYTES = 8 * 1024 * 1024
 const ENGINES = ['pdflatex', 'xelatex', 'lualatex', 'latexmk']
@@ -35,7 +35,7 @@ const DEFAULT_ENGINE = 'latexmk'
 /** Engine used when the requested one is missing from this machine. */
 const ENGINE_FALLBACK = 'pdflatex'
 const TEX_EXTENSIONS = new Set(['.tex', '.latex', '.ltx'])
-const TEMP_PREFIX = 'dsh-openprism-latex-'
+const TEMP_PREFIX = 'prism-latex-'
 const OUTPUT_CAP = 64 * 1024
 const LOG_TAIL_BYTES = 8 * 1024
 const PNG_BUDGET = 40 * 1024 * 1024
@@ -312,7 +312,7 @@ async function respond(shared, request, mode) {
     return await handleRequest(shared, request, mode)
   } catch (error) {
     try {
-      shared.ctx.logger?.warn?.(`[dsh-openprism-latex] ${mode} request failed`, error)
+      shared.ctx.logger?.warn?.(`[prism-latex] ${mode} request failed`, error)
     } catch {
       /* logging must never break the response */
     }
@@ -678,7 +678,7 @@ async function handleWrite(shared, req, res) {
     }
 
     const directory = path.dirname(target.real)
-    const temporary = path.join(directory, `.dsh-openprism-${process.pid}-${Date.now()}.tmp`)
+    const temporary = path.join(directory, `.prism-latex-${process.pid}-${Date.now()}.tmp`)
     try {
       fs.writeFileSync(temporary, text, 'utf8')
       fs.renameSync(temporary, target.real)
@@ -773,7 +773,7 @@ function listTexDocuments(root, resultLimit = 200, visitedLimit = 8000) {
 }
 
 /** Where a Client diagnostic report lands; the file is overwritten by each report. */
-const DIAGNOSTIC_FILE = path.join(os.tmpdir(), 'dsh-openprism-latex-diag.json')
+const DIAGNOSTIC_FILE = path.join(os.tmpdir(), 'prism-latex-diag.json')
 
 /**
  * Write one Client diagnostic report to a temp file for support.
@@ -810,7 +810,7 @@ function buildPdfUrl(sessionId, requestedPath, engine) {
   params.set('session', sessionId)
   params.set('path', requestedPath)
   params.set('engine', engine)
-  return `api/dsh-openprism-latex/pdf?${params.toString()}`
+  return `api/prism-latex/pdf?${params.toString()}`
 }
 
 /* --------------------------------------------------------------------------
@@ -850,7 +850,7 @@ async function getCompiled(shared, context) {
         return {
           failure: {
             code: 'engine-missing',
-            message: `The ${context.engine} executable was not found. Install TeX Live, or set "enginePath" in the dsh-openprism-latex configuration.`,
+            message: `The ${context.engine} executable was not found. Install TeX Live, or set "enginePath" in the prism-latex configuration.`,
           },
         }
       }
@@ -914,7 +914,7 @@ async function getRasterized(shared, entry, key) {
           failure: {
             code: 'rasterizer-missing',
             message:
-              'Ghostscript (gs) was not found, so the PDF pages cannot be rendered. Install Ghostscript, or set "ghostscriptPath" in the dsh-openprism-latex configuration.',
+              'Ghostscript (gs) was not found, so the PDF pages cannot be rendered. Install Ghostscript, or set "ghostscriptPath" in the prism-latex configuration.',
           },
         }
       }
@@ -1015,7 +1015,7 @@ async function runCompile({ engine, enginePath, texPath, settings, env, keepWork
         return {
           failure: {
             code: 'engine-missing',
-            message: `The ${engine} executable was not found. Install TeX Live, or set "enginePath" in the dsh-openprism-latex configuration.`,
+            message: `The ${engine} executable was not found. Install TeX Live, or set "enginePath" in the prism-latex configuration.`,
           },
         }
       }
@@ -1426,7 +1426,7 @@ async function runRasterize({ pdf, settings, ghostscriptPath, env }) {
           failure: {
             code: 'rasterizer-missing',
             message:
-              'Ghostscript (gs) was not found, so the PDF pages cannot be rendered. Install Ghostscript, or set "ghostscriptPath" in the dsh-openprism-latex configuration.',
+              'Ghostscript (gs) was not found, so the PDF pages cannot be rendered. Install Ghostscript, or set "ghostscriptPath" in the prism-latex configuration.',
           },
         }
       }

@@ -1,4 +1,4 @@
-# dsh-openprism-latex
+# prism-latex
 
 DSH bundle: a LaTeX preview for DeepSeek Harness. Host half is a Cordis plugin (`src/host.js`),
 client half is a single classic script loaded by the DSH module loader (`src/client.js`).
@@ -65,7 +65,7 @@ project already paid for, with the exact code that caused each one. `README.md` 
 ```bash
 node --check src/host.js && node --check src/client.js
 node scripts/smoke-host.mjs
-OPRILX_REACT_PATH="$DSH_PROFILE_DIR/node_modules/react" node scripts/smoke-client.mjs
+PRISMLX_REACT_PATH="$DSH_PROFILE_DIR/node_modules/react" node scripts/smoke-client.mjs
 node scripts/check-pairing.mjs
 git diff --stat
 ```

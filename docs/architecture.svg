@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1040" height="460" viewBox="0 0 1040 460" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">
   <rect width="1040" height="460" fill="#0b0d0e"/>
-  <text x="28" y="40" fill="#e6e8ea" font-size="19" font-weight="600">dsh-openprism-latex</text>
+  <text x="28" y="40" fill="#e6e8ea" font-size="19" font-weight="600">prism-latex</text>
   <text x="28" y="62" fill="#8b93a0" font-size="12.5">one plugin instance, two surfaces, no build step</text>
 
   <!-- surfaces -->

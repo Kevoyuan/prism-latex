@@ -1,4 +1,4 @@
-# dsh-openprism-latex — implementation spec
+# prism-latex — implementation spec
 
 Goal: a DeepSeek Harness (DSH) **bundle** that renders generated `.tex` files inside the right
 sidebar's document preview, the way the built-in PDF / Office previews work. Opening a `.tex`
@@ -6,7 +6,7 @@ file compiles it with the machine's TeX Live, rasterizes the PDF pages, and show
 document in the preview pane. Inspired by Open-Prism (https://github.com/assistant-ui/open-prism,
 MIT); see README and THIRD_PARTY_NOTICES.md.
 
-Package name: `dsh-openprism-latex`. Version 0.1.0. Plain ESM JavaScript, no build step, no
+Package name: `prism-latex`. Version 0.1.0. Plain ESM JavaScript, no build step, no
 runtime dependencies. The bundle is installed from this directory with
 `plugin_manager install_bundle` (local directory link).
 
@@ -61,15 +61,15 @@ and Ghostscript must be found by absolute candidate paths, not just `PATH`:
 
 Register both with `ctx.effect(() => ctx.webServer.register(route))`:
 
-1. `GET /api/dsh-openprism-latex/render?session=<id>&path=<path>&enginе=<name>`
-2. `GET /api/dsh-openprism-latex/pdf?session=<id>&path=<path>&engine=<name>`
+1. `GET /api/prism-latex/render?session=<id>&path=<path>&enginе=<name>`
+2. `GET /api/prism-latex/pdf?session=<id>&path=<path>&engine=<name>`
 
 Use the Fetch-style form (GET/HEAD only, which is all we need):
 
 ```js
 {
   kind: 'exact',
-  path: '/api/dsh-openprism-latex/render',
+  path: '/api/prism-latex/render',
   resource: async (request) => new Response(JSON.stringify(body), {
     status, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' },
   }),
@@ -101,7 +101,7 @@ answers 400); catch everything and answer a JSON error.
 
 ### Compile
 
-Work in `fs.mkdtempSync(path.join(os.tmpdir(), 'dsh-openprism-latex-'))`; always remove it in
+Work in `fs.mkdtempSync(path.join(os.tmpdir(), 'prism-latex-'))`; always remove it in
 `finally`. Run the compile with `child_process.spawn` (no shell, `windowsHide: true`):
 
 - engine flags: `-interaction=nonstopmode -halt-on-error -file-line-error -no-shell-escape`
@@ -148,7 +148,7 @@ Read the produced `page-*.png` files in numeric order; read width/height from ea
   "pageCount": 2,
   "truncated": false,
   "pages": [{ "width": 1224, "height": 1584, "png": "<base64 of png bytes>" }],
-  "pdfUrl": "api/dsh-openprism-latex/pdf?session=…&path=…&engine=pdflatex"
+  "pdfUrl": "api/prism-latex/pdf?session=…&path=…&engine=pdflatex"
 }
 ```
 
@@ -180,11 +180,11 @@ Plain-JS browser bundle in DSH's module-loader shape (no JSX, no bundler, no Har
 
 ```js
 window.__ModuleLoader__.load({
-  id: 'dsh-openprism-latex',
+  id: 'prism-latex',
   factory(require) {
     const React = require('react')
     // … components …
-    return { name: 'dsh-openprism-latex', inject: ['slots', 'locale', 'documentPreviews'], apply }
+    return { name: 'prism-latex', inject: ['slots', 'locale', 'documentPreviews'], apply }
   },
 })
 ```
@@ -194,10 +194,10 @@ Only `require('react')` is allowed. Never import `@deepseek-ai/*` packages.
 ### apply(ctx)
 
 ```js
-ctx.effect(() => ctx.locale.register('openprismLatex', { en, zh }))
-const t = ctx.locale.bind('openprismLatex')
+ctx.effect(() => ctx.locale.register('prismLatex', { en, zh }))
+const t = ctx.locale.bind('prismLatex')
 ctx.effect(() => ctx.documentPreviews.register({
-  id: 'dsh-openprism-latex',
+  id: 'prism-latex',
   extensions: ['tex', 'latex', 'ltx'],
   priority: 'extension',          // ranks above the builtin "Plain text" renderer
   title: () => t('title'),        // e.g. "LaTeX document"
@@ -206,8 +206,8 @@ ctx.effect(() => ctx.documentPreviews.register({
 }))
 ctx.effect(() => ctx.slots.inject('sidebar.right.tab.document', () => ctx.slots.register({
   name: 'sidebar.right.tab.document',
-  key: 'dsh-openprism-latex',     // same id as the registration above
-  locale: 'openprismLatex',
+  key: 'prism-latex',     // same id as the registration above
+  locale: 'prismLatex',
 }, LatexBody)))
 ```
 
@@ -233,7 +233,7 @@ and Simplified Chinese.
 ```
 useEffect on [content.revision, resourceAddress]:
   controller = new AbortController(); signal = AbortSignal.any([controller.signal, tab.signal])
-  fetch(`api/dsh-openprism-latex/render?session=…&path=…&engine=…`, { signal, cache: 'no-store' })
+  fetch(`api/prism-latex/render?session=…&path=…&engine=…`, { signal, cache: 'no-store' })
   ok  → convert pages to Blob URLs, setState ready, content.loaded(resource.value?.version ?? version)
   err → setState error, content.failed()
   cleanup → controller.abort(), revoke Blob URLs
@@ -269,7 +269,7 @@ dropdown, Reload) sits above it. Body = one column:
 ### Styling
 
 Component-local `<style>` element rendered as part of the tree (`h('style', null, CSS)`), every
-class prefixed `oprilx-`. Only theme tokens with literal fallbacks:
+class prefixed `prismlx-`. Only theme tokens with literal fallbacks:
 
 | use | token | fallback |
 |---|---|---|

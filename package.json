@@ -1,16 +1,16 @@
 {
-  "name": "dsh-openprism-latex",
-  "version": "0.1.1",
+  "name": "prism-latex",
+  "version": "0.2.0",
   "type": "module",
   "description": "Renders generated .tex files as compiled documents in the DeepSeek Harness sidebar preview.",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Kevoyuan/dsh-openprism-latex.git"
+    "url": "git+https://github.com/Kevoyuan/prism-latex.git"
   },
-  "homepage": "https://github.com/Kevoyuan/dsh-openprism-latex#readme",
+  "homepage": "https://github.com/Kevoyuan/prism-latex#readme",
   "bugs": {
-    "url": "https://github.com/Kevoyuan/dsh-openprism-latex/issues"
+    "url": "https://github.com/Kevoyuan/prism-latex/issues"
   },
   "keywords": [
     "dsh",

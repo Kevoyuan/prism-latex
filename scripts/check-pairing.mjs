@@ -18,7 +18,7 @@ if (start < 0 || end < 0) {
   process.exit(1)
 }
 const block = source.slice(start, end)
-const directory = mkdtempSync(join(tmpdir(), 'oprilx-pairing-'))
+const directory = mkdtempSync(join(tmpdir(), 'prismlx-pairing-'))
 const modulePath = join(directory, 'pairing.mjs')
 writeFileSync(modulePath,
   `${block}\nexport { matchDelimiterAt, bracketDecorations, matchEnvironmentAt, rangeDecorations,
@@ -231,8 +231,8 @@ section('preview zoom')
   const client = readFileSync(new URL('../src/client.js', import.meta.url), 'utf8')
   check('ctrl/cmd + wheel is intercepted', client.includes("window.addEventListener('wheel', onWheel, { passive: false })")
     && client.includes('if (!event.ctrlKey && !event.metaKey) return'))
-  check('the wheel only zooms over a page', client.includes("target.closest('.oprilx-panel-doc')")
-    && client.includes("target.closest('.oprilx-tabroot')"))
+  check('the wheel only zooms over a page', client.includes("target.closest('.prismlx-panel-doc')")
+    && client.includes("target.closest('.prismlx-tabroot')"))
   check('the keyboard chords share one intent helper', client.includes('zoomIntent(event)')
     && client.includes("if (event.key === '=' || event.key === '+') return 1"))
   check('zoom steps stay on the fixed ladder', client.includes('nextZoomStep(previous, fitScale, direction)'))
@@ -246,7 +246,7 @@ section('styles')
   // a selector somewhere in the bundle.
   const used = new Set()
   for (const match of client.matchAll(/className(?::|\s*=)\s*'([^']+)'/g)) {
-    for (const name of match[1].split(/\s+/)) if (name.startsWith('oprilx-')) used.add(name)
+    for (const name of match[1].split(/\s+/)) if (name.startsWith('prismlx-')) used.add(name)
   }
   const styles = client.slice(client.indexOf('const CSS ='), client.lastIndexOf('})'))
   const missing = [...used].filter(name => !new RegExp(`\\.${name}\\b`).test(styles))
@@ -441,11 +441,11 @@ section('document channel wiring')
 section('outline-only conversation view')
 {
   check('the .tex file list markup is gone',
-    !source.includes('oprilx-panel-list') && !source.includes('oprilx-panel-row')
-    && !source.includes('oprilx-files'))
+    !source.includes('prismlx-panel-list') && !source.includes('prismlx-panel-row')
+    && !source.includes('prismlx-files'))
   check('the view renders the Outline column',
-    source.includes("className: 'oprilx-outline'")
-    && source.includes("className: 'oprilx-outline-title'"))
+    source.includes("className: 'prismlx-outline'")
+    && source.includes("className: 'prismlx-outline-title'"))
   check('the Outline column has an accessible splitter',
     source.includes("'aria-label': tr(t, 'resizeOutline')")
     && source.includes("'aria-valuemin': OUTLINE_WIDTH_MIN"))
@@ -461,12 +461,12 @@ section('view preview toggle')
     source.includes("preview ? 'viewPreviewHide' : 'viewPreviewShow'"))
   check('the preview column is optional',
     source.includes("'data-preview': preview ? 'true' : 'false'")
-    && source.includes("className: 'oprilx-panel-doc'"))
+    && source.includes("className: 'prismlx-panel-doc'"))
   check('the preview is hidden by default',
     source.includes('function readViewPreview') && source.includes("return raw === 'open'"))
   check('the preview choice is persisted',
     source.includes('function rememberViewPreview')
-    && source.includes("dsh-openprism-latex.view-preview"))
+    && source.includes("prism-latex.view-preview"))
   check('a hidden preview skips the compile',
     source.includes('if (preview !== true) {')
     && !source.includes('if (preview !== true || sessionId === undefined'))
@@ -474,7 +474,7 @@ section('view preview toggle')
     source.includes("previous.status === 'compiling' || previous.path !== selected")
     && source.includes("? { status: 'idle' }"))
   check('the editor widens when the preview is hidden',
-    source.includes('.oprilx-workspace[data-preview="false"] .oprilx-editor-pane'))
+    source.includes('.prismlx-workspace[data-preview="false"] .prismlx-editor-pane'))
 }
 
 section('view chrome: outline marker, status pill, empty state')
@@ -492,7 +492,7 @@ section('view chrome: outline marker, status pill, empty state')
     source.includes('activeSection.path === selected')
     && source.includes('activeSection.index < outline.length'))
   check('the header has a status pill with four tones',
-    source.includes("className: 'oprilx-panel-status'")
+    source.includes("className: 'prismlx-panel-status'")
     && source.includes("'data-tone': pill.tone")
     && source.includes("role: 'status'"))
   check('the pill opens the preview',
@@ -506,9 +506,9 @@ section('view chrome: outline marker, status pill, empty state')
   check('no Idle pill before the first compile', source.includes("pill.tone !== 'idle'"))
   check('no document renders one calm empty state',
     source.includes('const empty = selected === undefined')
-    && source.includes("className: 'oprilx-panel-blank'")
-    && source.includes("className: 'oprilx-panel-blank-title'"))
-  check('the empty state has no action buttons', !source.includes('oprilx-panel-blank-action'))
+    && source.includes("className: 'prismlx-panel-blank'")
+    && source.includes("className: 'prismlx-panel-blank-title'"))
+  check('the empty state has no action buttons', !source.includes('prismlx-panel-blank-action'))
 }
 
 section('inverse search only publishes')

@@ -1,4 +1,4 @@
-# dsh-openprism-latex
+# prism-latex
 
 **面向 [DeepSeek Harness](https://github.com/deepseek-ai) 的 Open-Prism 风格 LaTeX 编辑：模型写 `.tex`，你在源码旁边直接看到编译结果。**
 
@@ -88,7 +88,7 @@ LaTeX 写作工作台 + 实时预览）。本项目是**为 DSH 插件 API 独�
 ```bash
 node --check src/host.js && node --check src/client.js
 node scripts/smoke-host.mjs
-OPRILX_REACT_PATH="$DSH_PROFILE_DIR/node_modules/react" node scripts/smoke-client.mjs
+PRISMLX_REACT_PATH="$DSH_PROFILE_DIR/node_modules/react" node scripts/smoke-client.mjs
 node scripts/check-pairing.mjs
 ```
 

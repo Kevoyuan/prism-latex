@@ -1,4 +1,4 @@
-# dsh-openprism-latex
+# prism-latex
 
 **Open-Prism style LaTeX editing for [DeepSeek Harness](https://github.com/deepseek-ai): the model writes `.tex`, you read a compiled document next to the source.**
 
@@ -94,8 +94,8 @@ its client half through `dsh.client`.
 ```jsonc
 // profile package.json (excerpt)
 {
-  "dependencies": { "dsh-openprism-latex": "link:/path/to/dsh-openprism-latex" },
-  "dsh": { "profile": { "bundles": ["dsh-openprism-latex"] } }
+  "dependencies": { "prism-latex": "link:/path/to/prism-latex" },
+  "dsh": { "profile": { "bundles": ["prism-latex"] } }
 }
 ```
 
@@ -143,7 +143,7 @@ Cross-surface coordination uses two module-level channels rather than a service:
 ```bash
 node --check src/host.js && node --check src/client.js
 node scripts/smoke-host.mjs
-OPRILX_REACT_PATH="$DSH_PROFILE_DIR/node_modules/react" node scripts/smoke-client.mjs
+PRISMLX_REACT_PATH="$DSH_PROFILE_DIR/node_modules/react" node scripts/smoke-client.mjs
 node scripts/check-pairing.mjs
 ```
 

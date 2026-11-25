@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Smoke test for the Host half of dsh-openprism-latex.
+ * Smoke test for the Host half of prism-latex.
  *
  * Loads `src/host.js` with a stand-in Cordis context, then exercises the two
  * registered HTTP resources end to end: a real compile with the default engine,
@@ -62,11 +62,11 @@ function fakeContext() {
 }
 
 function renderUrl(query) {
-  return `${ORIGIN}/api/dsh-openprism-latex/render?${new URLSearchParams(query)}`
+  return `${ORIGIN}/api/prism-latex/render?${new URLSearchParams(query)}`
 }
 
 function pdfUrl(query) {
-  return `${ORIGIN}/api/dsh-openprism-latex/pdf?${new URLSearchParams(query)}`
+  return `${ORIGIN}/api/prism-latex/pdf?${new URLSearchParams(query)}`
 }
 
 const PNG_MAGIC = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
@@ -133,15 +133,15 @@ async function main() {
   section('route registration')
   const ctx = fakeContext()
   module.apply(ctx, { dpi: 144 })
-  const render = ctx.routes.get('/api/dsh-openprism-latex/render')
-  const pdf = ctx.routes.get('/api/dsh-openprism-latex/pdf')
+  const render = ctx.routes.get('/api/prism-latex/render')
+  const pdf = ctx.routes.get('/api/prism-latex/pdf')
   check('render route registered', render !== undefined)
   check('pdf route registered', pdf !== undefined)
-  const files = ctx.routes.get('/api/dsh-openprism-latex/files')
+  const files = ctx.routes.get('/api/prism-latex/files')
   check('files route registered', files !== undefined)
-  const source = ctx.routes.get('/api/dsh-openprism-latex/source')
+  const source = ctx.routes.get('/api/prism-latex/source')
   check('source route registered', source !== undefined)
-  const write = ctx.routes.get('/api/dsh-openprism-latex/write')
+  const write = ctx.routes.get('/api/prism-latex/write')
   check('write route registered', write !== undefined)
   if (render === undefined || pdf === undefined) return
 
@@ -187,10 +187,10 @@ async function main() {
 
   section('inverse search (synctex)')
   {
-    const route = ctx.routes.get('/api/dsh-openprism-latex/synctex')
+    const route = ctx.routes.get('/api/prism-latex/synctex')
     check('synctex route registered', route !== undefined)
     const response = await route.resource(new Request(
-      `${ORIGIN}/api/dsh-openprism-latex/synctex?session=smoke-session&path=demo/showcase.tex&page=1&x=120&y=150`))
+      `${ORIGIN}/api/prism-latex/synctex?session=smoke-session&path=demo/showcase.tex&page=1&x=120&y=150`))
     const synctex = await response.json()
     check('synctex resolves a position', synctex.ok === true, JSON.stringify(synctex).slice(0, 300))
     if (synctex.ok === true) {
@@ -200,7 +200,7 @@ async function main() {
         String(synctex.column))
     }
     const missing = await route.resource(new Request(
-      `${ORIGIN}/api/dsh-openprism-latex/synctex?session=smoke-session&path=demo/showcase.tex&page=1`))
+      `${ORIGIN}/api/prism-latex/synctex?session=smoke-session&path=demo/showcase.tex&page=1`))
     check('synctex requires coordinates', missing.status === 400, String(missing.status))
   }
 
@@ -291,7 +291,7 @@ async function main() {
 
   section('workspace listing')
   const listed = await files.resource(new Request(
-    `${ORIGIN}/api/dsh-openprism-latex/files?session=smoke-session`))
+    `${ORIGIN}/api/prism-latex/files?session=smoke-session`))
   const listedBody = await listed.json()
   check('HTTP 200', listed.status === 200, String(listed.status))
   check('ok: true', listedBody.ok === true, listedBody.error?.code)
@@ -305,7 +305,7 @@ async function main() {
 
   section('source route')
   const sourceResponse = await source.resource(new Request(
-    `${ORIGIN}/api/dsh-openprism-latex/source?session=smoke-session&path=demo/example.tex`))
+    `${ORIGIN}/api/prism-latex/source?session=smoke-session&path=demo/example.tex`))
   const sourceBody = await sourceResponse.json()
   check('HTTP 200', sourceResponse.status === 200, String(sourceResponse.status))
   check('ok: true', sourceBody.ok === true, sourceBody.error?.code)
@@ -319,7 +319,7 @@ async function main() {
     const req = new EventEmitter()
     req.method = 'POST'
     req.headers = { host: '127.0.0.1:1', 'content-type': 'application/json' }
-    req.url = '/api/dsh-openprism-latex/write'
+    req.url = '/api/prism-latex/write'
     const res = {
       writeHead(status) { this.status = status },
       end(body) { resolve({ status: this.status, body: JSON.parse(body) }) },
@@ -331,7 +331,7 @@ async function main() {
 
   const originalText = readFileSync(join(root, 'demo/example.tex'), 'utf8')
   const firstRead = await source.resource(new Request(
-    `${ORIGIN}/api/dsh-openprism-latex/source?session=smoke-session&path=demo/example.tex`))
+    `${ORIGIN}/api/prism-latex/source?session=smoke-session&path=demo/example.tex`))
   const firstVersion = (await firstRead.json()).version
   try {
     const saved = await postWrite({
@@ -388,7 +388,7 @@ async function main() {
   check('missing session 400', noSession.status === 400, String(noSession.status))
 
   section('compiler failure reporting')
-  const scratch = mkdtempSync(join(tmpdir(), 'dsh-oprilx-smoke-'))
+  const scratch = mkdtempSync(join(tmpdir(), 'dsh-prismlx-smoke-'))
   try {
     const broken = join(root, 'demo', `.smoke-broken-${process.pid}.tex`)
     writeFileSync(broken, '\\documentclass{article}\n\\begin{document}\n\\undefinedcommand\n\\end{document}\n')

@@ -17,7 +17,7 @@ because the same mistake shipped twice.
 ```bash
 node --check src/host.js && node --check src/client.js
 node scripts/smoke-host.mjs
-OPRILX_REACT_PATH="$DSH_PROFILE_DIR/node_modules/react" node scripts/smoke-client.mjs
+PRISMLX_REACT_PATH="$DSH_PROFILE_DIR/node_modules/react" node scripts/smoke-client.mjs
 node scripts/check-pairing.mjs
 git status --short
 ```
@@ -33,7 +33,7 @@ old bytes), then report what you verified and what you did not.
    fails instead of stacking another guess on top.
 2. Never let `canOpen` refuse an address the patterns matched (DSH throws on refusal).
 3. An effect that touches a ref lives in the component that declares that ref.
-4. Markup and its CSS land together — the suites check that every `oprilx-*` class has a rule.
+4. Markup and its CSS land together — the suites check that every `prismlx-*` class has a rule.
 5. No build step, no dependencies: the client half may only `require('react')`, and
    `src/host.js` runs on the host's Node with the modules it already ships.
 
@@ -45,5 +45,5 @@ obvious implementation was wrong. No JSX, no eval, no `@deepseek-ai/*` imports i
 ## Reporting a bug
 
 Include the DSH version, the engine used, and the diagnostic report at
-`$TMPDIR/dsh-openprism-latex-diag.json` when the pane misbehaves — it carries the tab-type state,
+`$TMPDIR/prism-latex-diag.json` when the pane misbehaves — it carries the tab-type state,
 the scroll chain and the last jump trace.

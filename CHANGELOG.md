@@ -8,6 +8,20 @@ All notable changes to this project are documented here. The format follows
 
 Nothing yet.
 
+## [0.2.0] — 2026-11-25
+
+### Renamed
+
+- The project is now **prism-latex**. The package name, the GitHub repository, the plugin and bundle
+  id, the host routes (`/api/prism-latex/*`), the storage keys, the locale namespace and the CSS
+  prefix all follow it; the docs, the install snippets and the demo documents use the new name.
+- A profile that installed this bundle renames its dependency and its `dsh.profile.bundles` entry
+  from `dsh-openprism-latex` to `prism-latex`. Saved view preferences live under the old
+  `dsh-openprism-latex.*` keys and are not migrated, so outline width, preview toggle, code size and
+  engine choice start from their defaults once.
+- Credit to [assistant-ui/open-prism](https://github.com/assistant-ui/open-prism) is unchanged: that
+  is the project this one takes its name and interaction ideas from.
+
 ## [0.1.1] — 2026-11-25
 
 ### Changed
@@ -68,5 +82,7 @@ First public release.
 The regressions that shaped the architecture are documented in `POSTMORTEM.md`; the rules that
 prevent them from returning are in `CLAUDE.md`.
 
-[Unreleased]: https://github.com/Kevoyuan/dsh-openprism-latex/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/Kevoyuan/dsh-openprism-latex/releases/tag/v0.1.0
+[Unreleased]: https://github.com/Kevoyuan/prism-latex/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/Kevoyuan/prism-latex/releases/tag/v0.2.0
+[0.1.1]: https://github.com/Kevoyuan/prism-latex/releases/tag/v0.1.1
+[0.1.0]: https://github.com/Kevoyuan/prism-latex/releases/tag/v0.1.0

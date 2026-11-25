@@ -1,5 +1,5 @@
 window.__ModuleLoader__.load({
-  id: 'dsh-openprism-latex',
+  id: 'prism-latex',
   factory(require) {
     const React = require('react')
     const h = React.createElement
@@ -10,7 +10,7 @@ window.__ModuleLoader__.load({
     const SESSION_RESOURCE_PREFIX = 'dsh-resource://file/session/'
     const ABSOLUTE_RESOURCE_PREFIX = 'dsh-resource://file/absolute/'
     const FIXED_ZOOM_STEPS = [0.5, 0.75, 1, 1.25, 1.5, 2, 3]
-    const RENDER_URL = 'api/dsh-openprism-latex/render'
+    const RENDER_URL = 'api/prism-latex/render'
     const PAGES_INSET = 24
     const RETRYABLE_CODES = new Set([
       'latex-error', 'network', 'timeout', 'bad-response', 'rasterize-failed', 'internal', 'bad-address',
@@ -146,7 +146,7 @@ window.__ModuleLoader__.load({
     }
 
     const CSS = `
-.oprilx-root {
+.prismlx-root {
   position: relative;
   box-sizing: border-box;
   display: flex;
@@ -159,7 +159,7 @@ window.__ModuleLoader__.load({
   font-family: var(--dsw-font, system-ui, -apple-system, sans-serif);
   font-size: var(--dsh-content-font-size, 14px);
 }
-.oprilx-center {
+.prismlx-center {
   flex: 1 1 auto;
   display: flex;
   flex-direction: column;
@@ -171,24 +171,24 @@ window.__ModuleLoader__.load({
   padding: 28px;
   text-align: center;
 }
-.oprilx-spinner {
+.prismlx-spinner {
   width: 26px;
   height: 26px;
   border-radius: 50%;
   border: 2px solid var(--dsw-alias-border-l1, rgba(0, 0, 0, .12));
   border-top-color: var(--dsw-alias-label-secondary, #6b7280);
-  animation: oprilx-spin .8s linear infinite;
+  animation: prismlx-spin .8s linear infinite;
 }
-@keyframes oprilx-spin {
+@keyframes prismlx-spin {
   to { transform: rotate(360deg); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .oprilx-spinner { animation: none !important; }
+  .prismlx-spinner { animation: none !important; }
 }
-.oprilx-status {
+.prismlx-status {
   color: var(--dsw-alias-label-secondary, #6b7280);
 }
-.oprilx-error {
+.prismlx-error {
   width: min(100%, 560px);
   display: flex;
   flex-direction: column;
@@ -202,31 +202,31 @@ window.__ModuleLoader__.load({
   box-shadow: var(--dsw-elevation-prominent, 0 1px 3px rgba(0, 0, 0, .14), 0 8px 24px rgba(0, 0, 0, .10));
   text-align: left;
 }
-.oprilx-error-title {
+.prismlx-error-title {
   color: var(--dsw-alias-state-error-primary, #c0392b);
   font-weight: 600;
 }
-.oprilx-error-message {
+.prismlx-error-message {
   color: var(--dsw-alias-label-primary, #1c1c1e);
 }
-.oprilx-error-line,
-.oprilx-error-detail {
+.prismlx-error-line,
+.prismlx-error-detail {
   color: var(--dsw-alias-label-secondary, #6b7280);
   font-size: 13px;
 }
-.oprilx-log-block {
+.prismlx-log-block {
   width: 100%;
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
-.oprilx-log-label {
+.prismlx-log-label {
   color: var(--dsw-alias-label-secondary, #6b7280);
   font-size: 12px;
   letter-spacing: .04em;
   text-transform: uppercase;
 }
-.oprilx-log {
+.prismlx-log {
   margin: 0;
   width: 100%;
   max-height: 240px;
@@ -243,7 +243,7 @@ window.__ModuleLoader__.load({
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
-.oprilx-button {
+.prismlx-button {
   appearance: none;
   cursor: pointer;
   border-radius: 7px;
@@ -253,16 +253,16 @@ window.__ModuleLoader__.load({
   padding: 6px 14px;
   font: inherit;
 }
-.oprilx-button:hover {
+.prismlx-button:hover {
   border-color: var(--dsw-alias-label-secondary, #6b7280);
 }
-.oprilx-button:focus-visible,
-.oprilx-pill-button:focus-visible,
-.oprilx-log:focus-visible {
+.prismlx-button:focus-visible,
+.prismlx-pill-button:focus-visible,
+.prismlx-log:focus-visible {
   outline: 2px solid var(--dsw-alias-label-primary, #1c1c1e);
   outline-offset: 2px;
 }
-.oprilx-pages {
+.prismlx-pages {
   display: flex;
   flex-direction: column;
   align-items: stretch;
@@ -270,16 +270,16 @@ window.__ModuleLoader__.load({
   box-sizing: border-box;
   /* Bottom room so the sticky control pill never hides the last lines of a page. */
   padding: 14px 14px 74px;
-  animation: oprilx-enter .18s ease-out;
+  animation: prismlx-enter .18s ease-out;
 }
-@keyframes oprilx-enter {
+@keyframes prismlx-enter {
   from { opacity: 0; transform: translateY(3px); }
   to { opacity: 1; transform: none; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .oprilx-pages { animation: none; }
+  .prismlx-pages { animation: none; }
 }
-.oprilx-page {
+.prismlx-page {
   margin: 0 auto;
   border-radius: 3px;
   overflow: hidden;
@@ -287,14 +287,14 @@ window.__ModuleLoader__.load({
   border: 1px solid var(--dsw-alias-border-l1, rgba(0, 0, 0, .10));
   box-shadow: 0 1px 2px rgba(0, 0, 0, .06), 0 10px 28px rgba(0, 0, 0, .08);
 }
-.oprilx-page-image {
+.prismlx-page-image {
   display: block;
   width: 100%;
   height: auto;
   user-select: none;
   -webkit-user-drag: none;
 }
-.oprilx-pillwrap {
+.prismlx-pillwrap {
   position: sticky;
   bottom: 12px;
   z-index: 2;
@@ -304,7 +304,7 @@ window.__ModuleLoader__.load({
   padding: 0 12px 12px;
   pointer-events: none;
 }
-.oprilx-pill {
+.prismlx-pill {
   pointer-events: auto;
   display: flex;
   align-items: center;
@@ -321,7 +321,7 @@ window.__ModuleLoader__.load({
   color: var(--dsw-alias-label-primary, #1c1c1e);
   box-shadow: var(--dsw-elevation-prominent, 0 1px 3px rgba(0, 0, 0, .14), 0 8px 24px rgba(0, 0, 0, .10));
 }
-.oprilx-pill-button {
+.prismlx-pill-button {
   appearance: none;
   cursor: pointer;
   border: 0;
@@ -333,49 +333,49 @@ window.__ModuleLoader__.load({
   line-height: 1;
   white-space: nowrap;
 }
-.oprilx-pill-button:hover:enabled {
+.prismlx-pill-button:hover:enabled {
   background: var(--dsw-alias-bg-document-preview, var(--dsw-alias-bg-layer-2, #f1f2f4));
 }
-.oprilx-pill-button:disabled {
+.prismlx-pill-button:disabled {
   cursor: default;
   opacity: .5;
   color: var(--dsw-alias-label-secondary, #6b7280);
 }
-.oprilx-pill-button[aria-pressed="true"] {
+.prismlx-pill-button[aria-pressed="true"] {
   background: var(--dsw-alias-bg-document-preview, var(--dsw-alias-bg-layer-2, #f1f2f4));
 }
-.oprilx-zoom-label {
+.prismlx-zoom-label {
   min-width: 44px;
   text-align: center;
   color: var(--dsw-alias-label-primary, #1c1c1e);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
-.oprilx-pill-divider {
+.prismlx-pill-divider {
   flex: 0 0 auto;
   width: 1px;
   height: 18px;
   margin: 0 4px;
   background: var(--dsw-alias-border-l1, rgba(0, 0, 0, .12));
 }
-.oprilx-meta {
+.prismlx-meta {
   padding: 0 6px;
   color: var(--dsw-alias-label-primary, #1c1c1e);
   font-size: 12px;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
-.oprilx-glyph {
+.prismlx-glyph {
   display: block;
   flex: 0 0 auto;
 }
-.oprilx-tabactions {
+.prismlx-tabactions {
   flex: 0 0 auto;
   display: flex;
   align-items: center;
   gap: 2px;
 }
-.oprilx-save-button {
+.prismlx-save-button {
   appearance: none;
   cursor: pointer;
   display: inline-flex;
@@ -389,24 +389,24 @@ window.__ModuleLoader__.load({
   background: var(--dsw-alias-brand-primary, #247bbf);
   color: #fff;
 }
-.oprilx-save-button:hover {
+.prismlx-save-button:hover {
   filter: brightness(1.08);
 }
-.oprilx-save-button:focus-visible {
+.prismlx-save-button:focus-visible {
   outline: 2px solid var(--dsw-alias-label-primary, #1c1c1e);
   outline-offset: 1px;
 }
-.oprilx-error-actions {
+.prismlx-error-actions {
   display: flex;
   align-items: center;
   gap: 4px;
   margin-top: 2px;
 }
-.oprilx-copied {
+.prismlx-copied {
   color: var(--dsw-alias-state-success-primary, #2f9e63);
   font-size: 12px;
 }
-.oprilx-banner {
+.prismlx-banner {
   flex: 0 0 auto;
   display: flex;
   align-items: center;
@@ -417,14 +417,14 @@ window.__ModuleLoader__.load({
   font-size: 12px;
   border-bottom: 1px solid rgba(255, 255, 255, .08);
 }
-.oprilx-banner .oprilx-icon-button {
+.prismlx-banner .prismlx-icon-button {
   color: #e5c07b;
 }
-.oprilx-banner .oprilx-icon-button:hover {
+.prismlx-banner .prismlx-icon-button:hover {
   background: rgba(255, 255, 255, .08);
   color: #fff;
 }
-.oprilx-icon-button {
+.prismlx-icon-button {
   appearance: none;
   cursor: pointer;
   display: inline-flex;
@@ -438,41 +438,41 @@ window.__ModuleLoader__.load({
   background: transparent;
   color: var(--dsw-alias-label-secondary, #6b7280);
 }
-.oprilx-icon-button:hover {
+.prismlx-icon-button:hover {
   background: var(--dsw-alias-bg-layer-2, #f1f2f4);
   color: var(--dsw-alias-label-primary, #1c1c1e);
 }
-.oprilx-icon-button:focus-visible {
+.prismlx-icon-button:focus-visible {
   outline: 2px solid var(--dsw-alias-label-primary, #1c1c1e);
   outline-offset: 1px;
 }
 @container (max-width: 520px) {
-  .oprilx-pill-meta {
+  .prismlx-pill-meta {
     display: none;
   }
 }
 @container (max-width: 620px) {
   /* Keep the state dot, drop the sentence: the mode symbols and the save action matter
      more in a narrow pane. */
-  .oprilx-tabstatus {
+  .prismlx-tabstatus {
     display: none;
   }
 }
 @container (max-width: 430px) {
-  .oprilx-pill-button[data-fit] {
+  .prismlx-pill-button[data-fit] {
     padding: 7px;
   }
 }
-.oprilx-note {
+.prismlx-note {
   padding: 0 6px;
   color: var(--dsw-alias-label-secondary, #6b7280);
   font-size: 12px;
   white-space: nowrap;
 }
-.oprilx-note[data-tone="error"] {
+.prismlx-note[data-tone="error"] {
   color: var(--dsw-alias-state-error-primary, #c0392b);
 }
-.oprilx-tabroot {
+.prismlx-tabroot {
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -484,7 +484,7 @@ window.__ModuleLoader__.load({
   font-size: var(--dsh-content-font-size, 14px);
   -webkit-font-smoothing: antialiased;
 }
-.oprilx-toolbar {
+.prismlx-toolbar {
   flex: 0 0 auto;
   display: flex;
   align-items: center;
@@ -495,14 +495,14 @@ window.__ModuleLoader__.load({
   border-bottom: 1px solid var(--dsw-alias-border-l1, rgba(0, 0, 0, .12));
   background: var(--dsw-alias-bg-base, #fff);
 }
-.oprilx-tabmeta {
+.prismlx-tabmeta {
   display: flex;
   align-items: baseline;
   gap: 8px;
   min-width: 0;
   flex: 1 1 auto;
 }
-.oprilx-tabstatus {
+.prismlx-tabstatus {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -514,23 +514,23 @@ window.__ModuleLoader__.load({
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.oprilx-dot {
+.prismlx-dot {
   flex: 0 0 auto;
   width: 6px;
   height: 6px;
   border-radius: 50%;
   background: var(--dsw-alias-state-idle-primary, #9ca3af);
 }
-.oprilx-dot[data-state="ready"] {
+.prismlx-dot[data-state="ready"] {
   background: var(--dsw-alias-state-success-primary, #2f9e63);
 }
-.oprilx-dot[data-state="compiling"] {
+.prismlx-dot[data-state="compiling"] {
   background: var(--dsw-alias-state-warn-primary, #c98a1b);
 }
-.oprilx-dot[data-state="error"] {
+.prismlx-dot[data-state="error"] {
   background: var(--dsw-alias-state-error-primary, #c0392b);
 }
-.oprilx-modes {
+.prismlx-modes {
   flex: 0 0 auto;
   display: flex;
   gap: 2px;
@@ -538,7 +538,7 @@ window.__ModuleLoader__.load({
   border-radius: 8px;
   background: var(--dsw-alias-bg-layer-2, #f1f2f4);
 }
-.oprilx-mode {
+.prismlx-mode {
   appearance: none;
   cursor: pointer;
   display: inline-flex;
@@ -556,66 +556,66 @@ window.__ModuleLoader__.load({
   white-space: nowrap;
   transition: color .12s ease, background-color .12s ease;
 }
-.oprilx-mode-icon {
+.prismlx-mode-icon {
   display: block;
   flex: 0 0 auto;
 }
-.oprilx-mode[aria-pressed="true"] .oprilx-mode-icon {
+.prismlx-mode[aria-pressed="true"] .prismlx-mode-icon {
   opacity: 1;
 }
-.oprilx-mode:not([aria-pressed="true"]) .oprilx-mode-icon {
+.prismlx-mode:not([aria-pressed="true"]) .prismlx-mode-icon {
   opacity: .85;
 }
-.oprilx-mode:hover {
+.prismlx-mode:hover {
   color: var(--dsw-alias-label-primary, #1c1c1e);
 }
-.oprilx-mode[aria-pressed="true"] {
+.prismlx-mode[aria-pressed="true"] {
   background: var(--dsw-alias-bg-overlay, #fff);
   color: var(--dsw-alias-label-primary, #1c1c1e);
   box-shadow: 0 1px 2px rgba(0, 0, 0, .10);
 }
-.oprilx-mode:focus-visible {
+.prismlx-mode:focus-visible {
   outline: 2px solid var(--dsw-alias-label-primary, #1c1c1e);
   outline-offset: 1px;
 }
 @media (prefers-reduced-motion: reduce) {
-  .oprilx-mode { transition: none; }
+  .prismlx-mode { transition: none; }
 }
-.oprilx-pane {
+.prismlx-pane {
   position: relative;
   flex: 1 1 auto;
   min-height: 0;
   overflow: auto;
   container-type: inline-size;
 }
-.oprilx-pane[data-pane="preview"] {
+.prismlx-pane[data-pane="preview"] {
   background: var(--dsw-alias-bg-document-preview, var(--dsw-alias-bg-layer-2, #f1f2f4));
 }
 /* One surface, two placements: the sidebar's source pane and the conversation view's editor
    column are the same material, so they share these rules instead of each declaring a colour.
    One Dark, the palette open-prism's CodeMirror editor uses (Atom One Dark, MIT); fixed dark in
    both host themes, like an inline editor island. */
-.oprilx-pane[data-pane="source"],
-.oprilx-editor-pane {
+.prismlx-pane[data-pane="source"],
+.prismlx-editor-pane {
   background: #282c34;
   color: #abb2bf;
 }
-.oprilx-pane[data-pane="source"][data-editor="true"] {
+.prismlx-pane[data-pane="source"][data-editor="true"] {
   overflow: hidden;
 }
-.oprilx-editor-shell {
+.prismlx-editor-shell {
   display: flex;
   flex-direction: column;
   height: 100%;
   min-height: 0;
 }
-.oprilx-editor {
+.prismlx-editor {
   display: flex;
   flex: 1 1 auto;
   min-height: 0;
   box-sizing: border-box;
 }
-.oprilx-chat {
+.prismlx-chat {
   display: flex;
   flex: 0 0 auto;
   align-items: center;
@@ -624,10 +624,10 @@ window.__ModuleLoader__.load({
   border-top: 1px solid var(--dsw-alias-border-l1, #e3e5e8);
   background: inherit;
 }
-.oprilx-chat-collapsed {
+.prismlx-chat-collapsed {
   justify-content: flex-end;
 }
-.oprilx-chat-input {
+.prismlx-chat-input {
   flex: 1 1 auto;
   min-width: 0;
   height: 26px;
@@ -639,7 +639,7 @@ window.__ModuleLoader__.load({
   font: inherit;
   font-size: 12px;
 }
-.oprilx-chat-icon {
+.prismlx-chat-icon {
   appearance: none;
   flex: 0 0 auto;
   display: inline-flex;
@@ -654,16 +654,16 @@ window.__ModuleLoader__.load({
   color: var(--dsw-alias-label-secondary, #6b7280);
   cursor: pointer;
 }
-.oprilx-chat-icon:hover {
+.prismlx-chat-icon:hover {
   background: var(--dsw-alias-bg-layer-2, #f1f2f4);
   color: var(--dsw-alias-label-primary, #1c1c1e);
 }
-.oprilx-chat-note {
+.prismlx-chat-note {
   flex: 0 0 auto;
   color: var(--dsw-alias-state-success-primary, #2f9e63);
   font-size: 11px;
 }
-.oprilx-sticky {
+.prismlx-sticky {
   appearance: none;
   position: absolute;
   top: 0;
@@ -684,21 +684,21 @@ window.__ModuleLoader__.load({
   text-align: left;
   cursor: pointer;
 }
-.oprilx-sticky:hover {
+.prismlx-sticky:hover {
   background: #1b1f26;
   color: #fff;
 }
-.oprilx-sticky-level {
+.prismlx-sticky-level {
   flex: 0 0 auto;
   color: #7c8695;
 }
-.oprilx-sticky-text {
+.prismlx-sticky-text {
   flex: 1 1 auto;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.oprilx-complete {
+.prismlx-complete {
   position: absolute;
   z-index: 4;
   min-width: 150px;
@@ -710,29 +710,29 @@ window.__ModuleLoader__.load({
   background: #191c20;
   box-shadow: 0 10px 28px rgba(0, 0, 0, .55);
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: var(--opr-code-size, 12px);
+  font-size: var(--prism-code-size, 12px);
 }
-.oprilx-complete-item {
+.prismlx-complete-item {
   padding: 3px 8px;
   border-radius: 5px;
-  color: var(--opr-text, #e6e8ea);
+  color: var(--prism-text, #e6e8ea);
   cursor: pointer;
   white-space: nowrap;
 }
-.oprilx-complete-item[data-active="true"] {
+.prismlx-complete-item[data-active="true"] {
   background: #2c3240;
   color: #fff;
 }
-.oprilx-find {
+.prismlx-find {
   display: flex;
   align-items: center;
   gap: 4px;
   flex: 0 0 auto;
   padding: 4px 8px;
   background: #14161a;
-  border-bottom: 1px solid var(--opr-border, #26262c);
+  border-bottom: 1px solid var(--prism-border, #26262c);
 }
-.oprilx-find-input {
+.prismlx-find-input {
   flex: 1 1 auto;
   min-width: 0;
   height: 24px;
@@ -740,24 +740,24 @@ window.__ModuleLoader__.load({
   border: 1px solid #2b2f36;
   border-radius: 6px;
   background: #0f1113;
-  color: var(--opr-text, #e6e8ea);
+  color: var(--prism-text, #e6e8ea);
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 12px;
 }
-.oprilx-find-input:focus {
+.prismlx-find-input:focus {
   outline: none;
   border-color: #4a4f58;
 }
-.oprilx-find-count {
+.prismlx-find-count {
   flex: 0 0 auto;
   min-width: 44px;
   text-align: right;
-  color: var(--opr-muted, #9aa0a6);
+  color: var(--prism-muted, #9aa0a6);
   font-size: 11px;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
-.oprilx-error-jump {
+.prismlx-error-jump {
   appearance: none;
   align-self: flex-start;
   cursor: pointer;
@@ -769,15 +769,15 @@ window.__ModuleLoader__.load({
   text-decoration: underline dotted;
   text-underline-offset: 2px;
 }
-.oprilx-error-jump:hover {
+.prismlx-error-jump:hover {
   color: #e2d4ff;
 }
-.oprilx-error-jump:focus-visible {
+.prismlx-error-jump:focus-visible {
   outline: 2px solid #c3a6ff;
   outline-offset: 2px;
   border-radius: 3px;
 }
-.oprilx-find-action {
+.prismlx-find-action {
   appearance: none;
   cursor: pointer;
   flex: 0 0 auto;
@@ -786,66 +786,66 @@ window.__ModuleLoader__.load({
   border: 1px solid #2b2f36;
   border-radius: 6px;
   background: #1a1d21;
-  color: var(--opr-text, #e6e8ea);
+  color: var(--prism-text, #e6e8ea);
   font-size: 11px;
 }
-.oprilx-find-action:hover:enabled {
+.prismlx-find-action:hover:enabled {
   background: #22262b;
 }
-.oprilx-find-action:disabled {
+.prismlx-find-action:disabled {
   opacity: .45;
   cursor: default;
 }
-.oprilx-replace-row {
+.prismlx-replace-row {
   padding-top: 0;
 }
-.oprilx-match[data-kind="flash"] {
+.prismlx-match[data-kind="flash"] {
   background: rgba(168, 146, 232, .13);
   box-shadow: none;
   border-radius: 0;
   color: inherit;
 }
-.oprilx-match[data-kind="find"] {
+.prismlx-match[data-kind="find"] {
   background: rgba(86, 182, 194, .16);
   box-shadow: none;
   color: #cfe9ec;
   border-radius: 2px;
 }
-.oprilx-match[data-kind="find-current"] {
+.prismlx-match[data-kind="find-current"] {
   background: rgba(224, 165, 117, .28);
   box-shadow: inset 0 0 0 1px rgba(224, 165, 117, .7);
   color: #ffe6cd;
   border-radius: 2px;
 }
-.oprilx-engine {
+.prismlx-engine {
   appearance: none;
   flex: 0 0 auto;
   height: 26px;
   max-width: 96px;
   padding: 0 6px;
-  border: 1px solid var(--opr-border, #26262c);
+  border: 1px solid var(--prism-border, #26262c);
   border-radius: 7px;
-  background: var(--opr-surface, #16181a);
-  color: var(--opr-text, #e6e8ea);
+  background: var(--prism-surface, #16181a);
+  color: var(--prism-text, #e6e8ea);
   font-size: 11px;
   font-family: var(--dsw-font, system-ui, sans-serif);
   cursor: pointer;
 }
-.oprilx-engine:hover {
-  background: var(--opr-surface-2, #22262a);
+.prismlx-engine:hover {
+  background: var(--prism-surface-2, #22262a);
 }
-.oprilx-engine:focus-visible {
+.prismlx-engine:focus-visible {
   outline: 2px solid #4a4f58;
   outline-offset: 1px;
 }
-.oprilx-zoombadge {
+.prismlx-zoombadge {
   padding: 0 6px;
-  color: var(--opr-muted, #9aa0a6);
+  color: var(--prism-muted, #9aa0a6);
   font-size: 11px;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
-.oprilx-gutter {
+.prismlx-gutter {
   flex: 0 0 auto;
   width: 3.4em;
   padding: 10px 8px 16px 0;
@@ -854,62 +854,62 @@ window.__ModuleLoader__.load({
   text-align: right;
   color: #5c6370;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: var(--opr-code-size, 12px);
+  font-size: var(--prism-code-size, 12px);
   line-height: 1.62;
   user-select: none;
   font-variant-numeric: tabular-nums;
 }
-.oprilx-editor-body {
+.prismlx-editor-body {
   position: relative;
   flex: 1 1 auto;
   min-width: 0;
   min-height: 0;
 }
-.oprilx-code-highlight,
-.oprilx-code-input {
+.prismlx-code-highlight,
+.prismlx-code-input {
   position: absolute;
   inset: 0;
   box-sizing: border-box;
   margin: 0;
   padding: 10px 14px 16px;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: var(--opr-code-size, 12px);
+  font-size: var(--prism-code-size, 12px);
   line-height: 1.62;
   tab-size: 2;
   white-space: pre;
   overflow-wrap: normal;
   word-break: normal;
 }
-.oprilx-code-highlight {
+.prismlx-code-highlight {
   overflow: hidden;
   pointer-events: none;
   color: #abb2bf;
 }
-.oprilx-code-highlight[data-hidden="true"] {
+.prismlx-code-highlight[data-hidden="true"] {
   opacity: 0;
 }
-.oprilx-codeline {
+.prismlx-codeline {
   white-space: pre;
   min-height: 1.62em;
 }
 /* The delimiter pair under the caret: a quiet box, red when unmatched. */
-.oprilx-match {
+.prismlx-match {
   border-radius: 2px;
   background: rgba(168, 146, 232, .22);
   box-shadow: inset 0 0 0 1px rgba(168, 146, 232, .55);
   color: #e6e8ea;
 }
-.oprilx-match[data-kind="env"] {
+.prismlx-match[data-kind="env"] {
   background: rgba(229, 192, 123, .16);
   box-shadow: inset 0 0 0 1px rgba(229, 192, 123, .5);
   color: #f0d9a8;
 }
-.oprilx-match[data-kind="broken"] {
+.prismlx-match[data-kind="broken"] {
   background: rgba(248, 81, 73, .18);
   box-shadow: inset 0 0 0 1px rgba(248, 81, 73, .6);
   color: #ffb4ae;
 }
-.oprilx-code-input {
+.prismlx-code-input {
   border: 0;
   outline: 0;
   resize: none;
@@ -919,58 +919,58 @@ window.__ModuleLoader__.load({
   -webkit-text-fill-color: transparent;
   overflow: auto;
 }
-.oprilx-code-input[data-ime="true"] {
+.prismlx-code-input[data-ime="true"] {
   color: #abb2bf;
   -webkit-text-fill-color: #abb2bf;
   background: #282c34;
 }
-.oprilx-code-input::selection {
+.prismlx-code-input::selection {
   background: rgba(97, 175, 239, .28);
 }
-.oprilx-pane[data-pane="source"] .oprilx-status {
+.prismlx-pane[data-pane="source"] .prismlx-status {
   color: #7d8799;
 }
-.oprilx-split {
+.prismlx-split {
   display: flex;
   flex: 1 1 auto;
   min-height: 0;
 }
-.oprilx-split > [data-pane="source"] {
+.prismlx-split > [data-pane="source"] {
   flex: 0 0 auto;
-  width: calc(var(--opr-split, 0.5) * 100% - 3px);
+  width: calc(var(--prism-split, 0.5) * 100% - 3px);
   min-width: 0;
 }
-.oprilx-split > [data-pane="preview"] {
+.prismlx-split > [data-pane="preview"] {
   flex: 1 1 0;
   min-width: 0;
 }
 /* The grab bar between source and page: 6px hit area, 1px visible line. */
-.oprilx-divider {
+.prismlx-divider {
   position: relative;
   flex: 0 0 6px;
   cursor: col-resize;
   background: transparent;
   touch-action: none;
 }
-.oprilx-divider::before {
+.prismlx-divider::before {
   content: '';
   position: absolute;
   inset: 0 2px;
-  background: var(--opr-border, #26262c);
+  background: var(--prism-border, #26262c);
   transition: background .12s ease;
 }
-.oprilx-divider:hover::before,
-.oprilx-divider:focus-visible::before,
-.oprilx-divider[data-dragging="true"]::before {
+.prismlx-divider:hover::before,
+.prismlx-divider:focus-visible::before,
+.prismlx-divider[data-dragging="true"]::before {
   background: #4a4a56;
 }
-.oprilx-divider:focus-visible {
+.prismlx-divider:focus-visible {
   outline: none;
 }
-.oprilx-split > .oprilx-pane + .oprilx-pane {
+.prismlx-split > .prismlx-pane + .prismlx-pane {
   border-left: 1px solid var(--dsw-alias-border-l1, rgba(0, 0, 0, .12));
 }
-.oprilx-progress {
+.prismlx-progress {
   position: sticky;
   top: 0;
   z-index: 3;
@@ -978,23 +978,23 @@ window.__ModuleLoader__.load({
   overflow: hidden;
   background: var(--dsw-alias-bg-layer-2, #e6e8eb);
 }
-.oprilx-progress::after {
+.prismlx-progress::after {
   content: "";
   display: block;
   width: 38%;
   height: 100%;
   border-radius: 2px;
   background: var(--dsw-alias-brand-primary, #247bbf);
-  animation: oprilx-sweep 1.15s ease-in-out infinite;
+  animation: prismlx-sweep 1.15s ease-in-out infinite;
 }
-@keyframes oprilx-sweep {
+@keyframes prismlx-sweep {
   0% { transform: translateX(-40%); }
   100% { transform: translateX(280%); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .oprilx-progress::after { animation: none; width: 100%; opacity: .55; }
+  .prismlx-progress::after { animation: none; width: 100%; opacity: .55; }
 }
-.oprilx-source {
+.prismlx-source {
   margin: 0;
   padding: 10px 14px 16px;
   color: #abb2bf;
@@ -1005,15 +1005,15 @@ window.__ModuleLoader__.load({
   font-variant-ligatures: none;
   tab-size: 2;
 }
-.oprilx-srcline {
+.prismlx-srcline {
   display: flex;
   gap: 14px;
   white-space: pre;
 }
-.oprilx-srcline:hover {
+.prismlx-srcline:hover {
   background: rgba(255, 255, 255, .045);
 }
-.oprilx-lineno {
+.prismlx-lineno {
   flex: 0 0 auto;
   width: 3em;
   text-align: right;
@@ -1021,51 +1021,51 @@ window.__ModuleLoader__.load({
   user-select: none;
   font-variant-numeric: tabular-nums;
 }
-.oprilx-linetext {
+.prismlx-linetext {
   white-space: pre;
 }
-.oprilx-tok[data-type="comment"],
-.oprilx-tok[data-type="cdata"] {
+.prismlx-tok[data-type="comment"],
+.prismlx-tok[data-type="cdata"] {
   color: #7f8896;
   font-style: italic;
 }
-.oprilx-tok[data-type="function"] {
+.prismlx-tok[data-type="function"] {
   color: #61afef;
 }
-.oprilx-tok[data-type="keyword"] {
+.prismlx-tok[data-type="keyword"] {
   color: #c678dd;
 }
-.oprilx-tok[data-type="headline"] {
+.prismlx-tok[data-type="headline"] {
   color: #e5c07b;
   font-weight: 600;
 }
-.oprilx-tok[data-type="equation"] {
+.prismlx-tok[data-type="equation"] {
   color: #56b6c2;
 }
-.oprilx-tok[data-type="equation-command"],
-.oprilx-tok[data-type="regex"] {
+.prismlx-tok[data-type="equation-command"],
+.prismlx-tok[data-type="regex"] {
   color: #56b6c2;
 }
-.oprilx-tok[data-type="url"] {
+.prismlx-tok[data-type="url"] {
   color: #d19a66;
   text-decoration: underline dotted;
 }
-.oprilx-tok[data-type="punctuation"] {
+.prismlx-tok[data-type="punctuation"] {
   color: #abb2bf;
   opacity: .9;
 }
-.oprilx-chip {
+.prismlx-chip {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   min-width: 0;
 }
-.oprilx-chip-text {
+.prismlx-chip-text {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.oprilx-panel {
+.prismlx-panel {
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -1075,19 +1075,19 @@ window.__ModuleLoader__.load({
   box-sizing: border-box;
   /* The shell's composer can sit over this view's bottom edge; the view measures the
    * covered height and sets the inset, so the editor never runs underneath it. */
-  padding-bottom: var(--opr-composer-inset, 0px);
+  padding-bottom: var(--prism-composer-inset, 0px);
   background: var(--dsw-alias-bg-base, #fff);
   color: var(--dsw-alias-label-primary, #1c1c1e);
   font-family: var(--dsw-font, system-ui, -apple-system, sans-serif);
   font-size: var(--dsh-content-font-size, 14px);
 }
-.oprilx-panel-head {
+.prismlx-panel-head {
   display: flex;
   align-items: flex-start;
   gap: 12px;
   padding: 16px 16px 10px;
 }
-.oprilx-panel-heading {
+.prismlx-panel-heading {
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -1097,14 +1097,14 @@ window.__ModuleLoader__.load({
 /* The view is an editor, so its own name speaks the editor's voice: the same mono as the code
  * and the rail labels, not one more app heading in the system face. The subtitle keeps the
  * UI face, which is where file names and counts belong. */
-.oprilx-panel-title {
+.prismlx-panel-title {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 13px;
   font-weight: 600;
   letter-spacing: .02em;
   line-height: 1.4;
 }
-.oprilx-panel-sub {
+.prismlx-panel-sub {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -1113,23 +1113,23 @@ window.__ModuleLoader__.load({
   font-size: 12px;
   line-height: 1.4;
 }
-.oprilx-panel-doc-name {
+.prismlx-panel-doc-name {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.oprilx-panel-dirty {
+.prismlx-panel-dirty {
   flex: 0 0 auto;
   width: 6px;
   height: 6px;
   border-radius: 50%;
   background: var(--dsw-alias-state-warning-primary, #d29922);
 }
-.oprilx-panel-count {
+.prismlx-panel-count {
   flex: 0 0 auto;
 }
-.oprilx-panel-status {
+.prismlx-panel-status {
   appearance: none;
   flex: 0 0 auto;
   display: inline-flex;
@@ -1148,32 +1148,32 @@ window.__ModuleLoader__.load({
   white-space: nowrap;
   cursor: pointer;
 }
-.oprilx-panel-status:hover {
+.prismlx-panel-status:hover {
   border-color: var(--dsw-alias-label-secondary, #6b7280);
   color: var(--dsw-alias-label-primary, #1c1c1e);
 }
-.oprilx-panel-status:focus-visible {
+.prismlx-panel-status:focus-visible {
   outline: 2px solid var(--dsw-alias-label-primary, #1c1c1e);
   outline-offset: 2px;
 }
-.oprilx-panel-status-dot {
+.prismlx-panel-status-dot {
   width: 6px;
   height: 6px;
   flex: 0 0 auto;
   border-radius: 50%;
   background: #9ca3af;
 }
-.oprilx-panel-status[data-tone="ready"] .oprilx-panel-status-dot { background: #3fb950; }
-.oprilx-panel-status[data-tone="compiling"] .oprilx-panel-status-dot { background: #d29922; }
-.oprilx-panel-status[data-tone="error"] .oprilx-panel-status-dot { background: #f85149; }
-.oprilx-panel-status-label {
+.prismlx-panel-status[data-tone="ready"] .prismlx-panel-status-dot { background: #3fb950; }
+.prismlx-panel-status[data-tone="compiling"] .prismlx-panel-status-dot { background: #d29922; }
+.prismlx-panel-status[data-tone="error"] .prismlx-panel-status-dot { background: #f85149; }
+.prismlx-panel-status-label {
   color: inherit;
 }
-.oprilx-panel-status-detail {
+.prismlx-panel-status-detail {
   color: var(--dsw-alias-label-secondary, #6b7280);
   opacity: .85;
 }
-.oprilx-panel-blank {
+.prismlx-panel-blank {
   flex: 1 1 auto;
   display: flex;
   flex-direction: column;
@@ -1183,35 +1183,35 @@ window.__ModuleLoader__.load({
   padding: 24px 32px;
   text-align: center;
 }
-.oprilx-panel-blank-title {
+.prismlx-panel-blank-title {
   color: var(--dsw-alias-label-primary, #1c1c1e);
   font-size: 14px;
   font-weight: 500;
 }
-.oprilx-panel-blank-hint {
+.prismlx-panel-blank-hint {
   max-width: 42ch;
   color: var(--dsw-alias-label-secondary, #6b7280);
   font-size: 12px;
   line-height: 1.5;
 }
-.oprilx-panel-note {
+.prismlx-panel-note {
   padding: 12px 16px;
   color: var(--dsw-alias-label-secondary, #6b7280);
   font-size: 13px;
   line-height: 1.5;
 }
-.oprilx-workspace {
+.prismlx-workspace {
   display: flex;
   flex: 1 1 auto;
   min-height: 0;
   min-width: 0;
   overflow: hidden;
 }
-.oprilx-outline {
+.prismlx-outline {
   display: flex;
   flex-direction: column;
-  flex: 0 0 var(--opr-outline-width, 196px);
-  width: var(--opr-outline-width, 196px);
+  flex: 0 0 var(--prism-outline-width, 196px);
+  width: var(--prism-outline-width, 196px);
   min-height: 0;
   min-width: 0;
   /* The outline is a fixed rail: it never moves with the editor's scroll. It sticks to the
@@ -1222,7 +1222,7 @@ window.__ModuleLoader__.load({
   max-height: 100%;
   overflow: auto;
 }
-.oprilx-outline-title {
+.prismlx-outline-title {
   flex: 0 0 auto;
   /* The label rides the top of its own column: on a long document the rows scroll under
    * it, and the panel's ground keeps them from showing through the text. */
@@ -1237,13 +1237,13 @@ window.__ModuleLoader__.load({
   letter-spacing: .04em;
   text-transform: uppercase;
 }
-.oprilx-outline-empty {
+.prismlx-outline-empty {
   padding: 8px 16px;
   color: var(--dsw-alias-label-secondary, #6b7280);
   font-size: 12px;
   line-height: 1.5;
 }
-.oprilx-outline-row {
+.prismlx-outline-row {
   appearance: none;
   display: flex;
   align-items: center;
@@ -1262,7 +1262,7 @@ window.__ModuleLoader__.load({
   overflow: hidden;
   cursor: pointer;
 }
-.oprilx-outline-rail {
+.prismlx-outline-rail {
   flex: 0 0 2px;
   align-self: stretch;
   min-height: 12px;
@@ -1275,46 +1275,46 @@ window.__ModuleLoader__.load({
   background: currentColor;
   opacity: .45;
 }
-.oprilx-outline-row[data-active="true"] .oprilx-outline-rail {
-  background: var(--opr-accent, #3f8efc);
+.prismlx-outline-row[data-active="true"] .prismlx-outline-rail {
+  background: var(--prism-accent, #3f8efc);
   opacity: 1;
 }
-.oprilx-outline-text {
+.prismlx-outline-text {
   flex: 1 1 auto;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.oprilx-outline-row:hover {
+.prismlx-outline-row:hover {
   background: var(--dsw-alias-bg-layer-2, #f4f5f7);
 }
-.oprilx-outline-row:focus-visible {
+.prismlx-outline-row:focus-visible {
   outline: 2px solid var(--dsw-alias-label-primary, #1c1c1e);
   outline-offset: -2px;
 }
-.oprilx-outline-row[data-active="true"] {
+.prismlx-outline-row[data-active="true"] {
   color: var(--dsw-alias-label-primary, #1c1c1e);
   background: var(--dsw-alias-bg-layer-2, #f4f5f7);
-  box-shadow: inset 2px 0 0 var(--opr-accent, #3f8efc);
+  box-shadow: inset 2px 0 0 var(--prism-accent, #3f8efc);
   font-weight: 500;
 }
-.oprilx-workspace[data-preview="false"] .oprilx-editor-pane {
+.prismlx-workspace[data-preview="false"] .prismlx-editor-pane {
   flex: 1 1 100%;
   border-right: 0;
 }
-.oprilx-workspace > .oprilx-divider {
+.prismlx-workspace > .prismlx-divider {
   flex: 0 0 6px;
 }
-.oprilx-workspace > .oprilx-divider::before {
+.prismlx-workspace > .prismlx-divider::before {
   background: var(--dsw-alias-border-l1, rgba(0, 0, 0, .12));
 }
-.oprilx-workspace > .oprilx-divider:hover::before,
-.oprilx-workspace > .oprilx-divider:focus-visible::before,
-.oprilx-workspace > .oprilx-divider[data-dragging="true"]::before {
+.prismlx-workspace > .prismlx-divider:hover::before,
+.prismlx-workspace > .prismlx-divider:focus-visible::before,
+.prismlx-workspace > .prismlx-divider[data-dragging="true"]::before {
   background: var(--dsw-alias-label-secondary, #6b7280);
 }
-.oprilx-editor-pane {
+.prismlx-editor-pane {
   display: flex;
   flex-direction: column;
   flex: 1 1 46%;
@@ -1325,14 +1325,14 @@ window.__ModuleLoader__.load({
   /* Background and text colour come from the shared source-pane rule: this column and the
    * sidebar's source pane are the same material, so neither may declare its own. */
 }
-.oprilx-editor-pane > .oprilx-editor-shell {
+.prismlx-editor-pane > .prismlx-editor-shell {
   flex: 1 1 auto;
   min-height: 0;
 }
-.oprilx-editor-pane .oprilx-panel-note {
+.prismlx-editor-pane .prismlx-panel-note {
   color: #7d8799;
 }
-.oprilx-panel-doc {
+.prismlx-panel-doc {
   position: relative;
   flex: 1 1 54%;
   min-width: 0;
@@ -1347,178 +1347,178 @@ window.__ModuleLoader__.load({
  * paper, and One Dark syntax hues. This mirrors the editor/preview look the
  * plugin is modelled on instead of borrowing the host's grey document surface.
  * ------------------------------------------------------------------------- */
-.oprilx-tabroot,
-.oprilx-root {
-  --opr-bg: #0c0e0f;
-  --opr-canvas: #0b0d0e;
-  --opr-surface: #16181a;
-  --opr-surface-2: #22262a;
-  --opr-border: #24282c;
-  --opr-text: #e6e8ea;
-  --opr-muted: #9aa0a6;
-  --opr-accent: #3f8efc;
-  --opr-ready: #3fb950;
-  --opr-warn: #d29922;
-  --opr-danger: #f85149;
-  background: var(--opr-bg);
-  color: var(--opr-text);
+.prismlx-tabroot,
+.prismlx-root {
+  --prism-bg: #0c0e0f;
+  --prism-canvas: #0b0d0e;
+  --prism-surface: #16181a;
+  --prism-surface-2: #22262a;
+  --prism-border: #24282c;
+  --prism-text: #e6e8ea;
+  --prism-muted: #9aa0a6;
+  --prism-accent: #3f8efc;
+  --prism-ready: #3fb950;
+  --prism-warn: #d29922;
+  --prism-danger: #f85149;
+  background: var(--prism-bg);
+  color: var(--prism-text);
 }
-.oprilx-toolbar {
-  background: var(--opr-bg);
-  border-bottom-color: var(--opr-border);
+.prismlx-toolbar {
+  background: var(--prism-bg);
+  border-bottom-color: var(--prism-border);
 }
-.oprilx-tabstatus {
-  color: var(--opr-muted);
+.prismlx-tabstatus {
+  color: var(--prism-muted);
 }
-.oprilx-dot[data-state="ready"] { background: var(--opr-ready); }
-.oprilx-dot[data-state="compiling"] { background: var(--opr-warn); }
-.oprilx-dot[data-state="error"] { background: var(--opr-danger); }
-.oprilx-dot[data-state="idle"] { background: #5c6370; }
-.oprilx-modes {
-  background: var(--opr-surface-2);
+.prismlx-dot[data-state="ready"] { background: var(--prism-ready); }
+.prismlx-dot[data-state="compiling"] { background: var(--prism-warn); }
+.prismlx-dot[data-state="error"] { background: var(--prism-danger); }
+.prismlx-dot[data-state="idle"] { background: #5c6370; }
+.prismlx-modes {
+  background: var(--prism-surface-2);
 }
-.oprilx-mode {
-  color: var(--opr-muted);
+.prismlx-mode {
+  color: var(--prism-muted);
 }
-.oprilx-mode:hover {
-  color: var(--opr-text);
+.prismlx-mode:hover {
+  color: var(--prism-text);
 }
-.oprilx-mode[aria-pressed="true"] {
+.prismlx-mode[aria-pressed="true"] {
   background: #34343c;
   color: #fff;
   box-shadow: none;
 }
-.oprilx-icon-button {
-  color: var(--opr-muted);
+.prismlx-icon-button {
+  color: var(--prism-muted);
 }
-.oprilx-icon-button:hover {
-  /* The --opr-* palette only exists on the sidebar roots; the conversation view mounts
-   * .oprilx-panel, where those names are undefined and the declaration would be invalid.
+.prismlx-icon-button:hover {
+  /* The --prism-* palette only exists on the sidebar roots; the conversation view mounts
+   * .prismlx-panel, where those names are undefined and the declaration would be invalid.
    * The shell token is the same layer, so the chip still appears there. */
-  background: var(--opr-surface-2, var(--dsw-alias-bg-layer-2, rgba(127, 127, 127, .16)));
-  color: var(--opr-text, var(--dsw-alias-label-primary, #fff));
+  background: var(--prism-surface-2, var(--dsw-alias-bg-layer-2, rgba(127, 127, 127, .16)));
+  color: var(--prism-text, var(--dsw-alias-label-primary, #fff));
 }
 /* Pressed is a state, not a hover. The Outline and preview toggles already carry
  * aria-pressed, so the header can show which column is on without a pointer, and the
  * fill survives hovering the control it describes. */
-.oprilx-icon-button[aria-pressed="true"] {
+.prismlx-icon-button[aria-pressed="true"] {
   background: var(--dsw-alias-bg-layer-2, rgba(127, 127, 127, .16));
   color: var(--dsw-alias-label-primary, #1c1c1e);
 }
-.oprilx-icon-button:disabled {
+.prismlx-icon-button:disabled {
   opacity: .45;
 }
-.oprilx-save-button {
-  background: var(--opr-accent);
+.prismlx-save-button {
+  background: var(--prism-accent);
   color: #08080a;
 }
-.oprilx-save-button:hover {
+.prismlx-save-button:hover {
   filter: brightness(1.1);
 }
-.oprilx-pane[data-pane="preview"] {
-  background: var(--opr-canvas);
+.prismlx-pane[data-pane="preview"] {
+  background: var(--prism-canvas);
 }
-.oprilx-pane[data-pane="source"],
-.oprilx-editor-pane {
+.prismlx-pane[data-pane="source"],
+.prismlx-editor-pane {
   background: #0f1113;
 }
-.oprilx-page {
+.prismlx-page {
   background: #fff;
   border-color: #2b2b33;
   box-shadow: 0 1px 2px rgba(0, 0, 0, .55), 0 14px 36px rgba(0, 0, 0, .55);
 }
-.oprilx-pill {
+.prismlx-pill {
   background: #1a1a20;
-  border-color: var(--opr-border);
-  color: var(--opr-text);
+  border-color: var(--prism-border);
+  color: var(--prism-text);
   box-shadow: 0 8px 24px rgba(0, 0, 0, .5);
 }
-.oprilx-pill-button {
-  color: var(--opr-muted);
+.prismlx-pill-button {
+  color: var(--prism-muted);
 }
-.oprilx-pill-button:hover:enabled {
-  background: var(--opr-surface-2);
+.prismlx-pill-button:hover:enabled {
+  background: var(--prism-surface-2);
   color: #fff;
 }
-.oprilx-pill-button[aria-pressed="true"] {
+.prismlx-pill-button[aria-pressed="true"] {
   background: #34343c;
   color: #fff;
 }
-.oprilx-pill-button:disabled {
+.prismlx-pill-button:disabled {
   color: #5c6370;
 }
-.oprilx-pill-divider {
-  background: var(--opr-border);
+.prismlx-pill-divider {
+  background: var(--prism-border);
 }
-.oprilx-zoom-label {
-  color: var(--opr-text);
+.prismlx-zoom-label {
+  color: var(--prism-text);
 }
-.oprilx-meta {
-  color: var(--opr-text);
+.prismlx-meta {
+  color: var(--prism-text);
 }
-.oprilx-note {
-  color: var(--opr-muted);
+.prismlx-note {
+  color: var(--prism-muted);
 }
-.oprilx-note[data-tone="error"] {
-  color: var(--opr-danger);
+.prismlx-note[data-tone="error"] {
+  color: var(--prism-danger);
 }
-.oprilx-status {
-  color: var(--opr-muted);
+.prismlx-status {
+  color: var(--prism-muted);
 }
-.oprilx-spinner {
+.prismlx-spinner {
   border-color: #2a2a31;
-  border-top-color: var(--opr-text);
+  border-top-color: var(--prism-text);
 }
-.oprilx-error {
+.prismlx-error {
   background: #14141a;
-  border-color: var(--opr-border);
-  color: var(--opr-text);
+  border-color: var(--prism-border);
+  color: var(--prism-text);
   box-shadow: 0 12px 32px rgba(0, 0, 0, .55);
 }
-.oprilx-error-title {
-  color: var(--opr-danger);
+.prismlx-error-title {
+  color: var(--prism-danger);
 }
-.oprilx-error-message {
-  color: var(--opr-text);
+.prismlx-error-message {
+  color: var(--prism-text);
 }
-.oprilx-error-line,
-.oprilx-error-detail,
-.oprilx-log-label {
-  color: var(--opr-muted);
+.prismlx-error-line,
+.prismlx-error-detail,
+.prismlx-log-label {
+  color: var(--prism-muted);
 }
-.oprilx-log {
-  background: var(--opr-canvas);
-  border-color: var(--opr-border);
+.prismlx-log {
+  background: var(--prism-canvas);
+  border-color: var(--prism-border);
   color: #d6d6da;
 }
-.oprilx-error-actions .oprilx-icon-button {
-  color: var(--opr-muted);
+.prismlx-error-actions .prismlx-icon-button {
+  color: var(--prism-muted);
 }
-.oprilx-copied {
-  color: var(--opr-ready);
+.prismlx-copied {
+  color: var(--prism-ready);
 }
-.oprilx-banner {
+.prismlx-banner {
   background: #241d0e;
-  border-bottom-color: var(--opr-border);
+  border-bottom-color: var(--prism-border);
   color: #e5c07b;
 }
-.oprilx-gutter {
+.prismlx-gutter {
   background: #000;
   color: #4b545e;
 }
-.oprilx-source {
+.prismlx-source {
   background: #000;
   color: #e6e8ea;
 }
 /* The editor is the one surface that goes fully black: the panel and the preview around it
    keep their own grey so the code area reads as the focus of the view. */
-.oprilx-source .oprilx-editor-body,
-.oprilx-source .oprilx-gutter,
-.oprilx-source .oprilx-code-highlight,
-.oprilx-source .oprilx-code-input {
+.prismlx-source .prismlx-editor-body,
+.prismlx-source .prismlx-gutter,
+.prismlx-source .prismlx-code-highlight,
+.prismlx-source .prismlx-code-input {
   background: #000;
 }
-.oprilx-source .oprilx-code-input[data-ime="true"] {
+.prismlx-source .prismlx-code-input[data-ime="true"] {
   background: #101010;
 }
 /* Token classes follow codemirror-lang-latex, the grammar Open-Prism's editor uses:
@@ -1526,34 +1526,34 @@ window.__ModuleLoader__.load({
    math → MathChar, optional arguments → option. Hues sampled from Codex's preview. */
 /* Comment grey is the one token that must clear 4.5:1 as body text: #7f8896 measures
  * 5.9:1 on the black editor and 5.4:1 on the panel, and still sits behind the code hues. */
-.oprilx-tok[data-type="comment"],
-.oprilx-tok[data-type="cdata"] {
+.prismlx-tok[data-type="comment"],
+.prismlx-tok[data-type="cdata"] {
   color: #7f8896;
   font-style: italic;
 }
-.oprilx-tok[data-type="command"] {
+.prismlx-tok[data-type="command"] {
   color: #a892e8;
 }
-.oprilx-tok[data-type="section"] {
+.prismlx-tok[data-type="section"] {
   color: #a892e8;
   font-weight: 600;
 }
-.oprilx-tok[data-type="environment"] {
+.prismlx-tok[data-type="environment"] {
   color: #e5c07b;
 }
-.oprilx-tok[data-type="option"] {
+.prismlx-tok[data-type="option"] {
   color: #e0a575;
 }
-.oprilx-tok[data-type="math"] {
+.prismlx-tok[data-type="math"] {
   color: #56b6c2;
 }
-.oprilx-tok[data-type="number"] {
+.prismlx-tok[data-type="number"] {
   color: #d19a66;
 }
-.oprilx-tok[data-type="string"] {
+.prismlx-tok[data-type="string"] {
   color: #98c379;
 }
-.oprilx-tok[data-type="bracket"] {
+.prismlx-tok[data-type="bracket"] {
   color: #8b929a;
 }
 `
@@ -1905,7 +1905,7 @@ window.__ModuleLoader__.load({
       return h('button', {
         type: 'button',
         key,
-        className: 'oprilx-pill-button',
+        className: 'prismlx-pill-button',
         'aria-label': label,
         title: label,
         onClick,
@@ -1915,9 +1915,9 @@ window.__ModuleLoader__.load({
     }
 
     function renderCompiling(t) {
-      return h('div', { className: 'oprilx-center', role: 'status', key: 'compiling' }, [
-        h('div', { className: 'oprilx-spinner', 'aria-hidden': 'true', key: 'spinner' }),
-        h('div', { className: 'oprilx-status', key: 'label' }, tr(t, 'compiling')),
+      return h('div', { className: 'prismlx-center', role: 'status', key: 'compiling' }, [
+        h('div', { className: 'prismlx-spinner', 'aria-hidden': 'true', key: 'spinner' }),
+        h('div', { className: 'prismlx-status', key: 'label' }, tr(t, 'compiling')),
       ])
     }
 
@@ -1947,8 +1947,8 @@ window.__ModuleLoader__.load({
         ? error.line
         : undefined
       const children = [
-        h('div', { className: 'oprilx-error-title', key: 'title' }, tr(t, 'errorTitle')),
-        h('div', { className: 'oprilx-error-message', key: 'message' }, message),
+        h('div', { className: 'prismlx-error-title', key: 'title' }, tr(t, 'errorTitle')),
+        h('div', { className: 'prismlx-error-message', key: 'message' }, message),
       ]
       if (line !== undefined) {
         const label = tr(t, 'errorLine', { line })
@@ -1956,28 +1956,28 @@ window.__ModuleLoader__.load({
         children.push(typeof options?.onJumpLine === 'function'
           ? h('button', {
             type: 'button',
-            className: 'oprilx-error-jump',
+            className: 'prismlx-error-jump',
             key: 'line',
             'aria-label': tr(t, 'jumpToLine', { line }),
             title: tr(t, 'jumpToLine', { line }),
             onClick: () => options.onJumpLine(line),
           }, label)
-          : h('div', { className: 'oprilx-error-line', key: 'line' }, label))
+          : h('div', { className: 'prismlx-error-line', key: 'line' }, label))
       }
       if (detail !== '') {
-        children.push(h('div', { className: 'oprilx-error-detail', key: 'detail' }, detail))
+        children.push(h('div', { className: 'prismlx-error-detail', key: 'detail' }, detail))
       }
       if (logTail !== '') {
-        children.push(h('div', { className: 'oprilx-log-block', key: 'log' }, [
-          h('div', { className: 'oprilx-log-label', key: 'log-label' }, tr(t, 'logLabel')),
-          h('pre', { className: 'oprilx-log', key: 'log-body', tabIndex: 0 }, logTail),
+        children.push(h('div', { className: 'prismlx-log-block', key: 'log' }, [
+          h('div', { className: 'prismlx-log-label', key: 'log-label' }, tr(t, 'logLabel')),
+          h('pre', { className: 'prismlx-log', key: 'log-body', tabIndex: 0 }, logTail),
         ]))
       }
       const actions = []
       if (retryable) {
         actions.push(h('button', {
           type: 'button',
-          className: 'oprilx-icon-button',
+          className: 'prismlx-icon-button',
           key: 'retry',
           'aria-label': tr(t, 'retry'),
           title: tr(t, 'retry'),
@@ -1986,7 +1986,7 @@ window.__ModuleLoader__.load({
       }
       actions.push(h('button', {
         type: 'button',
-        className: 'oprilx-icon-button',
+        className: 'prismlx-icon-button',
         key: 'copy',
         'aria-label': tr(t, 'copyError'),
         title: tr(t, 'copyError'),
@@ -1995,7 +1995,7 @@ window.__ModuleLoader__.load({
       if (typeof options?.onSend === 'function') {
         actions.push(h('button', {
           type: 'button',
-          className: 'oprilx-icon-button',
+          className: 'prismlx-icon-button',
           key: 'send',
           'aria-label': tr(t, 'sendToChat'),
           title: tr(t, 'sendToChat'),
@@ -2003,12 +2003,12 @@ window.__ModuleLoader__.load({
         }, glyph('send', 15)))
       }
       if (options?.copied === true) {
-        actions.push(h('span', { className: 'oprilx-copied', key: 'copied', role: 'status' },
+        actions.push(h('span', { className: 'prismlx-copied', key: 'copied', role: 'status' },
           tr(t, 'copied')))
       }
-      children.push(h('div', { className: 'oprilx-error-actions', key: 'actions' }, actions))
-      return h('div', { className: 'oprilx-center', key: 'error' },
-        h('div', { className: 'oprilx-error', role: 'alert' }, children))
+      children.push(h('div', { className: 'prismlx-error-actions', key: 'actions' }, actions))
+      return h('div', { className: 'prismlx-center', key: 'error' },
+        h('div', { className: 'prismlx-error', role: 'alert' }, children))
     }
 
     function renderReady(context) {
@@ -2022,8 +2022,8 @@ window.__ModuleLoader__.load({
         const style = fit
           ? { width: '100%', maxWidth: `${Math.max(1, Math.round(cssWidth))}px` }
           : { width: `${Math.max(1, Math.round(cssWidth * zoom))}px` }
-        return h('div', { className: 'oprilx-page', key: `page-${index}`, style }, h('img', {
-          className: 'oprilx-page-image',
+        return h('div', { className: 'prismlx-page', key: `page-${index}`, style }, h('img', {
+          className: 'prismlx-page-image',
           src: page.url,
           width: pixelWidth,
           height: pixelHeight,
@@ -2046,43 +2046,43 @@ window.__ModuleLoader__.load({
         pillButton(t, 'zoom-out', 'zoomOut', '−', () => {
           if (stepDown !== undefined) setZoom(stepDown)
         }, stepDown === undefined),
-        h('span', { className: 'oprilx-zoom-label', key: 'zoom-label', 'aria-live': 'polite' }, zoomLabel),
+        h('span', { className: 'prismlx-zoom-label', key: 'zoom-label', 'aria-live': 'polite' }, zoomLabel),
         pillButton(t, 'zoom-in', 'zoomIn', '+', () => {
           if (stepUp !== undefined) setZoom(stepUp)
         }, stepUp === undefined),
-        h('span', { className: 'oprilx-pill-divider', key: 'divider-1', 'aria-hidden': 'true' }),
+        h('span', { className: 'prismlx-pill-divider', key: 'divider-1', 'aria-hidden': 'true' }),
         pillButton(t, 'fit-width', 'fitWidth', glyph('fit'), () => setZoom('fit'), false, {
           'data-fit': 'true',
           'aria-pressed': fit ? 'true' : 'false',
         }),
-        h('span', { className: 'oprilx-pill-divider', key: 'divider-2', 'aria-hidden': 'true' }),
-        h('span', { className: 'oprilx-meta oprilx-pill-meta', key: 'meta' },
+        h('span', { className: 'prismlx-pill-divider', key: 'divider-2', 'aria-hidden': 'true' }),
+        h('span', { className: 'prismlx-meta prismlx-pill-meta', key: 'meta' },
           formatMeta(t, state.pageCount, state.durationMs)),
       ]
       if (state.truncated === true) {
-        pill.push(h('span', { className: 'oprilx-note oprilx-pill-meta', key: 'truncated' },
+        pill.push(h('span', { className: 'prismlx-note prismlx-pill-meta', key: 'truncated' },
           tr(t, 'truncated', { count: state.pageCount })))
       }
       if (state.refreshing === true) {
-        pill.push(h('span', { className: 'oprilx-note oprilx-pill-meta', key: 'refreshing', role: 'status' },
+        pill.push(h('span', { className: 'prismlx-note prismlx-pill-meta', key: 'refreshing', role: 'status' },
           tr(t, 'recompiling')))
       }
       if (download.status === 'busy') {
-        pill.push(h('span', { className: 'oprilx-note', key: 'download-busy', role: 'status' },
+        pill.push(h('span', { className: 'prismlx-note', key: 'download-busy', role: 'status' },
           tr(t, 'downloadBusy')))
       }
       if (download.status === 'failed') {
         pill.push(h('span', {
-          className: 'oprilx-note',
+          className: 'prismlx-note',
           key: 'download-failed',
           role: 'status',
           'data-tone': 'error',
         }, tr(t, 'downloadFailed')))
       }
-      pill.push(h('span', { className: 'oprilx-pill-divider', key: 'divider-3', 'aria-hidden': 'true' }))
+      pill.push(h('span', { className: 'prismlx-pill-divider', key: 'divider-3', 'aria-hidden': 'true' }))
       pill.push(h('button', {
         type: 'button',
-        className: 'oprilx-pill-button',
+        className: 'prismlx-pill-button',
         key: 'download',
         'aria-label': tr(t, 'download'),
         title: tr(t, 'download'),
@@ -2092,9 +2092,9 @@ window.__ModuleLoader__.load({
       }, glyph('download')))
 
       return [
-        h('div', { className: 'oprilx-pages', key: 'pages' }, pages),
-        h('div', { className: 'oprilx-pillwrap', key: 'pillwrap' },
-          h('div', { className: 'oprilx-pill', role: 'group', 'aria-label': tr(t, 'controls') }, pill)),
+        h('div', { className: 'prismlx-pages', key: 'pages' }, pages),
+        h('div', { className: 'prismlx-pillwrap', key: 'pillwrap' },
+          h('div', { className: 'prismlx-pill', role: 'group', 'aria-label': tr(t, 'controls') }, pill)),
       ]
     }
 
@@ -2570,7 +2570,7 @@ window.__ModuleLoader__.load({
           ? runs[0].text
           : runs.map((run, index) => (run.type === 'plain'
             ? run.text
-            : h('span', { className: 'oprilx-tok', 'data-type': run.type, key: `r${index}` }, run.text)))
+            : h('span', { className: 'prismlx-tok', 'data-type': run.type, key: `r${index}` }, run.text)))
       }
       // Delimiters need their own span, so the run text is split at those columns.
       const list = runs ?? [{ type: 'plain', text: line }]
@@ -2585,7 +2585,7 @@ window.__ModuleLoader__.load({
           if (decoration !== undefined) {
             const length = Math.max(1, Number(decoration.length) || 1)
             parts.push(h('span', {
-              className: 'oprilx-match',
+              className: 'prismlx-match',
               'data-kind': decoration.kind,
               key: `m${at}`,
             }, text.slice(index, index + length)))
@@ -2600,7 +2600,7 @@ window.__ModuleLoader__.load({
           const chunk = text.slice(index, stop)
           parts.push(run.type === 'plain'
             ? chunk
-            : h('span', { className: 'oprilx-tok', 'data-type': run.type, key: `r${at}` }, chunk))
+            : h('span', { className: 'prismlx-tok', 'data-type': run.type, key: `r${at}` }, chunk))
           index = stop
         }
         column += text.length
@@ -2636,7 +2636,7 @@ window.__ModuleLoader__.load({
         width: size,
         height: size,
         'aria-hidden': 'true',
-        className: 'oprilx-glyph',
+        className: 'prismlx-glyph',
         fill: 'none',
         stroke: 'currentColor',
         strokeWidth: 1.75,
@@ -2661,7 +2661,7 @@ window.__ModuleLoader__.load({
           width: size,
           height: size,
           'aria-hidden': 'true',
-          className: 'oprilx-glyph',
+          className: 'prismlx-glyph',
         }, h('path', { key: 'play', d: 'M8.4 5.2 19 12 8.4 18.8z', fill: 'currentColor' }))
       }
       if (name === 'up' || name === 'down') {
@@ -2724,7 +2724,7 @@ window.__ModuleLoader__.load({
         width: 15,
         height: 15,
         'aria-hidden': 'true',
-        className: 'oprilx-mode-icon',
+        className: 'prismlx-mode-icon',
       }
       if (value === 'preview') {
         return h('svg', { ...frame, key: 'icon' }, [
@@ -2794,7 +2794,7 @@ window.__ModuleLoader__.load({
       return h('button', {
         type: 'button',
         key: value,
-        className: 'oprilx-mode',
+        className: 'prismlx-mode',
         'aria-label': label,
         title: label,
         'aria-pressed': mode === value,
@@ -2805,7 +2805,7 @@ window.__ModuleLoader__.load({
     /** Whether the chat bar is expanded; remembered across sessions. */
     function readChatOpen() {
       try {
-        const raw = typeof localStorage === 'undefined' ? null : localStorage.getItem('dsh-openprism-latex.chat')
+        const raw = typeof localStorage === 'undefined' ? null : localStorage.getItem('prism-latex.chat')
         return raw === 'open'
       } catch {
         return false
@@ -2830,7 +2830,7 @@ window.__ModuleLoader__.load({
         setOpen(next)
         try {
           if (typeof localStorage !== 'undefined') {
-            localStorage.setItem('dsh-openprism-latex.chat', next ? 'open' : 'closed')
+            localStorage.setItem('prism-latex.chat', next ? 'open' : 'closed')
           }
         } catch {
           /* preference storage is best effort */
@@ -2864,19 +2864,19 @@ window.__ModuleLoader__.load({
       }
 
       if (!open) {
-        return h('div', { className: 'oprilx-chat oprilx-chat-collapsed' }, h('button', {
+        return h('div', { className: 'prismlx-chat prismlx-chat-collapsed' }, h('button', {
           type: 'button',
-          className: 'oprilx-chat-icon',
+          className: 'prismlx-chat-icon',
           'aria-label': tr(t, 'chatOpen'),
           title: tr(t, 'chatOpen'),
           onClick: () => remember(true),
         }, glyph('send', 15)))
       }
 
-      return h('div', { className: 'oprilx-chat' }, [
+      return h('div', { className: 'prismlx-chat' }, [
         h('input', {
           key: 'input',
-          className: 'oprilx-chat-input',
+          className: 'prismlx-chat-input',
           type: 'text',
           value: text,
           placeholder: tr(t, 'chatPlaceholder'),
@@ -2895,7 +2895,7 @@ window.__ModuleLoader__.load({
         }),
         h('button', {
           type: 'button',
-          className: 'oprilx-chat-icon',
+          className: 'prismlx-chat-icon',
           key: 'send',
           'aria-label': tr(t, 'chatSend'),
           title: tr(t, 'chatSend'),
@@ -2903,13 +2903,13 @@ window.__ModuleLoader__.load({
         }, glyph('send', 15)),
         h('button', {
           type: 'button',
-          className: 'oprilx-chat-icon',
+          className: 'prismlx-chat-icon',
           key: 'collapse',
           'aria-label': tr(t, 'chatCollapse'),
           title: tr(t, 'chatCollapse'),
           onClick: () => remember(false),
         }, glyph('close', 14)),
-        note === undefined ? null : h('span', { className: 'oprilx-chat-note', key: 'note', role: 'status' }, note),
+        note === undefined ? null : h('span', { className: 'prismlx-chat-note', key: 'note', role: 'status' }, note),
       ])
     }
 
@@ -3150,7 +3150,7 @@ window.__ModuleLoader__.load({
           x: (pixelX * 72 / dpi).toFixed(2),
           y: (pixelY * 72 / dpi).toFixed(2),
         })
-        fetch(`api/dsh-openprism-latex/synctex?${query.toString()}`, { cache: 'no-store' })
+        fetch(`api/prism-latex/synctex?${query.toString()}`, { cache: 'no-store' })
           .then(async response => {
             let body
             try {
@@ -3200,7 +3200,7 @@ window.__ModuleLoader__.load({
           onPageDoubleClick: previewInverseSearchAt,
         }))
       }
-      return h('div', { className: 'oprilx-root', ref: attachRoot }, children)
+      return h('div', { className: 'prismlx-root', ref: attachRoot }, children)
     }
 
     /**
@@ -3776,11 +3776,11 @@ window.__ModuleLoader__.load({
 
       const bar = []
       if (finder.open && finder.mode === 'goto') {
-        bar.push(h('div', { className: 'oprilx-find', key: 'goto' }, [
+        bar.push(h('div', { className: 'prismlx-find', key: 'goto' }, [
           h('input', {
             key: 'line',
             ref: findRef,
-            className: 'oprilx-find-input',
+            className: 'prismlx-find-input',
             type: 'text',
             inputMode: 'numeric',
             placeholder: tr(t, 'goToLine'),
@@ -3800,7 +3800,7 @@ window.__ModuleLoader__.load({
           }),
           h('button', {
             type: 'button',
-            className: 'oprilx-icon-button',
+            className: 'prismlx-icon-button',
             key: 'close',
             'aria-label': tr(t, 'closeFind'),
             title: tr(t, 'closeFind'),
@@ -3812,7 +3812,7 @@ window.__ModuleLoader__.load({
           h('input', {
             key: 'query',
             ref: findRef,
-            className: 'oprilx-find-input',
+            className: 'prismlx-find-input',
             type: 'text',
             placeholder: tr(t, 'findPlaceholder'),
             'aria-label': tr(t, 'findPlaceholder'),
@@ -3834,10 +3834,10 @@ window.__ModuleLoader__.load({
               }
             },
           }),
-          h('span', { className: 'oprilx-find-count', key: 'count', role: 'status' }, count),
+          h('span', { className: 'prismlx-find-count', key: 'count', role: 'status' }, count),
           h('button', {
             type: 'button',
-            className: 'oprilx-icon-button',
+            className: 'prismlx-icon-button',
             key: 'prev',
             'aria-label': tr(t, 'findPrevious'),
             title: tr(t, 'findPrevious'),
@@ -3846,7 +3846,7 @@ window.__ModuleLoader__.load({
           }, glyph('up', 14)),
           h('button', {
             type: 'button',
-            className: 'oprilx-icon-button',
+            className: 'prismlx-icon-button',
             key: 'next',
             'aria-label': tr(t, 'findNext'),
             title: tr(t, 'findNext'),
@@ -3855,7 +3855,7 @@ window.__ModuleLoader__.load({
           }, glyph('down', 14)),
           h('button', {
             type: 'button',
-            className: 'oprilx-icon-button',
+            className: 'prismlx-icon-button',
             key: 'replace-toggle',
             'aria-label': tr(t, 'toggleReplace'),
             title: tr(t, 'toggleReplace'),
@@ -3864,19 +3864,19 @@ window.__ModuleLoader__.load({
           }, glyph('copy', 14)),
           h('button', {
             type: 'button',
-            className: 'oprilx-icon-button',
+            className: 'prismlx-icon-button',
             key: 'close',
             'aria-label': tr(t, 'closeFind'),
             title: tr(t, 'closeFind'),
             onClick: () => setFinder(previous => ({ ...previous, open: false })),
           }, glyph('close', 14)),
         ]
-        bar.push(h('div', { className: 'oprilx-find', key: 'find' }, fields))
+        bar.push(h('div', { className: 'prismlx-find', key: 'find' }, fields))
         if (finder.replacing) {
-          bar.push(h('div', { className: 'oprilx-find oprilx-replace-row', key: 'replace' }, [
+          bar.push(h('div', { className: 'prismlx-find prismlx-replace-row', key: 'replace' }, [
             h('input', {
               key: 'replacement',
-              className: 'oprilx-find-input',
+              className: 'prismlx-find-input',
               type: 'text',
               placeholder: tr(t, 'replacePlaceholder'),
               'aria-label': tr(t, 'replacePlaceholder'),
@@ -3895,14 +3895,14 @@ window.__ModuleLoader__.load({
             }),
             h('button', {
               type: 'button',
-              className: 'oprilx-find-action',
+              className: 'prismlx-find-action',
               key: 'one',
               disabled: matches.length === 0,
               onClick: replaceCurrent,
             }, tr(t, 'replaceOne')),
             h('button', {
               type: 'button',
-              className: 'oprilx-find-action',
+              className: 'prismlx-find-action',
               key: 'all',
               disabled: matches.length === 0,
               onClick: replaceAll,
@@ -3928,7 +3928,7 @@ window.__ModuleLoader__.load({
           10 + (line + 1) * (size * 1.62) - scrollTop,
         ))
         popup.push(h('div', {
-          className: 'oprilx-complete',
+          className: 'prismlx-complete',
           key: 'completion',
           role: 'listbox',
           'aria-label': tr(t, 'completionLabel'),
@@ -3937,7 +3937,7 @@ window.__ModuleLoader__.load({
             top: `${top}px`,
           },
         }, completion.items.map((item, index) => h('div', {
-          className: 'oprilx-complete-item',
+          className: 'prismlx-complete-item',
           key: item,
           role: 'option',
           'aria-selected': index === (completion.index ?? 0) ? 'true' : 'false',
@@ -3950,24 +3950,24 @@ window.__ModuleLoader__.load({
       }
 
       return h('div', {
-        className: 'oprilx-editor-shell',
-        style: { '--opr-code-size': `${size}px` },
+        className: 'prismlx-editor-shell',
+        style: { '--prism-code-size': `${size}px` },
       }, [
         ...bar,
-        h('div', { className: 'oprilx-editor', key: 'editor' }, [
-          h('div', { className: 'oprilx-gutter', key: 'gutter', ref: gutterRef, 'aria-hidden': 'true' },
+        h('div', { className: 'prismlx-editor', key: 'editor' }, [
+          h('div', { className: 'prismlx-gutter', key: 'gutter', ref: gutterRef, 'aria-hidden': 'true' },
             lines.map((_, index) => h('div', { key: index }, String(index + 1)))),
-          h('div', { className: 'oprilx-editor-body', key: 'body' }, [
+          h('div', { className: 'prismlx-editor-body', key: 'body' }, [
             h('pre', {
-              className: 'oprilx-code-highlight',
+              className: 'prismlx-code-highlight',
               key: 'code',
               ref: codeRef,
               'aria-hidden': 'true',
               'data-hidden': composing ? 'true' : 'false',
-            }, lines.map((line, index) => h('div', { className: 'oprilx-codeline', key: index },
+            }, lines.map((line, index) => h('div', { className: 'prismlx-codeline', key: index },
               sourceLineNodes(line.length === 0 ? '' : line, highlighted?.[index], decorations.get(index))))),
             h('textarea', {
-              className: 'oprilx-code-input',
+              className: 'prismlx-code-input',
               key: 'input',
               ref: areaRef,
               defaultValue: text,
@@ -3987,15 +3987,15 @@ window.__ModuleLoader__.load({
               },
             }),
             section === undefined ? null : h('button', {
-              className: 'oprilx-sticky',
+              className: 'prismlx-sticky',
               key: 'sticky',
               type: 'button',
               'aria-label': tr(t, 'jumpToSection', { title: section.title }),
               title: tr(t, 'jumpToSection', { title: section.title }),
               onClick: () => goToLine(section.line),
             }, [
-              h('span', { key: 'level', className: 'oprilx-sticky-level' }, `§${section.level}`),
-              h('span', { key: 'title', className: 'oprilx-sticky-text' }, section.title),
+              h('span', { key: 'level', className: 'prismlx-sticky-level' }, `§${section.level}`),
+              h('span', { key: 'title', className: 'prismlx-sticky-text' }, section.title),
             ]),
             ...popup,
           ]),
@@ -4104,7 +4104,7 @@ window.__ModuleLoader__.load({
       { value: 'xelatex', label: 'XeLaTeX' },
       { value: 'lualatex', label: 'LuaLaTeX' },
     ]
-    const ENGINE_KEY = 'dsh-openprism-latex.engine'
+    const ENGINE_KEY = 'prism-latex.engine'
     const ENGINE_DEFAULT = 'latexmk'
 
     /** @returns the remembered engine, or the default when nothing valid is stored. */
@@ -4127,7 +4127,7 @@ window.__ModuleLoader__.load({
     }
 
     /** Editor type size, remembered across files and reloads like an IDE. */
-    const CODE_FONT_KEY = 'dsh-openprism-latex.font'
+    const CODE_FONT_KEY = 'prism-latex.font'
     const CODE_FONT_DEFAULT = 12
     const CODE_FONT_MIN = 10
     const CODE_FONT_MAX = 20
@@ -4145,7 +4145,7 @@ window.__ModuleLoader__.load({
     }
 
     /** Split pane ratio, remembered per user like an IDE's split position. */
-    const SPLIT_KEY = 'dsh-openprism-latex.split'
+    const SPLIT_KEY = 'prism-latex.split'
 
     /** @returns the remembered source share of the split, clamped to 0.2–0.8. */
     function readSplitRatio() {
@@ -4178,7 +4178,7 @@ window.__ModuleLoader__.load({
     }
 
     /** Outline column width in px, remembered like an IDE's sidebar width. */
-    const OUTLINE_WIDTH_KEY = 'dsh-openprism-latex.outline-width'
+    const OUTLINE_WIDTH_KEY = 'prism-latex.outline-width'
     const OUTLINE_WIDTH_DEFAULT = 196
     const OUTLINE_WIDTH_MIN = 140
     const OUTLINE_WIDTH_MAX = 360
@@ -4214,7 +4214,7 @@ window.__ModuleLoader__.load({
     }
 
     /** Whether the outline column is shown; shown by default, like an IDE's sidebar. */
-    const OUTLINE_OPEN_KEY = 'dsh-openprism-latex.outline-open'
+    const OUTLINE_OPEN_KEY = 'prism-latex.outline-open'
 
     /** @returns the remembered visibility of the outline column. */
     function readOutlineOpen() {
@@ -4238,7 +4238,7 @@ window.__ModuleLoader__.load({
     }
 
     /** Whether the view's own preview column is shown; hidden by default. */
-    const VIEW_PREVIEW_KEY = 'dsh-openprism-latex.view-preview'
+    const VIEW_PREVIEW_KEY = 'prism-latex.view-preview'
 
     /** @returns the remembered visibility of the view's preview column. */
     function readViewPreview() {
@@ -4338,7 +4338,7 @@ window.__ModuleLoader__.load({
           if (!event.ctrlKey && !event.metaKey) return
           const target = event.target
           const root = target !== null && target !== undefined && typeof target.closest === 'function'
-            ? target.closest('.oprilx-tabroot')
+            ? target.closest('.prismlx-tabroot')
             : null
           if (root === null) return
           event.preventDefault()
@@ -4395,7 +4395,7 @@ window.__ModuleLoader__.load({
           y: (pixelY * 72 / dpi).toFixed(2),
           engine,
         })
-        fetch(`api/dsh-openprism-latex/synctex?${query.toString()}`, { cache: 'no-store' })
+        fetch(`api/prism-latex/synctex?${query.toString()}`, { cache: 'no-store' })
           .then(async response => {
             let body
             try {
@@ -4549,7 +4549,7 @@ window.__ModuleLoader__.load({
         let cancelled = false
         setSource({ status: 'loading', path: target.path })
         const query = new URLSearchParams({ session: sessionId, path: target.path })
-        fetch(`api/dsh-openprism-latex/source?${query.toString()}`, {
+        fetch(`api/prism-latex/source?${query.toString()}`, {
           signal: controller.signal,
           cache: 'no-store',
         })
@@ -4618,8 +4618,8 @@ window.__ModuleLoader__.load({
 
       const preview = []
       if (target === undefined) {
-        preview.push(h('div', { className: 'oprilx-center', key: 'invalid' },
-          h('div', { className: 'oprilx-status', role: 'alert' }, tr(t, 'errorBadAddress'))))
+        preview.push(h('div', { className: 'prismlx-center', key: 'invalid' },
+          h('div', { className: 'prismlx-status', role: 'alert' }, tr(t, 'errorBadAddress'))))
       } else if (state.status === 'compiling' || state.status === 'idle') {
         preview.push(renderCompiling(t))
       } else if (state.status === 'error') {
@@ -4656,7 +4656,7 @@ window.__ModuleLoader__.load({
         if (target === undefined) return
         savingRef.current = true
         setSave({ status: 'saving' })
-        fetch('api/dsh-openprism-latex/write', {
+        fetch('api/prism-latex/write', {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify({
@@ -4787,7 +4787,7 @@ window.__ModuleLoader__.load({
       const sourceChildren = []
       if (save.status === 'conflict' || save.status === 'error') {
         sourceChildren.push(h('div', {
-          className: 'oprilx-banner',
+          className: 'prismlx-banner',
           key: 'banner',
           role: 'alert',
         }, [
@@ -4797,7 +4797,7 @@ window.__ModuleLoader__.load({
           save.status === 'conflict'
             ? h('button', {
               type: 'button',
-              className: 'oprilx-icon-button',
+              className: 'prismlx-icon-button',
               key: 'reload',
               'aria-label': tr(t, 'reload'),
               title: tr(t, 'reload'),
@@ -4807,22 +4807,22 @@ window.__ModuleLoader__.load({
         ]))
       }
       if (source.status === 'idle' || source.status === 'loading') {
-        sourceChildren.push(h('div', { className: 'oprilx-center', key: 'source-loading', role: 'status' },
-          h('div', { className: 'oprilx-status' }, tr(t, 'sourceLoading'))))
+        sourceChildren.push(h('div', { className: 'prismlx-center', key: 'source-loading', role: 'status' },
+          h('div', { className: 'prismlx-status' }, tr(t, 'sourceLoading'))))
       } else if (source.status === 'error') {
-        sourceChildren.push(h('div', { className: 'oprilx-center', key: 'source-error' },
-          h('div', { className: 'oprilx-status', role: 'alert' },
+        sourceChildren.push(h('div', { className: 'prismlx-center', key: 'source-error' },
+          h('div', { className: 'prismlx-status', role: 'alert' },
             `${tr(t, 'sourceError')}${source.message ? ` · ${source.message}` : ''}`)))
       } else if (source.truncated === true) {
         const lines = source.text.split('\n')
         const highlighted = highlightLatexLines(source.text)
-        sourceChildren.push(h('div', { className: 'oprilx-source', key: 'source-readonly' },
-          lines.map((line, index) => h('div', { className: 'oprilx-srcline', key: index }, [
-            h('span', { className: 'oprilx-lineno', key: 'n', 'aria-hidden': 'true' }, String(index + 1)),
-            h('span', { className: 'oprilx-linetext', key: 't' },
+        sourceChildren.push(h('div', { className: 'prismlx-source', key: 'source-readonly' },
+          lines.map((line, index) => h('div', { className: 'prismlx-srcline', key: index }, [
+            h('span', { className: 'prismlx-lineno', key: 'n', 'aria-hidden': 'true' }, String(index + 1)),
+            h('span', { className: 'prismlx-linetext', key: 't' },
               sourceLineNodes(line, highlighted?.[index])),
           ]))))
-        sourceChildren.push(h('div', { className: 'oprilx-panel-note', key: 'source-cut' },
+        sourceChildren.push(h('div', { className: 'prismlx-panel-note', key: 'source-cut' },
           tr(t, 'readOnlyTooLarge')))
       } else {
         sourceChildren.push(h(SourceEditor, {
@@ -4840,20 +4840,20 @@ window.__ModuleLoader__.load({
       }
 
       const previewPane = h('div', {
-        className: 'oprilx-pane',
+        className: 'prismlx-pane',
         key: 'preview',
         'data-pane': 'preview',
         ref: node => { rootRef.current = node },
       }, state.refreshing === true
         ? [h('div', {
-          className: 'oprilx-progress',
+          className: 'prismlx-progress',
           key: 'progress',
           role: 'progressbar',
           'aria-label': tr(t, 'compiling'),
         }), ...preview]
         : preview)
       const sourcePane = h('div', {
-        className: 'oprilx-pane',
+        className: 'prismlx-pane',
         key: 'source',
         'data-pane': 'source',
         'data-editor': source.status === 'ready' && source.truncated !== true ? 'true' : 'false',
@@ -4864,14 +4864,14 @@ window.__ModuleLoader__.load({
       else if (mode === 'source') body = sourcePane
       else {
         body = h('div', {
-          className: 'oprilx-split',
+          className: 'prismlx-split',
           key: 'split',
           ref: node => { splitRef.current = node },
-          style: { '--opr-split': String(splitRatio) },
+          style: { '--prism-split': String(splitRatio) },
         }, [
           sourcePane,
           h('div', {
-            className: 'oprilx-divider',
+            className: 'prismlx-divider',
             key: 'divider',
             role: 'separator',
             'aria-orientation': 'vertical',
@@ -4893,19 +4893,19 @@ window.__ModuleLoader__.load({
         ? tab.title
         : titleOfAddress(address)
 
-      return h('div', { className: 'oprilx-tabroot' }, [
+      return h('div', { className: 'prismlx-tabroot' }, [
         h('style', { key: 'style' }, CSS),
-        h('div', { className: 'oprilx-toolbar', key: 'toolbar' }, [
-          h('div', { className: 'oprilx-tabmeta', key: 'meta' }, [
+        h('div', { className: 'prismlx-toolbar', key: 'toolbar' }, [
+          h('div', { className: 'prismlx-tabmeta', key: 'meta' }, [
             h('span', {
-              className: 'oprilx-dot',
+              className: 'prismlx-dot',
               key: 'dot',
               'data-state': status.tone,
               'aria-hidden': 'true',
               title: tr(t, 'statusHint'),
             }),
             h('span', {
-              className: 'oprilx-tabstatus',
+              className: 'prismlx-tabstatus',
               key: 'status',
               role: 'status',
               'aria-live': 'polite',
@@ -4913,10 +4913,10 @@ window.__ModuleLoader__.load({
               'data-hint': hint === undefined ? 'false' : 'true',
             }, hint === undefined ? status.text : hint),
           ]),
-          h('div', { className: 'oprilx-tabactions', key: 'actions' }, [
+          h('div', { className: 'prismlx-tabactions', key: 'actions' }, [
             h('select', {
               key: 'engine',
-              className: 'oprilx-engine',
+              className: 'prismlx-engine',
               'aria-label': tr(t, 'engineLabel'),
               title: tr(t, 'engineLabel'),
               value: engine,
@@ -4931,11 +4931,11 @@ window.__ModuleLoader__.load({
             }, choice.label))),
             fontBadge === undefined
               ? null
-              : h('span', { className: 'oprilx-zoombadge', key: 'font', role: 'status' }, fontBadge),
+              : h('span', { className: 'prismlx-zoombadge', key: 'font', role: 'status' }, fontBadge),
             dirty
               ? h('button', {
                 type: 'button',
-                className: 'oprilx-save-button',
+                className: 'prismlx-save-button',
                 key: 'save',
                 'aria-label': tr(t, 'saveHint'),
                 title: tr(t, 'saveHint'),
@@ -4944,7 +4944,7 @@ window.__ModuleLoader__.load({
               : null,
             h('button', {
               type: 'button',
-              className: 'oprilx-icon-button',
+              className: 'prismlx-icon-button',
               key: 'compile',
               'aria-label': tr(t, 'compile'),
               title: tr(t, 'compile'),
@@ -4953,7 +4953,7 @@ window.__ModuleLoader__.load({
             }, glyph('play', 15)),
           ]),
           h('div', {
-            className: 'oprilx-modes',
+            className: 'prismlx-modes',
             key: 'modes',
             role: 'group',
             'aria-label': tr(t, 'viewMode'),
@@ -5016,7 +5016,7 @@ window.__ModuleLoader__.load({
         const overPreview = event => {
           const target = event.target
           if (target === null || target === undefined || typeof target.closest !== 'function') return false
-          return target.closest('.oprilx-panel-doc') !== null
+          return target.closest('.prismlx-panel-doc') !== null
         }
         const onWheel = event => {
           if (!event.ctrlKey && !event.metaKey) return
@@ -5231,7 +5231,7 @@ window.__ModuleLoader__.load({
         let cancelled = false
         setSource({ status: 'loading', path: selected })
         const query = new URLSearchParams({ session: sessionId, path: selected })
-        fetch(`api/dsh-openprism-latex/source?${query.toString()}`, {
+        fetch(`api/prism-latex/source?${query.toString()}`, {
           signal: controller.signal,
           cache: 'no-store',
         })
@@ -5275,7 +5275,7 @@ window.__ModuleLoader__.load({
         const text = draft
         setDraft(undefined)
         setSource(previous => ({ ...previous, text }))
-        fetch('api/dsh-openprism-latex/write', {
+        fetch('api/prism-latex/write', {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify({ session: sessionId, path: selected, text, expectedVersion: source.version }),
@@ -5353,7 +5353,7 @@ window.__ModuleLoader__.load({
           y: (pixelY * 72 / dpi).toFixed(2),
           engine: readEngine(),
         })
-        fetch(`api/dsh-openprism-latex/synctex?${query.toString()}`, { cache: 'no-store' })
+        fetch(`api/prism-latex/synctex?${query.toString()}`, { cache: 'no-store' })
           .then(async response => {
             let body
             try {
@@ -5484,7 +5484,7 @@ window.__ModuleLoader__.load({
           },
         }))
       } else {
-        editor.push(h('div', { className: 'oprilx-panel-note', key: 'source-state' },
+        editor.push(h('div', { className: 'prismlx-panel-note', key: 'source-state' },
           selected === undefined
             ? tr(t, 'panelNoDocument')
             : source.status === 'error'
@@ -5538,7 +5538,7 @@ window.__ModuleLoader__.load({
           onPageDoubleClick: inverseSearchAt,
         }))
       } else {
-        doc.push(h('div', { className: 'oprilx-panel-note', key: 'intro' }, tr(t, 'panelIntro')))
+        doc.push(h('div', { className: 'prismlx-panel-note', key: 'intro' }, tr(t, 'panelIntro')))
       }
 
       /**
@@ -5639,33 +5639,33 @@ window.__ModuleLoader__.load({
       }, [])
 
       return h('div', {
-        className: 'oprilx-panel',
+        className: 'prismlx-panel',
         ref: node => { rootRef.current = node },
         style: paneHeight > 0
           ? {
             height: `${paneHeight}px`,
             maxHeight: `${paneHeight}px`,
-            '--opr-composer-inset': `${composerInset}px`,
+            '--prism-composer-inset': `${composerInset}px`,
           }
           : undefined,
       }, [
         h('style', { key: 'style' }, CSS),
-        h('div', { className: 'oprilx-panel-head', key: 'head' }, [
-          h('div', { className: 'oprilx-panel-heading', key: 'heading' }, [
-            h('div', { className: 'oprilx-panel-title', key: 'title' }, tr(t, 'panelTitle')),
+        h('div', { className: 'prismlx-panel-head', key: 'head' }, [
+          h('div', { className: 'prismlx-panel-heading', key: 'heading' }, [
+            h('div', { className: 'prismlx-panel-title', key: 'title' }, tr(t, 'panelTitle')),
             h('div', {
-              className: 'oprilx-panel-sub',
+              className: 'prismlx-panel-sub',
               key: 'sub',
               // The build string is a debugging fact: keep it in the tooltip, not in the way.
               title: `${heading}  ·  ${CLIENT_BUILD}`,
             }, [
               documentName === undefined
                 ? null
-                : h('span', { key: 'name', className: 'oprilx-panel-doc-name' }, heading),
+                : h('span', { key: 'name', className: 'prismlx-panel-doc-name' }, heading),
               dirty
                 ? h('span', {
                   key: 'dirty',
-                  className: 'oprilx-panel-dirty',
+                  className: 'prismlx-panel-dirty',
                   role: 'status',
                   title: tr(t, 'panelDirty'),
                   'aria-label': tr(t, 'panelDirty'),
@@ -5673,7 +5673,7 @@ window.__ModuleLoader__.load({
                 : null,
               outline.length === 0
                 ? null
-                : h('span', { key: 'count', className: 'oprilx-panel-count' },
+                : h('span', { key: 'count', className: 'prismlx-panel-count' },
                   tr(t, 'panelSectionCount', { count: outline.length })),
             ]),
           ]),
@@ -5683,7 +5683,7 @@ window.__ModuleLoader__.load({
           preview !== true && pill.tone !== 'idle'
             ? h('button', {
               type: 'button',
-              className: 'oprilx-panel-status',
+              className: 'prismlx-panel-status',
               key: 'status-pill',
               'data-tone': pill.tone,
               role: 'status',
@@ -5692,16 +5692,16 @@ window.__ModuleLoader__.load({
               title: tr(t, 'panelStatusHint', { state: pill.label }),
               onClick: showPreview,
             }, [
-              h('span', { key: 'dot', className: 'oprilx-panel-status-dot', 'aria-hidden': 'true' }),
-              h('span', { key: 'label', className: 'oprilx-panel-status-label' }, pill.label),
+              h('span', { key: 'dot', className: 'prismlx-panel-status-dot', 'aria-hidden': 'true' }),
+              h('span', { key: 'label', className: 'prismlx-panel-status-label' }, pill.label),
               pill.detail === ''
                 ? null
-                : h('span', { key: 'detail', className: 'oprilx-panel-status-detail' }, pill.detail),
+                : h('span', { key: 'detail', className: 'prismlx-panel-status-detail' }, pill.detail),
             ])
             : null,
           h('button', {
             type: 'button',
-            className: 'oprilx-icon-button',
+            className: 'prismlx-icon-button',
             key: 'outline-toggle',
             'aria-label': tr(t, outlineOpen ? 'outlineHide' : 'outlineShow'),
             title: tr(t, outlineOpen ? 'outlineHide' : 'outlineShow'),
@@ -5710,7 +5710,7 @@ window.__ModuleLoader__.load({
           }, glyph('outline', 15)),
           h('button', {
             type: 'button',
-            className: 'oprilx-icon-button',
+            className: 'prismlx-icon-button',
             key: 'preview-toggle',
             'aria-label': tr(t, preview ? 'viewPreviewHide' : 'viewPreviewShow'),
             title: tr(t, preview ? 'viewPreviewHide' : 'viewPreviewShow'),
@@ -5719,31 +5719,31 @@ window.__ModuleLoader__.load({
           }, glyph('eye', 15)),
         ]),
         empty
-          ? h('div', { className: 'oprilx-panel-blank', key: 'empty' }, [
-            h('div', { className: 'oprilx-panel-blank-title', key: 'title' }, tr(t, 'panelNoDocument')),
-            h('div', { className: 'oprilx-panel-blank-hint', key: 'hint' }, tr(t, 'panelEmptyHint')),
+          ? h('div', { className: 'prismlx-panel-blank', key: 'empty' }, [
+            h('div', { className: 'prismlx-panel-blank-title', key: 'title' }, tr(t, 'panelNoDocument')),
+            h('div', { className: 'prismlx-panel-blank-hint', key: 'hint' }, tr(t, 'panelEmptyHint')),
           ])
           : h('div', {
-            className: 'oprilx-workspace',
+            className: 'prismlx-workspace',
             key: 'workspace',
-            style: { '--opr-outline-width': `${outlineWidth}px` },
+            style: { '--prism-outline-width': `${outlineWidth}px` },
             'data-outline': outlineOpen ? 'true' : 'false',
             'data-preview': preview ? 'true' : 'false',
           }, [
             outlineOpen
               ? h('div', {
-                className: 'oprilx-outline',
+                className: 'prismlx-outline',
                 key: 'outline',
                 role: 'navigation',
                 ref: node => { outlineRef.current = node },
               }, [
-                h('div', { className: 'oprilx-outline-title', key: 'label' }, tr(t, 'outlineLabel')),
+                h('div', { className: 'prismlx-outline-title', key: 'label' }, tr(t, 'outlineLabel')),
                 outline.length === 0
-                  ? h('div', { className: 'oprilx-outline-empty', key: 'empty' }, tr(t, 'outlineEmpty'))
+                  ? h('div', { className: 'prismlx-outline-empty', key: 'empty' }, tr(t, 'outlineEmpty'))
                   : outline.map((entry, index) => h('button', {
                     type: 'button',
                     key: `${entry.line}:${entry.title}`,
-                    className: 'oprilx-outline-row',
+                    className: 'prismlx-outline-row',
                     style: { paddingLeft: `${(entry.level - 3) * 12 + 10}px` },
                     title: entry.title,
                     'data-level': String(entry.level),
@@ -5751,14 +5751,14 @@ window.__ModuleLoader__.load({
                     'data-active': activeOutlineIndex === index ? 'true' : 'false',
                     onClick: () => sourceLine(index),
                   }, [
-                    h('span', { key: 'rail', className: 'oprilx-outline-rail', 'aria-hidden': 'true' }),
-                    h('span', { key: 'text', className: 'oprilx-outline-text' }, entry.title),
+                    h('span', { key: 'rail', className: 'prismlx-outline-rail', 'aria-hidden': 'true' }),
+                    h('span', { key: 'text', className: 'prismlx-outline-text' }, entry.title),
                   ])),
               ])
               : null,
             outlineOpen
               ? h('div', {
-                className: 'oprilx-divider',
+                className: 'prismlx-divider',
                 key: 'outline-divider',
                 role: 'separator',
                 'aria-orientation': 'vertical',
@@ -5773,12 +5773,12 @@ window.__ModuleLoader__.load({
               })
               : null,
             h('div', {
-              className: 'oprilx-editor-pane',
+              className: 'prismlx-editor-pane',
               key: 'editor',
               'data-pane': 'source',
             }, editor),
             preview
-              ? h('div', { className: 'oprilx-panel-doc', key: 'doc', ref: node => { docRef.current = node } }, doc)
+              ? h('div', { className: 'prismlx-panel-doc', key: 'doc', ref: node => { docRef.current = node } }, doc)
               : null,
           ]),
       ])
@@ -5787,12 +5787,12 @@ window.__ModuleLoader__.load({
     function apply(ctx) {
       // English-only copy: this pane is an IDE-style tool, and the words are kept
       // deliberately terse. The locale chain falls back to `en` for every language.
-      ctx.effect(() => ctx.locale.register('openprismLatex', { en }))
-      const t = ctx.locale.bind('openprismLatex')
+      ctx.effect(() => ctx.locale.register('prismLatex', { en }))
+      const t = ctx.locale.bind('prismLatex')
       boundT = t
 
       const definition = {
-        id: 'dsh-openprism-latex',
+        id: 'prism-latex',
         extensions: ['tex', 'latex', 'ltx'],
         priority: 'extension',
         title: () => t('title'),
@@ -5853,9 +5853,9 @@ window.__ModuleLoader__.load({
       const ConvView = props => h(LatexPanel, props)
       ctx.effect(() => ctx.slots.inject('conversation.view', () => ctx.slots.register({
         name: 'conversation.view',
-        id: 'dsh-openprism-latex',
+        id: 'prism-latex',
         order: 40,
-        locale: 'openprismLatex',
+        locale: 'prismLatex',
         label: () => t('panelTitle'),
       }, function GuardedConvView(props) {
         try {
@@ -5880,8 +5880,8 @@ window.__ModuleLoader__.load({
 
       ctx.effect(() => ctx.slots.inject('sidebar.right.tab.document', () => ctx.slots.register({
         name: 'sidebar.right.tab.document',
-        key: 'dsh-openprism-latex',
-        locale: 'openprismLatex',
+        key: 'prism-latex',
+        locale: 'prismLatex',
       }, LatexBody)))
 
       // The right sidebar: a tab type of our own claims every LaTeX document, so the
@@ -5897,7 +5897,7 @@ window.__ModuleLoader__.load({
       // file type (`dsh-resource://file/**`), because the ranking compares matched pattern
       // length. These out-specify it and still restrict by suffix through `canOpen`.
       const tabDefinition = {
-        id: 'dsh-openprism-latex',
+        id: 'prism-latex',
         kind: 'latex',
         patterns: [
           'dsh-resource://file/**/*.tex',
@@ -5928,7 +5928,7 @@ window.__ModuleLoader__.load({
         try {
           const entries = ctx.sidebarRightTabs?.entries?.()
           if (Array.isArray(entries)) {
-            const mine = entries.find(entry => entry?.id === 'dsh-openprism-latex')
+            const mine = entries.find(entry => entry?.id === 'prism-latex')
             if (mine !== undefined && mine.canOpen !== tabDefinition.canOpen
               && mine.title !== tabDefinition.title) return
           }
@@ -5946,7 +5946,7 @@ window.__ModuleLoader__.load({
           try {
             const entries = ctx.sidebarRightTabs?.entries?.()
             if (!Array.isArray(entries)) return
-            if (entries.some(entry => entry?.id === 'dsh-openprism-latex')) return
+            if (entries.some(entry => entry?.id === 'prism-latex')) return
             registerTabType()
             tabTypeRecovered += 1
             reportDiagnostic()
@@ -5975,8 +5975,8 @@ window.__ModuleLoader__.load({
 
       ctx.effect(() => ctx.slots.inject('sidebar.right.pane.tab', () => ctx.slots.register({
         name: 'sidebar.right.pane.tab',
-        key: 'dsh-openprism-latex',
-        locale: 'openprismLatex',
+        key: 'prism-latex',
+        locale: 'prismLatex',
       }, LatexTab)))
 
       // Self report: the browser cannot expose its registries to the Host any other way, so
@@ -5987,7 +5987,7 @@ window.__ModuleLoader__.load({
         try {
           if (typeof document === 'undefined' || typeof document.querySelector !== 'function') return null
           const chain = []
-          let node = document.querySelector('.oprilx-panel')
+          let node = document.querySelector('.prismlx-panel')
           for (let depth = 0; node !== null && node !== undefined && depth < 8; depth += 1) {
             const style = typeof getComputedStyle === 'function' ? getComputedStyle(node) : undefined
             chain.push({
@@ -6023,7 +6023,7 @@ window.__ModuleLoader__.load({
               try {
                 const entries = ctx.sidebarRightTabs?.entries?.()
                 return Array.isArray(entries)
-                  ? entries.some(entry => entry?.id === 'dsh-openprism-latex')
+                  ? entries.some(entry => entry?.id === 'prism-latex')
                   : `not an array: ${String(entries)}`
               } catch (error) {
                 return `entries threw: ${String(error?.message ?? error)}`
@@ -6074,7 +6074,7 @@ window.__ModuleLoader__.load({
             sessionKnown: sessionId !== undefined,
           }
           const encoded = encodeURIComponent(btoa(JSON.stringify(report)))
-          fetch(`api/dsh-openprism-latex/files?session=diag&diag=${encoded}`, { cache: 'no-store' })
+          fetch(`api/prism-latex/files?session=diag&diag=${encoded}`, { cache: 'no-store' })
             .catch(() => {})
         } catch {
           /* diagnostics never affect the plugin */
@@ -6086,6 +6086,6 @@ window.__ModuleLoader__.load({
 
     }
 
-    return { name: 'dsh-openprism-latex', inject: ['slots', 'locale', 'sidebarRightTabs'], apply }
+    return { name: 'prism-latex', inject: ['slots', 'locale', 'sidebarRightTabs'], apply }
   },
 })
