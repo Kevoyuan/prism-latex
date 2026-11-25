@@ -1,173 +1,246 @@
 # dsh-openprism-latex
 
-**Open-Prism style LaTeX rendering for [DeepSeek Harness](https://github.com/deepseek-ai): the AI writes `.tex`, you read a compiled document.**
+**Open-Prism style LaTeX editing for [DeepSeek Harness](https://github.com/deepseek-ai): the model writes `.tex`, you read a compiled document next to the source.**
+
+A DSH bundle that compiles `.tex` with your local TeX Live and shows the pages inside DSH —
+in the right sidebar and in a dedicated Conversation view with an editable source column.
 
 Built on the idea behind [**Open-Prism**](https://github.com/assistant-ui/open-prism) — an
-open-source AI LaTeX writing workspace with live preview — brought into DSH as a native
-document-preview renderer. See [Credits and provenance](#credits-and-provenance).
+open-source AI LaTeX workspace with a live preview — brought into DSH. This is an independent
+implementation, not a fork; see [Credits and provenance](#credits-and-provenance).
+
+---
+
+## English
+
+### What it does
 
 ```
-model writes paper.tex  →  ⌘-click the link (or open it in Files)
-                        →  right sidebar compiles it with your TeX Live
-                        →  pages render inline with fit-width + zoom
-                        →  Download PDF, or switch to source in the renderer menu
+model writes paper.tex  →  open it in the right sidebar (or follow the model's link)
+                        →  the bundle compiles it with your TeX Live
+                        →  pages render inline, fit-width, with zoom and PDF download
+                        →  double-click a spot in the page: the editor's caret lands on that character
 ```
 
-## What it does
+Two surfaces, one plugin instance:
 
-DSH already renders PDF, Office, Markdown and images in the right sidebar. This bundle teaches
-that pane about `.tex`:
+| Surface | What it is |
+|---|---|
+| **Right sidebar tab** | The document reader. Claims `.tex` / `.latex` / `.ltx` files, compiles them, shows the page stack with fit-width/zoom, an engine picker, and Preview / Source / Side-by-side modes. |
+| **Conversation view named `LaTeX`** | The writing surface, with the shell's native composer underneath. Outline rail on the left (drag to resize, hideable), source editor filling the middle, and an optional preview column (hidden by default) behind an eye toggle. The view follows whichever `.tex` the right sidebar is showing. |
 
-- **Edit where you read.** The Source view is a real editor: type, press **⌘S** (or the save
-  symbol), and the pane writes the file and recompiles it. **⌘= / ⌘− / ⌘0** change the editor type
-  size (10–20 px, remembered across files), and **⌘↩** compiles — preview and source stay in sync. If
-  the file changed on disk meanwhile, the save is refused with a *Changed on disk* banner instead
-  of overwriting the other writer.
-- **The tab type repairs itself.** A registration that goes missing makes the owner refuse
-  the next document open (and close the pane), so the plugin re-registers its tab type whenever
-  the registry stops listing it, and only disposes a registration it still owns.
-- **A panel you can find.** The left rail lists the workspace's LaTeX documents, so the feature is
-  reachable without already knowing which file to open.
-- **A real compile, not a syntax highlighter.** The Host compiles with the local TeX Live in the
-  file's own directory, so `\input`, `\includegraphics` and relative paths behave exactly as in a
-  local build. The default engine is `latexmk`, which repeats the run and drives BibTeX/Biber, so
-  references and the table of contents resolve; the toolbar's engine picker switches to
-  `pdflatex`, `xelatex` (CJK) or `lualatex` and remembers the choice.
-- **Pages, not a blob.** The PDF is rasterized with Ghostscript and shown as a vertical page stack
-  with fit-width by default, fixed zoom steps up to 300 %, page count and compile time, and a
-  **Download PDF** button.
-- **Failures are readable and clickable.** A LaTeX error shows the offending message, its line and
-  the compiler log tail; the line is a button that opens the source at that line beside the page.
-  Retry, copy and send-to-chat run from the same card — no terminal needed.
-- **It stays in sync.** The preview is a member of the document pane's file watches, so a new
-  version of the file recompiles the page; the pane's own **Reload** button forces a rebuild.
-- **Source stays one click away.** The preview's renderer menu keeps **Plain text**, so you can flip
-  between the rendered document and the `.tex` source.
+### Features
 
-## Where it appears
+**Rendering**
+- Real compile, not a highlighter: the host runs the local TeX Live in the file's own directory, so
+  `\input`, `\includegraphics` and relative paths behave exactly as in a local build.
+- Engines: `latexmk` by default (repeats the run, drives BibTeX/Biber, so references and the table
+  of contents resolve), with a `pdflatex` fallback; the picker also offers `xelatex` (CJK) and
+  `lualatex`. The choice is remembered.
+- Pages are rasterized with Ghostscript and shown as a vertical stack with fit-width, zoom steps up
+  to 300 %, page count, compile time and a **Download PDF** button.
+- Failures are readable and clickable: the message, its line and the compiler log tail; the line is
+  a button that opens the source there.
 
-**1. The right sidebar (the main surface).** Opening a `.tex`, `.latex` or `.ltx` file opens a
-LaTeX tab in the right sidebar that compiles it and shows the pages — next to the conversation,
-where you already look. This tab type claims those files at the `extension` band, so it wins over
-the built-in plain-text viewer; the tab chip carries a prism glyph before the file name.
+**Editing** (in the `LaTeX` view)
+- Syntax highlighting for LaTeX (the `codemirror-lang-latex` token grammar), line numbers, black
+  code surface.
+- Find and replace, command completion, bracket and `\begin…\end` pairing, IME-safe input.
+- **⌘S** saves through the host (writing the file and recompiling); a save is refused with a
+  *changed on disk* banner instead of overwriting another writer. **⌘= / ⌘− / ⌘0** change the editor
+  type size (10–20 px, remembered). **⌘↩** compiles.
+- Sticky section header: the current `\section` stays at the top of the editor and jumps there when
+  clicked. The Outline rail mirrors the same sections.
+- **SyncTeX inverse search.** Double-click a spot on a rendered page: the editor's caret lands on
+  that character and the line flashes. The click is mapped over the *typeset* characters only, so
+  markup such as `\textbf{…}`, `$e^{i\pi}$`, `\LaTeX{}` or `\texttt{.tex}` does not shift it. A
+  double-click never changes the browsing pane's mode or the layout — it only publishes a jump.
 
-The tab has a **Preview / Source / Side by side** switch in its header — an eye, a pair of code
-chevrons and a split-pane symbol, each with an English tooltip — and the rest of the pane follows
-the same rule: fit-width, download, refresh and retry are symbols, values stay as short English
-text (`3 pages · 0.7 s`). The copy is English only, deliberately terse, like an IDE: Preview shows the compiled pages, Source is an editor on a near-black surface, tokenized by a small LaTeX scanner whose classes
-follow `codemirror-lang-latex` (the grammar Open-Prism's editor uses): commands `#a892e8`,
-environment names `#e5c07b`, optional arguments `#e0a575`, math `#56b6c2`, comments dim italic,
-with tabular line numbers. Colors were sampled from the Codex LaTeX preview. No highlighter
-library is bundled and nothing is evaluated at runtime., and Side by side puts the source and
-the pages in two independently scrolling halves.
+### Requirements
 
-**2. The LaTeX workspace panel.** A prism icon in the far-left rail opens a
-panel listing every `.tex`, `.latex` and `.ltx` file in the current session's workspace. Pick one
-and it compiles there, with fit-width pages, zoom, page count/compile time and **Download PDF**.
-The list follows the conversation you are in and refreshes on demand.
+- DeepSeek Harness desktop with the web client.
+- A local TeX Live installation (`latexmk`, `pdflatex`, `xelatex`, `lualatex` as needed) and
+  Ghostscript. The host looks in `/Library/TeX/texbin` and `PATH`.
+- No Node dependencies, no build step: `src/host.js` and `src/client.js` are shipped as they are.
 
-**3. The document-preview renderer (fallback).** In a composition whose preview package exposes
-its `documentPreviews` registry, the plugin also registers a LaTeX renderer there, so a `.tex`
-file opened by that preview offers *LaTeX document* next to *Plain text*.
+### Install
 
-## Requirements
+The bundle is installed into a DSH profile like any other plugin package: add it as a dependency of
+the profile (a `link:` dependency works for a local checkout), add its package name to
+`dsh.profile.bundles`, and restart DSH. The bundle registers its `cordis.patch.yml` (host half) and
+its client half through `dsh.client`.
 
-The plugin drives tools you already have; nothing is bundled or downloaded at runtime.
+```jsonc
+// profile package.json (excerpt)
+{
+  "dependencies": { "dsh-openprism-latex": "link:/path/to/dsh-openprism-latex" },
+  "dsh": { "profile": { "bundles": ["dsh-openprism-latex"] } }
+}
+```
 
-| Tool | Version | Notes |
+Client code is served once per launch: **quit and reopen DSH after changing `src/client.js`.**
+`⌘R` keeps the old bytes.
+
+### Usage
+
+1. Open a `.tex` file (the model's link, the file tree, or any DSH resource address). It opens in
+   the right sidebar and compiles.
+2. Switch between **Preview**, **Source** and **Side by side** in that tab; pick an engine; download
+   the PDF.
+3. Open the **`LaTeX`** view in the conversation's view row to edit the same document: the outline
+   rail on the left, the editor in the middle, the preview behind the eye toggle.
+4. Double-click a spot on any rendered page to move the caret there.
+
+Try `demo/showcase.tex` — it exercises a title block, an abstract, numbered sections, lists,
+displayed mathematics, a table and multiple pages.
+
+### How it is built
+
+| Half | File | Role |
 |---|---|---|
-| TeX Live | any recent | `latexmk` is the default engine: it runs the engine as often as the document needs and drives BibTeX/Biber itself, so cross-references and the table of contents resolve. A picker in the tab toolbar switches to `pdflatex`, `xelatex` (CJK and system fonts) or `lualatex`; the choice is remembered. Where `latexmk` is not installed the Host falls back to a single `pdflatex` run and reports what actually ran. On macOS, MacTeX's `/Library/TeX/texbin` is found automatically even though GUI apps start with a minimal `PATH`. |
-| Ghostscript | 9.x / 10.x | `gs`, used only to rasterize pages for preview. |
+| Host | `src/host.js` | Cordis plugin: HTTP routes, compile pipeline, SyncTeX queries, workspace file access. |
+| Client | `src/client.js` | One classic script loaded by the DSH module loader; may only `require('react')`. |
+| Patch | `cordis.patch.yml` | Declares the host plugin so the profile loads it. |
 
-If either is missing, the pane says so — it does not fail silently.
+Host routes are loopback-only and origin-guarded, and every path is confined to the workspace root:
 
-## Install
+| Route | Purpose |
+|---|---|
+| `GET /render` | Compile and rasterize pages (PNG data + dimensions + freshness token). |
+| `GET /pdf` | The compiled PDF for download/viewing. |
+| `GET /files` | List the workspace's `.tex` documents. |
+| `GET /source` | Read one file (version token, size limit). |
+| `GET /synctex` | Map a page coordinate to `{ path, line, column }`. |
+| `POST /write` | Save a file, refusing when the version token is stale. |
 
-From this directory, with the DSH CLI:
+Cross-surface coordination uses two module-level channels rather than a service:
+`publishDocument({ path, sessionId })` (the sidebar tells the view which file it shows) and
+`publishJump({ line, column, path, sessionId })` (a page click moves the view's caret).
+
+### Development
 
 ```bash
-dsh plugin --profile desktop add /Volumes/SSD/Projects/Code/openprism-latex
+node --check src/host.js && node --check src/client.js
+node scripts/smoke-host.mjs
+OPRILX_REACT_PATH="$DSH_PROFILE_DIR/node_modules/react" node scripts/smoke-client.mjs
+node scripts/check-pairing.mjs
 ```
 
-or in the app: **Plugins → Add plugin → local directory**, then pick this folder. A local
-directory is linked, not copied, so later edits here are picked up on the next restart.
+The three suites run against stand-in DSH contexts: they cover the plugin, not the dock. A change
+that touches tabs, the conversation view or scrolling needs one real relaunch check.
 
-Installing adds a new package to the profile, so DSH asks for a **restart** to load both halves
-(the compile routes and the browser bundle). After the restart, open any `.tex` file.
+- `CLAUDE.md` — hard rules distilled from real regressions; read it before changing the sidebar.
+- `POSTMORTEM.md` — the eight failures this project already paid for, with the exact code.
+- `SPEC.md` — design notes for the compile pipeline and the editor.
 
-The bundle adds two rows: the Host half (`dsh-openprism-latex`) registers the compile routes, and
-its `dsh.client` entry loads the renderer into the web UI. Disable either from **Plugins** to turn
-the preview off; `.tex` files then fall back to plain text.
+### Status and known limits
 
-## Configuration
+- Inverse search (page → caret) is implemented; **forward search** (caret → page) is not yet.
+- No word-wrap toggle: long lines scroll horizontally.
+- The launcher icon and the left-rail panel were removed on purpose — there is one entry point, the
+  `LaTeX` view.
 
-Optional, in the profile's `cordis.patch.yml`:
+### Credits and provenance
 
-```yaml
-- id: dsh-openprism-latex
-  name: dsh-openprism-latex
-  config:
-    engine: xelatex          # pdflatex | xelatex | lualatex | latexmk
-    enginePath: /Library/TeX/texbin/xelatex   # optional explicit binary
-    ghostscriptPath: /usr/local/bin/gs        # optional explicit binary
-    dpi: 144                 # preview raster resolution, 96–300
-    maxPages: 50             # page cap per preview
-    timeoutMs: 60000         # per compile/rasterize budget
+The product idea, UI direction and interaction model come from
+[**assistant-ui/open-prism**](https://github.com/assistant-ui/open-prism) — an open-source,
+AI-powered LaTeX editor with a live preview and a chat sidebar. This project brings that idea to
+DeepSeek Harness as a bundle.
+
+The implementation here is independent code written for the DSH plugin API (host routes, the
+`sidebarRightTabs` document type, the `conversation.view` slot, the SyncTeX bridge). Where a
+behaviour is borrowed conceptually — the three-column editor, the token grammar for highlighting,
+the fit-width page stack — the source is named in the code and in `THIRD_PARTY_NOTICES.md`.
+
+### License
+
+MIT — see [`LICENSE`](LICENSE). Third-party notices: [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
+
+---
+
+## 中文
+
+### 这是什么
+
+一个 DeepSeek Harness（DSH）插件：用本机 TeX Live 编译 `.tex`，并把编译后的页面直接显示在 DSH
+里——右侧边栏可看文档，专门的 `LaTeX` 视图可改源码。
+
+思路来自开源项目 [**assistant-ui/open-prism**](https://github.com/assistant-ui/open-prism)（AI 驱动的
+LaTeX 写作工作台 + 实时预览）。本项目是**为 DSH 插件 API 独立实现**的版本，不是 fork。
+
+### 两个界面，一个插件
+
+| 界面 | 作用 |
+|---|---|
+| **右侧边栏标签** | 看文档：接管 `.tex` / `.latex` / `.ltx`，编译后按页显示，支持适应宽度、缩放、下载 PDF、切换引擎，以及「预览 / 源码 / 并排」三种模式。 |
+| **对话视图 `LaTeX`** | 写文档：左侧 Outline（可拖拽调宽、可隐藏），中间源码编辑器，右侧预览列（默认收起，眼睛图标展开），底部是 DSH 原生输入框。该视图会跟随右侧边栏当前打开的 `.tex`。 |
+
+### 功能
+
+- **真的编译**：在文件所在目录调用本机 TeX Live，`\input`、`\includegraphics`、相对路径的行为与本地
+  构建一致。默认 `latexmk`（多遍 + BibTeX，目录与参考文献能解析），可切 `pdflatex`、`xelatex`（中文）、
+  `lualatex`，选择会被记住。
+- **按页渲染**：Ghostscript 栅格化，适应宽度、最高 300% 缩放、显示页数与编译耗时、可下载 PDF。
+- **报错可读可跳**：显示错误信息、行号、日志尾部；点行号直接跳到源码对应行。
+- **源码编辑**：LaTeX 语法着色、行号、纯黑代码区；查找替换、命令补全、括号与 `\begin…\end` 配对；
+  `⌘S` 保存并重编译（文件被他人改动时拒绝覆盖并提示）、`⌘=` / `⌘-` / `⌘0` 调字号、`⌘↩` 编译。
+- **粘性章节条**：滚动时当前 `\section` 吸顶显示，点击可跳转；与左侧 Outline 同源。
+- **SyncTeX 反向跳转**：在渲染页上双击，编辑器光标落到**你点的那个字符**上并闪烁该行。点击位置只在
+  「会排版的字符」上做映射，所以 `\textbf{…}`、`$e^{i\pi}$`、`\LaTeX{}`、`\texttt{.tex}` 等标记不会造成偏移。
+  双击**不会**改变浏览界面的模式或布局，只发布一次跳转。
+
+### 环境要求
+
+- DeepSeek Harness 桌面版（带 Web 客户端）。
+- 本机 TeX Live（按需提供 `latexmk` / `pdflatex` / `xelatex` / `lualatex`）与 Ghostscript。默认查找
+  `/Library/TeX/texbin` 与 `PATH`。
+- 无 Node 依赖、无构建步骤：`src/host.js` 与 `src/client.js` 直接发布。
+
+### 安装
+
+与普通 DSH 插件相同：把本包加入 profile 依赖（本地检可用 `link:`），把包名加入
+`dsh.profile.bundles`，然后重启 DSH。宿主半（`cordis.patch.yml`）与客户端半（`dsh.client`）由包清单声明。
+
+**修改 `src/client.js` 后必须完全退出并重开 DSH**：客户端包每次启动只加载一次，`⌘R` 仍是旧代码。
+
+### 使用
+
+1. 打开任意 `.tex`（模型给的链接、文件树或资源地址）→ 右侧边栏编译并显示。
+2. 在该标签里切换「预览 / 源码 / 并排」、选引擎、下载 PDF。
+3. 在顶部视图行点开 **`LaTeX`** 视图编辑同一篇文档：左侧 Outline、中间编辑器、右侧预览（眼睛图标展开）。
+4. 在任意渲染页上双击，光标跳到对应字符。
+
+可以从 `demo/showcase.tex` 开始——它覆盖标题块、摘要、编号章节、列表、公式、表格与多页。
+
+### 宿主路由
+
+均为仅本机、带来源校验，且路径限制在工作区内：`/render`（编译并栅格化）、`/pdf`、`/files`、
+`/source`、`/synctex`（页面坐标 → 行/列）、`POST /write`（带版本校验的保存）。
+
+跨界面协作走两个模块级通道：`publishDocument`（右侧栏告诉视图它正显示哪个文件）与
+`publishJump`（页面点击把光标位置发给视图）。
+
+### 开发
+
+```bash
+node --check src/host.js && node --check src/client.js
+node scripts/smoke-host.mjs
+OPRILX_REACT_PATH="$DSH_PROFILE_DIR/node_modules/react" node scripts/smoke-client.mjs
+node scripts/check-pairing.mjs
 ```
 
-The renderer menu stays available for every `.tex` file regardless of configuration.
+三套测试跑在**模拟的 DSH 上下文**上：它们证明插件自己是对的，不证明停靠栏行为。涉及标签、对话视图、
+滚动的改动必须再做一次真实重启验证。详见 `CLAUDE.md`（硬规则）与 `POSTMORTEM.md`（八个已踩过的坑）。
 
-## How it works
+### 已知限制
 
-- **Host half** (`src/host.js`) — a Cordis plugin that mounts five loopback HTTP resources on DSH's
-  own web server: `GET /api/dsh-openprism-latex/render` (compile → rasterize → JSON pages),
-  `GET /api/dsh-openprism-latex/pdf` (the compiled PDF), `GET /api/dsh-openprism-latex/files`
-  (the workspace's LaTeX documents), `GET /api/dsh-openprism-latex/source` (one file's text), and
-  `POST /api/dsh-openprism-latex/write` (an editor save: bounded body, optional expected version,
-  atomic replace). Both are origin-guarded, restricted to
-  `.tex`/`.latex`/`.ltx` files inside the session's workspace, and run the engine with
-  `-no-shell-escape` under a timeout. Outputs live in a throwaway temp directory; the workspace is
-  never written to. A small in-memory cache keyed by path + mtime + engine makes reopening and
-  reloading cheap.
-- **Client half** (`src/client.js`) — a browser bundle with no build step and no Harness imports.
-  It registers a `documentPreviews` implementation for the three suffixes plus its body in the
-  `sidebar.right.tab.document` slot, then owns loading: fetch the render route, show progress, keep
-  the compiled pages in Blob URLs for the tab's lifetime.
+- 已有「页面 → 光标」的反向搜索；「光标 → 页面」的正向搜索尚未实现。
+- 暂无自动换行开关，长行横向滚动。
+- 启动图标与左侧面板是有意移除的：入口只有 `LaTeX` 视图一个。
 
-## Limits
+### 来源与许可
 
-- **A small editor that behaves.** ⌘S saves, ⌘↩ compiles, ⌘= / ⌘− / ⌘0 size the type, ⌘F finds
-  and replaces, ⌘G jumps to a line, Tab inserts two spaces. Delimiters pair: the `{}` / `[]` / `()`
-  under the caret is boxed (red when unmatched), `\begin{env}` and its `\end{env}` names light up
-  together, opening delimiters auto-close and wrap a selection, the closer steps over, Backspace
-  removes an empty pair, Enter keeps the indentation. Typing `\sec` or `\begin{it` or `\ref{`
-  opens a completion list (8 candidates, prefix first; labels come from the document). No
-  multi-cursor, folding or SyncTeX forward/backward search; files larger than the
-  editor cap are shown read-only. Compile artifacts (`\input` siblings) come from the file's
-  directory.
-- **Raster preview.** Pages are PNGs at the configured DPI, so very high zoom softens letterforms;
-  text is not selectable in the pane. **Download PDF** gives you the vector original.
-- **Plain engines are single-pass.** `pdflatex`, `xelatex` and `lualatex` run once; only `latexmk`
-  repeats the engine and calls BibTeX/Biber. Switching the picker changes the cache key, so the
-  first compile after a switch is a real compile.
-- **Page cap.** Longer documents preview their first `maxPages` pages; the PDF route still returns
-  the whole file.
-- Shell escape is always off, so packages that need `\write18` (e.g. `minted`) will not compile.
-
-## Credits and provenance
-
-**Source project: [assistant-ui/open-prism](https://github.com/assistant-ui/open-prism) — MIT.**
-
-Open-Prism is an open-source AI LaTeX writing workspace: Next.js + assistant-ui on the front end, a
-Hono "latex-api" that compiles with TeX Live and returns a PDF (`apps/latex-api`), and a browser
-preview built on react-pdf. This plugin ports that *idea* — AI-authored LaTeX, compiled and shown
-as a living document — into DSH's plugin system, where the renderer slot makes it as native as the
-built-in PDF preview. It reuses no upstream source files and is not an official assistant-ui
-project; the compile-then-preview pipeline follows what Open-Prism documents.
-
-The upstream MIT license and the licensing of the tools this plugin invokes are reproduced in
-[THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md).
-
-## License
-
-MIT — see [LICENSE](./LICENSE).
+- 产品与交互思路：**[assistant-ui/open-prism](https://github.com/assistant-ui/open-prism)**。
+- 这里的实现是为 DSH 插件 API 独立编写的代码；借用概念的出处（三栏编辑器、着色 token 语法、
+  适应宽度的页面栈）在代码与 `THIRD_PARTY_NOTICES.md` 中标注。
+- 许可：MIT，见 [`LICENSE`](LICENSE)。
