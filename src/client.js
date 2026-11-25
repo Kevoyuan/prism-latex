@@ -591,9 +591,12 @@ window.__ModuleLoader__.load({
 .oprilx-pane[data-pane="preview"] {
   background: var(--dsw-alias-bg-document-preview, var(--dsw-alias-bg-layer-2, #f1f2f4));
 }
-/* One Dark, the palette open-prism's CodeMirror editor uses (Atom One Dark, MIT).
-   The code surface is fixed dark in both host themes, like an inline editor island. */
-.oprilx-pane[data-pane="source"] {
+/* One surface, two placements: the sidebar's source pane and the conversation view's editor
+   column are the same material, so they share these rules instead of each declaring a colour.
+   One Dark, the palette open-prism's CodeMirror editor uses (Atom One Dark, MIT); fixed dark in
+   both host themes, like an inline editor island. */
+.oprilx-pane[data-pane="source"],
+.oprilx-editor-pane {
   background: #282c34;
   color: #abb2bf;
 }
@@ -1319,11 +1322,8 @@ window.__ModuleLoader__.load({
   min-width: 0;
   overflow: hidden;
   border-right: 1px solid var(--dsw-alias-border-l1, rgba(0, 0, 0, .12));
-  /* Same near-black surface as the sidebar's source pane (the dark block paints
-   * .oprilx-pane[data-pane="source"] with #0f1113). One Dark's #282c34 stopped at this
-   * pane's edge and read as a lighter grey box next to the sidebar editor. */
-  background: #0f1113;
-  color: #abb2bf;
+  /* Background and text colour come from the shared source-pane rule: this column and the
+   * sidebar's source pane are the same material, so neither may declare its own. */
 }
 .oprilx-editor-pane > .oprilx-editor-shell {
   flex: 1 1 auto;
@@ -1418,7 +1418,8 @@ window.__ModuleLoader__.load({
 .oprilx-pane[data-pane="preview"] {
   background: var(--opr-canvas);
 }
-.oprilx-pane[data-pane="source"] {
+.oprilx-pane[data-pane="source"],
+.oprilx-editor-pane {
   background: #0f1113;
 }
 .oprilx-page {
