@@ -6,6 +6,10 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [0.1.1] — 2026-11-25
+
 ### Changed
 
 - **Contrast and clearance in the `LaTeX` view** (design audit F1/F2/F3/F5): the Outline rail
@@ -22,9 +26,17 @@ All notable changes to this project are documented here. The format follows
 - **The Outline follows the document** (design audit F6): its label sticks to the top of the
   column, and the marked row scrolls back into view inside the column when the editor moves past
   it, so a long document never leaves the rail without a "you are here".
-- **The view's editor is as black as the sidebar's**: the editor pane still carried One Dark's
-  `#282c34` while the sidebar's source pane has been `#0f1113` since the near-black surface
-  landed. They now match, so the code surface reads as one black island in both places.
+- **One surface for both source panes**: the sidebar's source pane and the view's editor column
+  are the same editor, but each declared its own colour — One Dark's `#282c34` on one side of the
+  same file, the near-black `#0f1113` on the other. They now share one rule, so the code surface is
+  the same black in both places.
+
+### Fixed
+
+- **The sidebar's split editor follows a page double-click again**: since 8f91a73 the hit was only
+  published for the conversation view, so the pane the click was made in never moved its caret. It
+  moves its own caret as well when the page already sits beside the editor, and still never changes
+  the mode a double-click landed in.
 
 ## [0.1.0] — 2026-11-25
 
