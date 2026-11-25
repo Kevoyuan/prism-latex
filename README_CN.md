@@ -18,6 +18,8 @@
 
 [English](README.md) · **中文**
 
+**Docs:** [Contributing](CONTRIBUTING.md) · [Changelog](CHANGELOG.md) · [Postmortem](POSTMORTEM.md) · [Design notes](SPEC.md)
+
 思路来自开源项目 [**assistant-ui/open-prism**](https://github.com/assistant-ui/open-prism)（AI 驱动的
 LaTeX 写作工作台 + 实时预览）。本项目是**为 DSH 插件 API 独立实现**的版本，不是 fork。
 

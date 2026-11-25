@@ -11,6 +11,8 @@ implementation, not a fork; see [Credits and provenance](#credits-and-provenance
 
 **English** · [中文](README_CN.md)
 
+**Docs:** [Contributing](CONTRIBUTING.md) · [Changelog](CHANGELOG.md) · [Postmortem](POSTMORTEM.md) · [Design notes](SPEC.md)
+
 ![Architecture: two surfaces over one host](docs/architecture.svg)
 
 ![The LaTeX view: outline rail, source editor, rendered page](docs/view.png)

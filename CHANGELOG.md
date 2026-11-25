@@ -1,0 +1,42 @@
+# Changelog
+
+All notable changes to this project are documented here. The format follows
+[Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
+[Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+Nothing yet.
+
+## [0.1.0] — 2026-11-25
+
+First public release.
+
+### Added
+
+- **Right sidebar tab**: claims `.tex` / `.latex` / `.ltx`, compiles with the local TeX Live, and
+  renders the page stack with fit-width, zoom to 300 %, page count, compile time and PDF download.
+  Preview / Source / Side-by-side modes and an engine picker (`latexmk` by default with a
+  `pdflatex` fallback, plus `xelatex` and `lualatex`).
+- **Conversation view `LaTeX`**: an Outline rail (drag to resize, hideable, highlights the section
+  the editor is in), a pure-black source editor, and an optional preview column that is hidden by
+  default and does not compile while hidden. The view follows whichever document the right sidebar
+  shows, and the shell's native composer sits underneath.
+- **Editor**: LaTeX syntax highlighting, line numbers, find and replace, command completion,
+  bracket and `\begin…\end` pairing, IME-safe input, `⌘S` save with a stale-version guard,
+  `⌘=`/`⌘−`/`⌘0` type size, `⌘↩` compile, sticky section header, unsaved-changes dot, status pill.
+- **SyncTeX inverse search**: double-click a rendered page to move the editor caret to that
+  character, with context above it. The click is mapped over typeset characters only, so LaTeX
+  markup does not shift it. A double-click never changes the browsing pane's mode or the layout.
+- **Host routes**: `/render`, `/pdf`, `/files`, `/source`, `/synctex`, `POST /write` — loopback
+  only, origin-guarded, confined to the workspace.
+- Three test suites: `scripts/smoke-host.mjs`, `scripts/smoke-client.mjs`,
+  `scripts/check-pairing.mjs`.
+
+### Fixed during development
+
+The regressions that shaped the architecture are documented in `POSTMORTEM.md`; the rules that
+prevent them from returning are in `CLAUDE.md`.
+
+[Unreleased]: https://github.com/Kevoyuan/dsh-openprism-latex/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/Kevoyuan/dsh-openprism-latex/releases/tag/v0.1.0
