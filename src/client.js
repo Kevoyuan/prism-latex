@@ -1421,6 +1421,7 @@ window.__ModuleLoader__.load({
       if (typeof next.path !== 'string' || next.path === '') return
       if (!Number.isFinite(Number(next.line))) return
       lastJump = {
+        debug: next.debug,
         line: Number(next.line),
         column: Number.isFinite(Number(next.column)) ? Math.max(0, Number(next.column)) : 0,
         path: next.path,
@@ -5023,7 +5024,7 @@ window.__ModuleLoader__.load({
               seq: Date.now(),
               path: selected,
             })
-            publishJump({ line: body.line, column: body.column, path: body.path, sessionId })
+            publishJump({ line: body.line, column: body.column, path: body.path, sessionId, debug: body.debug })
           })
           .catch(() => {})
       }

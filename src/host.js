@@ -1168,15 +1168,18 @@ async function runSynctexQuery(shared, context, point) {
   const sourceLine = Number(line[1])
   const resolvedLine = Number.isFinite(sourceLine) && sourceLine > 0 ? sourceLine : 1
   const reportedColumn = /^Column:(\d+)$/m.exec(stdout)
-  const column = reportedColumn === null
+  const refined = reportedColumn === null
     ? await refineSynctexColumn(artifacts.synctexBinary, artifacts, absolute, resolvedLine, point.x)
-    : Number(reportedColumn[1])
+    : { column: Number(reportedColumn[1]), debug: { reported: Number(reportedColumn[1]) } }
+  const column = Number.isFinite(refined.column) && refined.column >= 0 ? refined.column : 0
   return {
     body: {
       ok: true,
       path: relative,
       line: resolvedLine,
-      column: Number.isFinite(column) && column >= 0 ? column : 0,
+      column,
+      // The inputs behind the estimate: a constant bias shows up here as a wrong origin.
+      debug: { ...refined.debug, clickX: point.x, clickY: point.y },
     },
   }
 }
@@ -1277,16 +1280,30 @@ async function refineSynctexColumn(synctexBinary, artifacts, inputPath, lineNumb
     const stdout = String(run.stdout ?? '')
     const h = /^h:([-\d.]+)$/m.exec(stdout)
     const w = /^W:([-\d.]+)$/m.exec(stdout)
-    if (h === null || w === null) return 0
+    if (h === null || w === null) return { column: 0, debug: { missing: 'box' } }
     const left = Number(h[1])
     const width = Number(w[1])
-    if (!Number.isFinite(left) || !Number.isFinite(width) || width <= 0) return 0
+    if (!Number.isFinite(left) || !Number.isFinite(width) || width <= 0) {
+      return { column: 0, debug: { missing: 'box-width', left, width } }
+    }
     const lines = fs.readFileSync(inputPath, 'utf8').split('\n')
     const lineText = lines[lineNumber - 1]
-    if (typeof lineText !== 'string') return 0
-    return columnFromFraction(lineText, (clickX - left) / width)
-  } catch {
-    return 0
+    if (typeof lineText !== 'string') return { column: 0, debug: { missing: 'line' } }
+    const fraction = (clickX - left) / width
+    const offsets = typesetOffsets(lineText)
+    return {
+      column: columnFromFraction(lineText, fraction),
+      debug: {
+        left,
+        width,
+        fraction: Number(fraction.toFixed(4)),
+        typeset: offsets.length,
+        lineLength: lineText.length,
+        boxes: (String(run.stdout ?? '').match(/^h:/gm) ?? []).length,
+      },
+    }
+  } catch (error) {
+    return { column: 0, debug: { missing: 'error', message: String(error?.message ?? error) } }
   }
 }
 
