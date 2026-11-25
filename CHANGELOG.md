@@ -6,7 +6,14 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
-Nothing yet.
+### Changed
+
+- **Contrast and clearance in the `LaTeX` view** (design audit F1/F2/F3/F5): the Outline rail
+  now clears the 3:1 UI floor (`currentColor` at .45, full accent on the current row), comment
+  tokens moved from `#6b7481` to `#7f8896` (5.9:1 on the black editor, 5.4:1 on the panel), the
+  `Idle` pill no longer appears before the first compile, and the view measures and reserves the
+  height the shell's composer covers, so the editor's last lines and a jumped-to caret stay
+  visible.
 
 ## [0.1.0] — 2026-11-25
 

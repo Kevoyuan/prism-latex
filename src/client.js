@@ -1023,7 +1023,7 @@ window.__ModuleLoader__.load({
 }
 .oprilx-tok[data-type="comment"],
 .oprilx-tok[data-type="cdata"] {
-  color: #7d8799;
+  color: #7f8896;
   font-style: italic;
 }
 .oprilx-tok[data-type="function"] {
@@ -1070,6 +1070,9 @@ window.__ModuleLoader__.load({
   max-height: 100%;
   overflow: hidden;
   box-sizing: border-box;
+  /* The shell's composer can sit over this view's bottom edge; the view measures the
+   * covered height and sets the inset, so the editor never runs underneath it. */
+  padding-bottom: var(--opr-composer-inset, 0px);
   background: var(--dsw-alias-bg-base, #fff);
   color: var(--dsw-alias-label-primary, #1c1c1e);
   font-family: var(--dsw-font, system-ui, -apple-system, sans-serif);
@@ -1251,10 +1254,16 @@ window.__ModuleLoader__.load({
   min-height: 12px;
   margin: 1px 0;
   border-radius: 1px;
-  background: var(--dsw-alias-border-l1, rgba(0, 0, 0, .16));
+  /* A 2px marker is only seen at 3:1 or better. The border token this used to borrow sat
+   * near 1.3:1 on the dark panel, so every row's marker was invisible. currentColor follows
+   * the row's text token in either theme; at .45 it measures about 3.9:1 on the panel and
+   * still reads as a marker rather than a border. */
+  background: currentColor;
+  opacity: .45;
 }
 .oprilx-outline-row[data-active="true"] .oprilx-outline-rail {
   background: var(--opr-accent, #3f8efc);
+  opacity: 1;
 }
 .oprilx-outline-text {
   flex: 1 1 auto;
@@ -1490,9 +1499,11 @@ window.__ModuleLoader__.load({
 /* Token classes follow codemirror-lang-latex, the grammar Open-Prism's editor uses:
    CtrlSeq → command, EnvName → environment, sectioning → section, Comment, Bracket,
    math → MathChar, optional arguments → option. Hues sampled from Codex's preview. */
+/* Comment grey is the one token that must clear 4.5:1 as body text: #7f8896 measures
+ * 5.9:1 on the black editor and 5.4:1 on the panel, and still sits behind the code hues. */
 .oprilx-tok[data-type="comment"],
 .oprilx-tok[data-type="cdata"] {
-  color: #6b7481;
+  color: #7f8896;
   font-style: italic;
 }
 .oprilx-tok[data-type="command"] {
@@ -4997,6 +5008,8 @@ window.__ModuleLoader__.load({
       // index never highlights a row in another file.
       const [activeSection, setActiveSection] = useState(undefined)
       const [codeFont, setCodeFont] = useState(() => readCodeFont())
+      // Height of the shell's composer where it overlaps this view; 0 when it does not.
+      const [composerInset, setComposerInset] = useState(0)
       const docRef = useRef(null)
       const rootRef = useRef(null)
       const urlsRef = useRef([])
@@ -5502,19 +5515,48 @@ window.__ModuleLoader__.load({
         return undefined
       }
       const [paneHeight, setPaneHeight] = useState(0)
+      /**
+       * The shell's composer seat, when it is mounted near this view. The search is bounded
+       * to a few ancestors so a split view never picks up another session's composer.
+       */
+      const composerSeatOf = anchor => {
+        let scope = anchor
+        for (let depth = 0; scope !== undefined && scope !== null && depth < 4; depth += 1) {
+          if (typeof scope.querySelector === 'function') {
+            const seat = scope.querySelector('[data-composer-seat]')
+            if (seat !== null) return seat
+          }
+          scope = scope.parentElement
+        }
+        return undefined
+      }
       const measurePane = () => {
         const node = rootRef.current
         if (node === null || node === undefined || typeof node.getBoundingClientRect !== 'function') return
         const host = scrollHost(node)
+        const rect = node.getBoundingClientRect()
         let next = 0
+        // The panel is pinned to this line, so both branches report the bottom it fills to.
+        let bottom = rect.bottom
         if (host !== undefined) {
-          const rect = node.getBoundingClientRect()
-          const hostRect = host.getBoundingClientRect()
-          next = Math.round(hostRect.bottom - rect.top)
+          bottom = host.getBoundingClientRect().bottom
+          next = Math.round(bottom - rect.top)
         } else if (typeof window !== 'undefined' && Number(window.innerHeight) > 0) {
-          next = Math.max(320, Math.round(window.innerHeight - node.getBoundingClientRect().top - 96))
+          next = Math.max(320, Math.round(window.innerHeight - rect.top - 96))
+          bottom = rect.top + next
         }
         if (next > 0) setPaneHeight(previous => (previous === next ? previous : next))
+        /* The shell's composer can ride over the view's bottom edge, where it hides the
+         * editor's last lines and any caret a jump puts there. Reserve exactly the covered
+         * height. When the composer is laid out below the view, or the seat is hidden, no
+         * box of positive height sits above that line and the inset stays 0. */
+        let inset = 0
+        const seat = host === undefined ? undefined : composerSeatOf(host)
+        const seatRect = seat === null || seat === undefined ? undefined : seat.getBoundingClientRect()
+        if (seatRect !== undefined && seatRect.height > 0 && seatRect.top < bottom) {
+          inset = Math.min(240, Math.max(0, Math.round(bottom - seatRect.top)))
+        }
+        setComposerInset(previous => (previous === inset ? previous : inset))
       }
       useEffect(() => {
         const node = rootRef.current
@@ -5524,8 +5566,11 @@ window.__ModuleLoader__.load({
           observer = new ResizeObserver(() => measurePane())
         }
         const host = scrollHost(node)
+        const seat = composerSeatOf(host ?? node)
         if (observer !== undefined) {
           observer.observe(host ?? node)
+          // A composer that grows (a wrapped draft, an attachment row) moves the inset.
+          if (seat !== null && seat !== undefined) observer.observe(seat)
           if (typeof document !== 'undefined' && document.body !== null) observer.observe(document.body)
         }
         const frame = typeof requestAnimationFrame === 'function'
@@ -5547,7 +5592,13 @@ window.__ModuleLoader__.load({
       return h('div', {
         className: 'oprilx-panel',
         ref: node => { rootRef.current = node },
-        style: paneHeight > 0 ? { height: `${paneHeight}px`, maxHeight: `${paneHeight}px` } : undefined,
+        style: paneHeight > 0
+          ? {
+            height: `${paneHeight}px`,
+            maxHeight: `${paneHeight}px`,
+            '--opr-composer-inset': `${composerInset}px`,
+          }
+          : undefined,
       }, [
         h('style', { key: 'style' }, CSS),
         h('div', { className: 'oprilx-panel-head', key: 'head' }, [
@@ -5577,7 +5628,10 @@ window.__ModuleLoader__.load({
                   tr(t, 'panelSectionCount', { count: outline.length })),
             ]),
           ]),
-          preview !== true
+          // Before anything has compiled there is no state to report: an `Idle` pill only
+          // competes with the document name for the second slot in the header. The pill
+          // appears with the first compile, then tracks the real state.
+          preview !== true && pill.tone !== 'idle'
             ? h('button', {
               type: 'button',
               className: 'oprilx-panel-status',

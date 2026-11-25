@@ -501,8 +501,9 @@ section('view chrome: outline marker, status pill, empty state')
   check('the pill labels come from copy, not literals',
     source.includes("'statusCompiling'") && source.includes("'statusError'")
     && source.includes("'panelStatusReady'") && source.includes("'panelStatusIdle'"))
-  check('the pill is visible only while the preview is collapsed',
-    source.includes('preview !== true\n            ? h(\'button\', {'))
+  check('the pill is visible only while the preview is collapsed and a state exists',
+    source.includes("preview !== true && pill.tone !== 'idle'\n            ? h('button', {"))
+  check('no Idle pill before the first compile', source.includes("pill.tone !== 'idle'"))
   check('no document renders one calm empty state',
     source.includes('const empty = selected === undefined')
     && source.includes("className: 'oprilx-panel-blank'")

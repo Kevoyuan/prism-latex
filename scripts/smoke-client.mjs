@@ -1022,7 +1022,6 @@ section('preview column: hidden by default, toggled independently')
 section('header status pill')
 {
   const states = [
-    { renderState: { status: 'idle' }, tone: 'idle', label: 'Idle' },
     { renderState: { status: 'compiling', path: 'demo/example.tex' }, tone: 'compiling', label: 'Compiling' },
     { renderState: { status: 'error', error: { code: 'network' }, path: 'demo/example.tex' }, tone: 'error', label: 'Error' },
     {
@@ -1064,6 +1063,17 @@ section('header status pill')
     }
   }
 
+  // Before anything has compiled there is no state to report, so the header's second slot
+  // stays with the document name instead of an `Idle` pill.
+  const idle = makePanelReact({ selected: 'demo/example.tex', renderState: { status: 'idle' } })
+  const idleMount = mount(idle)
+  const idleView = idleMount.slots.find(entry => entry.options?.name === 'conversation.view')
+  const idleNodes = flatten(idleView.body({ t: key => idleMount.en.get(key) ?? key }))
+  check('no pill before the first compile',
+    !idleNodes.some(node => node.props?.className === 'oprilx-panel-status'))
+  check('the idle header still names the document',
+    idleNodes.some(node => node.props?.className === 'oprilx-panel-doc-name'))
+
   // The pill is the collapsed preview's state; with the preview open it steps aside.
   const open = makePanelReact({ selected: 'demo/example.tex', preview: true })
   const openMount = mount(open)
@@ -1076,7 +1086,7 @@ section('header status pill')
   const storage = fakeStorage({ 'dsh.sessions.current': JSON.stringify({ sessionId: 'sess-1' }) })
   globalThis.localStorage = storage
   try {
-    const react = makePanelReact({ selected: 'demo/example.tex', renderState: { status: 'idle' } })
+    const react = makePanelReact({ selected: 'demo/example.tex', renderState: { status: 'compiling' } })
     const mountBundle = mount(react)
     const view = mountBundle.slots.find(entry => entry.options?.name === 'conversation.view')
     const pill = flatten(view.body({ t: key => mountBundle.en.get(key) ?? key }))
