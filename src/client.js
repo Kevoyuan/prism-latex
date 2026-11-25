@@ -1221,7 +1221,13 @@ window.__ModuleLoader__.load({
 }
 .oprilx-outline-title {
   flex: 0 0 auto;
+  /* The label rides the top of its own column: on a long document the rows scroll under
+   * it, and the panel's ground keeps them from showing through the text. */
+  position: sticky;
+  top: 0;
+  z-index: 1;
   padding: 10px 16px 4px;
+  background: var(--dsw-alias-bg-base, #fff);
   color: var(--dsw-alias-label-secondary, #6b7280);
   font-size: 11px;
   font-weight: 600;
@@ -5027,6 +5033,7 @@ window.__ModuleLoader__.load({
       const [composerInset, setComposerInset] = useState(0)
       const docRef = useRef(null)
       const rootRef = useRef(null)
+      const outlineRef = useRef(null)
       const urlsRef = useRef([])
       const timersRef = useRef([])
       const sessionId = documentSession ?? readCurrentSessionId()
@@ -5287,6 +5294,19 @@ window.__ModuleLoader__.load({
         && activeSection.index < outline.length
         ? activeSection.index
         : -1
+      // A long Outline scrolls its own box, so the marked row can sit outside it and the
+      // rail stops saying where you are. Nudge only that box, and only when the row is
+      // out of sight: the editor's scroll must never move it, and neither must the user's.
+      useEffect(() => {
+        const box = outlineRef.current
+        if (box === null || box === undefined) return
+        const row = typeof box.querySelector === 'function' ? box.querySelector('[data-active="true"]') : undefined
+        if (row === null || row === undefined) return
+        const top = row.offsetTop
+        const bottom = top + row.offsetHeight
+        if (top < box.scrollTop) box.scrollTop = top
+        else if (bottom > box.scrollTop + box.clientHeight) box.scrollTop = bottom - box.clientHeight
+      }, [activeOutlineIndex])
       const sourceLine = idx => {
         if (source.status !== 'ready') return
         // Mark the target immediately: the jump scrolls the editor and its callback then
@@ -5697,7 +5717,12 @@ window.__ModuleLoader__.load({
             'data-preview': preview ? 'true' : 'false',
           }, [
             outlineOpen
-              ? h('div', { className: 'oprilx-outline', key: 'outline', role: 'navigation' }, [
+              ? h('div', {
+                className: 'oprilx-outline',
+                key: 'outline',
+                role: 'navigation',
+                ref: node => { outlineRef.current = node },
+              }, [
                 h('div', { className: 'oprilx-outline-title', key: 'label' }, tr(t, 'outlineLabel')),
                 outline.length === 0
                   ? h('div', { className: 'oprilx-outline-empty', key: 'empty' }, tr(t, 'outlineEmpty'))

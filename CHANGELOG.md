@@ -19,6 +19,9 @@ All notable changes to this project are documented here. The format follows
 - **The view title wears the editor's face** (design audit F8): `LaTeX` is set in the editor's
   monospace at 13/600 with .02em tracking, matching the rail labels; the document subtitle keeps
   the UI face.
+- **The Outline follows the document** (design audit F6): its label sticks to the top of the
+  column, and the marked row scrolls back into view inside the column when the editor moves past
+  it, so a long document never leaves the rail without a "you are here".
 
 ## [0.1.0] — 2026-11-25
 
