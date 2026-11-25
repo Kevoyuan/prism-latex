@@ -104,6 +104,8 @@ window.__ModuleLoader__.load({
       jumpToSection: 'Jump to {title}',
       outlineLabel: 'Outline',
       outlineEmpty: 'No sections found',
+      panelDirty: 'Unsaved changes',
+      panelSectionCount: '{count} sections',
       chatOpen: 'Ask in chat',
       chatSend: 'Send to the chat',
       chatCollapse: 'Collapse the chat box',
@@ -5151,6 +5153,8 @@ window.__ModuleLoader__.load({
               : source.truncated === true ? tr(t, 'readOnlyTooLarge') : tr(t, 'sourceLoading')))
       }
 
+      const dirty = draft !== undefined && source.status === 'ready' && draft !== source.text
+
       const doc = []
       if (renderState.status === 'compiling') {
         doc.push(renderCompiling(t))
@@ -5250,7 +5254,27 @@ window.__ModuleLoader__.load({
         h('div', { className: 'oprilx-panel-head', key: 'head' }, [
           h('div', { className: 'oprilx-panel-heading', key: 'heading' }, [
             h('div', { className: 'oprilx-panel-title', key: 'title' }, tr(t, 'panelTitle')),
-            h('div', { className: 'oprilx-panel-sub', key: 'sub' }, `${heading}  ·  ${CLIENT_BUILD}`),
+            h('div', {
+              className: 'oprilx-panel-sub',
+              key: 'sub',
+              // The build string is a debugging fact: keep it in the tooltip, not in the way.
+              title: `${heading}  ·  ${CLIENT_BUILD}`,
+            }, [
+              h('span', { key: 'name', className: 'oprilx-panel-doc-name' }, heading),
+              dirty
+                ? h('span', {
+                  key: 'dirty',
+                  className: 'oprilx-panel-dirty',
+                  role: 'status',
+                  title: tr(t, 'panelDirty'),
+                  'aria-label': tr(t, 'panelDirty'),
+                })
+                : null,
+              outline.length === 0
+                ? null
+                : h('span', { key: 'count', className: 'oprilx-panel-count' },
+                  tr(t, 'panelSectionCount', { count: outline.length })),
+            ]),
           ]),
           h('button', {
             type: 'button',
@@ -5287,10 +5311,14 @@ window.__ModuleLoader__.load({
                   type: 'button',
                   key: `${entry.line}:${entry.title}`,
                   className: 'oprilx-outline-row',
-                  style: { paddingLeft: `${(entry.level - 3) * 10 + 8}px` },
+                  style: { paddingLeft: `${(entry.level - 3) * 12 + 10}px` },
                   title: entry.title,
+                  'data-level': String(entry.level),
                   onClick: () => sourceLine(index),
-                }, `§${entry.level} ${entry.title}`)),
+                }, [
+                  h('span', { key: 'rail', className: 'oprilx-outline-rail', 'aria-hidden': 'true' }),
+                  h('span', { key: 'text', className: 'oprilx-outline-text' }, entry.title),
+                ])),
             ])
             : null,
           outlineOpen
