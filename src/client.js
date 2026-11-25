@@ -1834,6 +1834,26 @@ window.__ModuleLoader__.load({
       return Math.min(1, Math.max(0.1, (paneWidth - PAGES_INSET) / cssWidth))
     }
 
+    /**
+     * Should this key event zoom the page? Returns the direction (1, -1, 0 for fit) or undefined.
+     *
+     * The page preview and the editor both live on ⌘= / ⌘- / ⌘0: the editor uses them for its
+     * type size, so an event that started in a text field belongs to the editor and is skipped.
+     */
+    function zoomIntent(event) {
+      if (event === null || event === undefined) return undefined
+      if (!(event.metaKey || event.ctrlKey)) return undefined
+      const target = event.target
+      const tag = target !== null && target !== undefined && typeof target.tagName === 'string'
+        ? target.tagName.toLowerCase()
+        : ''
+      if (tag === 'input' || tag === 'textarea' || target?.isContentEditable === true) return undefined
+      if (event.key === '=' || event.key === '+') return 1
+      if (event.key === '-' || event.key === '_') return -1
+      if (event.key === '0') return 0
+      return undefined
+    }
+
     /** The next fixed step above or below the current scale, or `undefined` at the range end. */
     function nextZoomStep(current, fitScale, direction) {
       const base = current === 'fit' ? fitScale : current
@@ -4251,6 +4271,51 @@ window.__ModuleLoader__.load({
       const [engine, setEngine] = useState(() => readEngine())
       const [jump, setJump] = useState(undefined)
       const [hint, setHint] = useState(undefined)
+      const stateRef = useRef(state)
+      stateRef.current = state
+      const paneWidthRef = useRef(paneWidth)
+      paneWidthRef.current = paneWidth
+
+      // ⌘/Ctrl + = - 0 and ⌘/Ctrl + wheel zoom the page in this pane. The editor keeps the
+      // same chords for its type size, so anything that starts in a text field is left alone.
+      useEffect(() => {
+        if (typeof window === 'undefined' || typeof window.addEventListener !== 'function') return undefined
+        const stepZoom = direction => {
+          if (direction === 0) {
+            setZoom('fit')
+            return
+          }
+          const pages = stateRef.current.status === 'ready' ? stateRef.current.pages : undefined
+          const width = paneWidthRef.current
+          const fitScale = pages !== undefined && pages[0] !== undefined && width > 0
+            ? fitScaleFor(width, pages[0])
+            : 1
+          setZoom(previous => nextZoomStep(previous, fitScale, direction) ?? previous)
+        }
+        const onKey = event => {
+          const direction = zoomIntent(event)
+          if (direction === undefined) return
+          event.preventDefault()
+          stepZoom(direction)
+        }
+        const onWheel = event => {
+          if (!event.ctrlKey && !event.metaKey) return
+          const target = event.target
+          const root = target !== null && target !== undefined && typeof target.closest === 'function'
+            ? target.closest('.oprilx-tabroot')
+            : null
+          if (root === null) return
+          event.preventDefault()
+          stepZoom(event.deltaY < 0 ? 1 : -1)
+        }
+        window.addEventListener('keydown', onKey)
+        window.addEventListener('wheel', onWheel, { passive: false })
+        return () => {
+          window.removeEventListener('keydown', onKey)
+          window.removeEventListener('wheel', onWheel)
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, [])
       const [splitRatio, setSplitRatio] = useState(() => readSplitRatio())
       const splitRef = useRef(null)
       const ratioRef = useRef(splitRatio)
@@ -4882,6 +4947,52 @@ window.__ModuleLoader__.load({
       const [source, setSource] = useState({ status: 'idle' })
       const [draft, setDraft] = useState(undefined)
       const [pendingJump, setPendingJump] = useState(undefined)
+      const renderStateRef = useRef(renderState)
+      renderStateRef.current = renderState
+      const paneWidthRef = useRef(paneWidth)
+      paneWidthRef.current = paneWidth
+
+      // The preview column answers ⌘/Ctrl + wheel and ⌘/Ctrl + = - 0 as well. Only events over
+      // the pages zoom; the editor and the outline keep their own behaviour.
+      useEffect(() => {
+        if (typeof window === 'undefined' || typeof window.addEventListener !== 'function') return undefined
+        const stepZoom = direction => {
+          if (direction === 0) {
+            setZoom('fit')
+            return
+          }
+          const pages = renderStateRef.current.status === 'ready' ? renderStateRef.current.pages : undefined
+          const fitScale = pages !== undefined && pages[0] !== undefined && paneWidthRef.current > 0
+            ? fitScaleFor(paneWidthRef.current, pages[0])
+            : 1
+          setZoom(previous => nextZoomStep(previous, fitScale, direction) ?? previous)
+        }
+        const overPreview = event => {
+          const target = event.target
+          if (target === null || target === undefined || typeof target.closest !== 'function') return false
+          return target.closest('.oprilx-panel-doc') !== null
+        }
+        const onWheel = event => {
+          if (!event.ctrlKey && !event.metaKey) return
+          if (!overPreview(event)) return
+          event.preventDefault()
+          stepZoom(event.deltaY < 0 ? 1 : -1)
+        }
+        const onKey = event => {
+          if (!overPreview(event)) return
+          const direction = zoomIntent(event)
+          if (direction === undefined) return
+          event.preventDefault()
+          stepZoom(direction)
+        }
+        window.addEventListener('wheel', onWheel, { passive: false })
+        window.addEventListener('keydown', onKey)
+        return () => {
+          window.removeEventListener('wheel', onWheel)
+          window.removeEventListener('keydown', onKey)
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, [])
       // Section index the editor reports, tagged with the document it belongs to so a stale
       // index never highlights a row in another file.
       const [activeSection, setActiveSection] = useState(undefined)

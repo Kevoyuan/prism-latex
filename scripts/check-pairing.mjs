@@ -226,6 +226,18 @@ section('document outline')
   check('empty documents have no outline', collectSections('').length === 0)
 }
 
+section('preview zoom')
+{
+  const client = readFileSync(new URL('../src/client.js', import.meta.url), 'utf8')
+  check('ctrl/cmd + wheel is intercepted', client.includes("window.addEventListener('wheel', onWheel, { passive: false })")
+    && client.includes('if (!event.ctrlKey && !event.metaKey) return'))
+  check('the wheel only zooms over a page', client.includes("target.closest('.oprilx-panel-doc')")
+    && client.includes("target.closest('.oprilx-tabroot')"))
+  check('the keyboard chords share one intent helper', client.includes('zoomIntent(event)')
+    && client.includes("if (event.key === '=' || event.key === '+') return 1"))
+  check('zoom steps stay on the fixed ladder', client.includes('nextZoomStep(previous, fitScale, direction)'))
+}
+
 section('styles')
 {
   const client = readFileSync(new URL('../src/client.js', import.meta.url), 'utf8')
