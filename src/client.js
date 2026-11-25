@@ -63,6 +63,14 @@ window.__ModuleLoader__.load({
       resizeOutline: 'Resize the outline',
       viewPreviewShow: 'Show the preview',
       viewPreviewHide: 'Hide the preview',
+      statusCompiling: 'Compiling',
+      statusError: 'Error',
+      panelStatusReady: 'Ready',
+      panelStatusIdle: 'Idle',
+      panelStatusPageOne: '1 page',
+      panelStatusPages: '{count} pages',
+      panelStatusHint: '{state} — click to show the preview',
+      panelEmptyHint: 'Open a .tex file in the right sidebar and it appears here.',
       viewMode: 'View mode',
       modePreview: 'Preview',
       modeSource: 'Source',
@@ -1086,9 +1094,94 @@ window.__ModuleLoader__.load({
   line-height: 1.3;
 }
 .oprilx-panel-sub {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
   color: var(--dsw-alias-label-secondary, #6b7280);
   font-size: 12px;
   line-height: 1.4;
+}
+.oprilx-panel-doc-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.oprilx-panel-dirty {
+  flex: 0 0 auto;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--dsw-alias-state-warning-primary, #d29922);
+}
+.oprilx-panel-count {
+  flex: 0 0 auto;
+}
+.oprilx-panel-status {
+  appearance: none;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  margin-top: 1px;
+  padding: 0 9px;
+  border: 1px solid var(--dsw-alias-border-l1, rgba(0, 0, 0, .12));
+  border-radius: 999px;
+  background: var(--dsw-alias-bg-layer-1, #fff);
+  color: var(--dsw-alias-label-secondary, #6b7280);
+  font: inherit;
+  font-size: 11px;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.oprilx-panel-status:hover {
+  border-color: var(--dsw-alias-label-secondary, #6b7280);
+  color: var(--dsw-alias-label-primary, #1c1c1e);
+}
+.oprilx-panel-status:focus-visible {
+  outline: 2px solid var(--dsw-alias-label-primary, #1c1c1e);
+  outline-offset: 2px;
+}
+.oprilx-panel-status-dot {
+  width: 6px;
+  height: 6px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: #9ca3af;
+}
+.oprilx-panel-status[data-tone="ready"] .oprilx-panel-status-dot { background: #3fb950; }
+.oprilx-panel-status[data-tone="compiling"] .oprilx-panel-status-dot { background: #d29922; }
+.oprilx-panel-status[data-tone="error"] .oprilx-panel-status-dot { background: #f85149; }
+.oprilx-panel-status-label {
+  color: inherit;
+}
+.oprilx-panel-status-detail {
+  color: var(--dsw-alias-label-secondary, #6b7280);
+  opacity: .85;
+}
+.oprilx-panel-blank {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 24px 32px;
+  text-align: center;
+}
+.oprilx-panel-blank-title {
+  color: var(--dsw-alias-label-primary, #1c1c1e);
+  font-size: 14px;
+  font-weight: 500;
+}
+.oprilx-panel-blank-hint {
+  max-width: 42ch;
+  color: var(--dsw-alias-label-secondary, #6b7280);
+  font-size: 12px;
+  line-height: 1.5;
 }
 .oprilx-panel-note {
   padding: 12px 16px;
@@ -1135,7 +1228,9 @@ window.__ModuleLoader__.load({
 }
 .oprilx-outline-row {
   appearance: none;
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   width: 100%;
   box-sizing: border-box;
   padding: 4px 10px;
@@ -1148,8 +1243,25 @@ window.__ModuleLoader__.load({
   text-align: left;
   white-space: nowrap;
   overflow: hidden;
-  text-overflow: ellipsis;
   cursor: pointer;
+}
+.oprilx-outline-rail {
+  flex: 0 0 2px;
+  align-self: stretch;
+  min-height: 12px;
+  margin: 1px 0;
+  border-radius: 1px;
+  background: var(--dsw-alias-border-l1, rgba(0, 0, 0, .16));
+}
+.oprilx-outline-row[data-active="true"] .oprilx-outline-rail {
+  background: var(--opr-accent, #3f8efc);
+}
+.oprilx-outline-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .oprilx-outline-row:hover {
   background: var(--dsw-alias-bg-layer-2, #f4f5f7);
@@ -1157,6 +1269,12 @@ window.__ModuleLoader__.load({
 .oprilx-outline-row:focus-visible {
   outline: 2px solid var(--dsw-alias-label-primary, #1c1c1e);
   outline-offset: -2px;
+}
+.oprilx-outline-row[data-active="true"] {
+  color: var(--dsw-alias-label-primary, #1c1c1e);
+  background: var(--dsw-alias-bg-layer-2, #f4f5f7);
+  box-shadow: inset 2px 0 0 var(--opr-accent, #3f8efc);
+  font-weight: 500;
 }
 .oprilx-workspace[data-preview="false"] .oprilx-editor-pane {
   flex: 1 1 100%;
@@ -3038,7 +3156,7 @@ window.__ModuleLoader__.load({
      * otherwise be invisible through the transparent textarea.
      */
     function SourceEditor(props) {
-      const { t, text, resetToken, onInput, onSave, fontSize, onZoom, jump } = props
+      const { t, text, resetToken, onInput, onSave, fontSize, onZoom, jump, onActiveSection } = props
       const [composing, setComposing] = useState(false)
       const [caret, setCaret] = useState(-1)
       const [flashLine, setFlashLine] = useState(undefined)
@@ -3053,6 +3171,10 @@ window.__ModuleLoader__.load({
         return index
       }
       const [activeSection, setActiveSection] = useState(() => sectionAtTop())
+      // The parent stores this index for the Outline rail. A ref keeps the callback out of
+      // the effect's dependencies, whose identity changes on every panel render.
+      const onActiveSectionRef = useRef(onActiveSection)
+      onActiveSectionRef.current = onActiveSection
       const flashTimer = useRef(undefined)
       const [finder, setFinder] = useState({
         open: false,
@@ -3164,6 +3286,13 @@ window.__ModuleLoader__.load({
         refreshSection()
         // eslint-disable-next-line react-hooks/exhaustive-deps
       }, [text, resetToken])
+
+      // The Outline rail mirrors the section the viewport is in; report the index on mount
+      // and on every change. The sticky header above keeps using the same state.
+      useEffect(() => {
+        const callback = onActiveSectionRef.current
+        if (typeof callback === 'function') callback(activeSection)
+      }, [activeSection])
 
       /** Pending frame for a coalesced scroll sync. */
       const scrollFrame = useRef(0)
@@ -4753,6 +4882,9 @@ window.__ModuleLoader__.load({
       const [source, setSource] = useState({ status: 'idle' })
       const [draft, setDraft] = useState(undefined)
       const [pendingJump, setPendingJump] = useState(undefined)
+      // Section index the editor reports, tagged with the document it belongs to so a stale
+      // index never highlights a row in another file.
+      const [activeSection, setActiveSection] = useState(undefined)
       const [codeFont, setCodeFont] = useState(() => readCodeFont())
       const docRef = useRef(null)
       const rootRef = useRef(null)
@@ -4769,7 +4901,16 @@ window.__ModuleLoader__.load({
       outlineWidthRef.current = outlineWidth
 
       useEffect(() => {
-        if (preview !== true || sessionId === undefined || selected === undefined) {
+        if (preview !== true) {
+          // A collapsed preview does not compile. Keep the last finished state for this
+          // document so the header pill reports what really happened, but never keep a
+          // "compiling" state that this collapse just aborted, nor a state from another file.
+          setRenderState(previous => (previous.status === 'compiling' || previous.path !== selected
+            ? { status: 'idle' }
+            : previous))
+          return undefined
+        }
+        if (sessionId === undefined || selected === undefined) {
           setRenderState({ status: 'idle' })
           return undefined
         }
@@ -4786,7 +4927,7 @@ window.__ModuleLoader__.load({
             }
           }
         }
-        setRenderState({ status: 'compiling' })
+        setRenderState({ status: 'compiling', path: selected })
         const query = new URLSearchParams({ session: sessionId, path: selected })
         query.set('engine', readEngine())
         fetch(`${RENDER_URL}?${query.toString()}`, { signal: controller.signal, cache: 'no-store' })
@@ -4799,11 +4940,15 @@ window.__ModuleLoader__.load({
             }
             if (cancelled) return
             if (body === undefined) {
-              setRenderState({ status: 'error', error: { code: 'bad-response', message: `HTTP ${response.status}` } })
+              setRenderState({
+                status: 'error',
+                error: { code: 'bad-response', message: `HTTP ${response.status}` },
+                path: selected,
+              })
               return
             }
             if (body.ok !== true) {
-              setRenderState({ status: 'error', error: body.error ?? { code: 'bad-request' } })
+              setRenderState({ status: 'error', error: body.error ?? { code: 'bad-request' }, path: selected })
               return
             }
             const pages = []
@@ -4812,20 +4957,21 @@ window.__ModuleLoader__.load({
               try {
                 url = URL.createObjectURL(new Blob([base64ToBytes(page?.png)], { type: 'image/png' }))
               } catch {
-                setRenderState({ status: 'error', error: { code: 'bad-response' } })
+                setRenderState({ status: 'error', error: { code: 'bad-response' }, path: selected })
                 return
               }
               created.push(url)
               pages.push({ url, width: Number(page?.width) || 0, height: Number(page?.height) || 0 })
             }
             if (pages.length === 0) {
-              setRenderState({ status: 'error', error: { code: 'no-pages' } })
+              setRenderState({ status: 'error', error: { code: 'no-pages' }, path: selected })
               return
             }
             const stale = urlsRef.current
             urlsRef.current = pages.map(page => page.url)
             setRenderState({
               status: 'ready',
+              path: selected,
               pages,
               pageCount: Number(body.pageCount) || pages.length,
               durationMs: Number(body.durationMs) || 0,
@@ -4840,6 +4986,7 @@ window.__ModuleLoader__.load({
             setRenderState({
               status: 'error',
               error: { code: 'network', message: error?.message ? String(error.message) : undefined },
+              path: selected,
             })
           })
         return () => {
@@ -4992,8 +5139,20 @@ window.__ModuleLoader__.load({
       }
 
       const outline = source.status === 'ready' ? collectSections(source.text) : []
+      // Only an index reported for the document on screen and still inside the current
+      // Outline may mark a row; a shorter file, a stale index or another path means none.
+      const activeOutlineIndex = activeSection !== undefined
+        && activeSection.path === selected
+        && Number.isFinite(activeSection.index)
+        && activeSection.index >= 0
+        && activeSection.index < outline.length
+        ? activeSection.index
+        : -1
       const sourceLine = idx => {
         if (source.status !== 'ready') return
+        // Mark the target immediately: the jump scrolls the editor and its callback then
+        // confirms the same row, but the old row must not stay lit in between.
+        setActiveSection({ path: selected, index: idx })
         setPendingJump({ line: outline[idx].line, seq: Date.now(), path: selected })
       }
 
@@ -5124,6 +5283,12 @@ window.__ModuleLoader__.load({
         })
       }
 
+      /** The header status pill opens the preview; it never hides it. */
+      const showPreview = () => {
+        setPreview(true)
+        rememberViewPreview(true)
+      }
+
       const editor = []
       if (source.status === 'ready' && source.path === selected && source.truncated !== true) {
         editor.push(h(SourceEditor, {
@@ -5134,6 +5299,7 @@ window.__ModuleLoader__.load({
           onInput: value => setDraft(value),
           onSave: saveSourceFile,
           onCompile: saveSourceFile,
+          onActiveSection: index => setActiveSection({ path: selected, index }),
           jump: pendingJump !== undefined && pendingJump.path === selected ? pendingJump : undefined,
           fontSize: codeFont,
           onZoom: delta => {
@@ -5154,6 +5320,28 @@ window.__ModuleLoader__.load({
       }
 
       const dirty = draft !== undefined && source.status === 'ready' && draft !== source.text
+
+      const pill = renderState.status === 'ready'
+        ? {
+          tone: 'ready',
+          label: tr(t, 'panelStatusReady'),
+          detail: (() => {
+            const count = Number(renderState.pageCount) > 0
+              ? Number(renderState.pageCount)
+              : (Array.isArray(renderState.pages) ? renderState.pages.length : 0)
+            if (!(count > 0)) return ''
+            return tr(t, count === 1 ? 'panelStatusPageOne' : 'panelStatusPages', { count })
+          })(),
+        }
+        : renderState.status === 'compiling'
+          ? { tone: 'compiling', label: tr(t, 'statusCompiling'), detail: '' }
+          : renderState.status === 'error'
+            ? { tone: 'error', label: tr(t, 'statusError'), detail: '' }
+            : { tone: 'idle', label: tr(t, 'panelStatusIdle'), detail: '' }
+
+      // No document at all: the columns would be empty shells, so the body becomes one
+      // calm note instead. A known document whose source is loading keeps the small note.
+      const empty = selected === undefined
 
       const doc = []
       if (renderState.status === 'compiling') {
@@ -5260,7 +5448,9 @@ window.__ModuleLoader__.load({
               // The build string is a debugging fact: keep it in the tooltip, not in the way.
               title: `${heading}  ·  ${CLIENT_BUILD}`,
             }, [
-              h('span', { key: 'name', className: 'oprilx-panel-doc-name' }, heading),
+              documentName === undefined
+                ? null
+                : h('span', { key: 'name', className: 'oprilx-panel-doc-name' }, heading),
               dirty
                 ? h('span', {
                   key: 'dirty',
@@ -5276,6 +5466,25 @@ window.__ModuleLoader__.load({
                   tr(t, 'panelSectionCount', { count: outline.length })),
             ]),
           ]),
+          preview !== true
+            ? h('button', {
+              type: 'button',
+              className: 'oprilx-panel-status',
+              key: 'status-pill',
+              'data-tone': pill.tone,
+              role: 'status',
+              'aria-live': 'polite',
+              'aria-label': pill.detail === '' ? pill.label : `${pill.label} · ${pill.detail}`,
+              title: tr(t, 'panelStatusHint', { state: pill.label }),
+              onClick: showPreview,
+            }, [
+              h('span', { key: 'dot', className: 'oprilx-panel-status-dot', 'aria-hidden': 'true' }),
+              h('span', { key: 'label', className: 'oprilx-panel-status-label' }, pill.label),
+              pill.detail === ''
+                ? null
+                : h('span', { key: 'detail', className: 'oprilx-panel-status-detail' }, pill.detail),
+            ])
+            : null,
           h('button', {
             type: 'button',
             className: 'oprilx-icon-button',
@@ -5295,57 +5504,64 @@ window.__ModuleLoader__.load({
             onClick: togglePreview,
           }, glyph('eye', 15)),
         ]),
-        h('div', {
-          className: 'oprilx-workspace',
-          key: 'workspace',
-          style: { '--opr-outline-width': `${outlineWidth}px` },
-          'data-outline': outlineOpen ? 'true' : 'false',
-          'data-preview': preview ? 'true' : 'false',
-        }, [
-          outlineOpen
-            ? h('div', { className: 'oprilx-outline', key: 'outline', role: 'navigation' }, [
-              h('div', { className: 'oprilx-outline-title', key: 'label' }, tr(t, 'outlineLabel')),
-              outline.length === 0
-                ? h('div', { className: 'oprilx-outline-empty', key: 'empty' }, tr(t, 'outlineEmpty'))
-                : outline.map((entry, index) => h('button', {
-                  type: 'button',
-                  key: `${entry.line}:${entry.title}`,
-                  className: 'oprilx-outline-row',
-                  style: { paddingLeft: `${(entry.level - 3) * 12 + 10}px` },
-                  title: entry.title,
-                  'data-level': String(entry.level),
-                  onClick: () => sourceLine(index),
-                }, [
-                  h('span', { key: 'rail', className: 'oprilx-outline-rail', 'aria-hidden': 'true' }),
-                  h('span', { key: 'text', className: 'oprilx-outline-text' }, entry.title),
-                ])),
-            ])
-            : null,
-          outlineOpen
-            ? h('div', {
-              className: 'oprilx-divider',
-              key: 'outline-divider',
-              role: 'separator',
-              'aria-orientation': 'vertical',
-              'aria-label': tr(t, 'resizeOutline'),
-              'aria-valuenow': outlineWidth,
-              'aria-valuemin': OUTLINE_WIDTH_MIN,
-              'aria-valuemax': OUTLINE_WIDTH_MAX,
-              tabIndex: 0,
-              onPointerDown: startOutlineDrag,
-              onDoubleClick: () => commitOutlineWidth(OUTLINE_WIDTH_DEFAULT),
-              onKeyDown: nudgeOutlineWidth,
-            })
-            : null,
-          h('div', {
-            className: 'oprilx-editor-pane',
-            key: 'editor',
-            'data-pane': 'source',
-          }, editor),
-          preview
-            ? h('div', { className: 'oprilx-panel-doc', key: 'doc', ref: node => { docRef.current = node } }, doc)
-            : null,
-        ]),
+        empty
+          ? h('div', { className: 'oprilx-panel-blank', key: 'empty' }, [
+            h('div', { className: 'oprilx-panel-blank-title', key: 'title' }, tr(t, 'panelNoDocument')),
+            h('div', { className: 'oprilx-panel-blank-hint', key: 'hint' }, tr(t, 'panelEmptyHint')),
+          ])
+          : h('div', {
+            className: 'oprilx-workspace',
+            key: 'workspace',
+            style: { '--opr-outline-width': `${outlineWidth}px` },
+            'data-outline': outlineOpen ? 'true' : 'false',
+            'data-preview': preview ? 'true' : 'false',
+          }, [
+            outlineOpen
+              ? h('div', { className: 'oprilx-outline', key: 'outline', role: 'navigation' }, [
+                h('div', { className: 'oprilx-outline-title', key: 'label' }, tr(t, 'outlineLabel')),
+                outline.length === 0
+                  ? h('div', { className: 'oprilx-outline-empty', key: 'empty' }, tr(t, 'outlineEmpty'))
+                  : outline.map((entry, index) => h('button', {
+                    type: 'button',
+                    key: `${entry.line}:${entry.title}`,
+                    className: 'oprilx-outline-row',
+                    style: { paddingLeft: `${(entry.level - 3) * 12 + 10}px` },
+                    title: entry.title,
+                    'data-level': String(entry.level),
+                    'aria-current': activeOutlineIndex === index ? 'true' : undefined,
+                    'data-active': activeOutlineIndex === index ? 'true' : 'false',
+                    onClick: () => sourceLine(index),
+                  }, [
+                    h('span', { key: 'rail', className: 'oprilx-outline-rail', 'aria-hidden': 'true' }),
+                    h('span', { key: 'text', className: 'oprilx-outline-text' }, entry.title),
+                  ])),
+              ])
+              : null,
+            outlineOpen
+              ? h('div', {
+                className: 'oprilx-divider',
+                key: 'outline-divider',
+                role: 'separator',
+                'aria-orientation': 'vertical',
+                'aria-label': tr(t, 'resizeOutline'),
+                'aria-valuenow': outlineWidth,
+                'aria-valuemin': OUTLINE_WIDTH_MIN,
+                'aria-valuemax': OUTLINE_WIDTH_MAX,
+                tabIndex: 0,
+                onPointerDown: startOutlineDrag,
+                onDoubleClick: () => commitOutlineWidth(OUTLINE_WIDTH_DEFAULT),
+                onKeyDown: nudgeOutlineWidth,
+              })
+              : null,
+            h('div', {
+              className: 'oprilx-editor-pane',
+              key: 'editor',
+              'data-pane': 'source',
+            }, editor),
+            preview
+              ? h('div', { className: 'oprilx-panel-doc', key: 'doc', ref: node => { docRef.current = node } }, doc)
+              : null,
+          ]),
       ])
     }
 

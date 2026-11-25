@@ -121,7 +121,7 @@ function makeTabReact(options = {}) {
 function makePanelReact(options = {}) {
   const order = ['attempt', 'selected', 'documentSession', 'renderState', 'zoom', 'download',
     'paneWidth', 'copied', 'outlineWidth', 'outlineOpen', 'preview', 'source', 'draft',
-    'pendingJump', 'codeFont']
+    'pendingJump', 'activeSection', 'codeFont']
   const values = { ...options }
   const log = {}
   let calls = 0
@@ -256,6 +256,21 @@ function mount(react, globals = {}) {
     documentSlot: findSlot('sidebar.right.tab.document'),
     panelSlot: findSlot('conversation.view'),
   }
+}
+
+/** Find the first element whose component function has this name, without invoking it. */
+function findElement(node, name) {
+  if (node === null || node === undefined) return undefined
+  if (Array.isArray(node)) {
+    for (const child of node) {
+      const found = findElement(child, name)
+      if (found !== undefined) return found
+    }
+    return undefined
+  }
+  if (typeof node !== 'object' || node.props === undefined) return undefined
+  if (typeof node.type === 'function' && node.type.name === name) return node
+  return findElement(node.props.children, name)
 }
 
 /** Flatten an element tree into inspectable nodes, rendering nested components.
@@ -639,7 +654,10 @@ section('zoom steps follow the fit scale in a narrow pane')
 
 section('outline column layout')
 {
-  const { slots, en } = mount(makePanelReact({}))
+  const { slots, en } = mount(makePanelReact({
+    selected: 'demo/example.tex',
+    documentSession: 'sess-1',
+  }))
   const view = slots.find(entry => entry.options?.name === 'conversation.view')
   const tree = view.body({ t: key => en.get(key) ?? key })
   const nodes = flatten(tree)
@@ -672,7 +690,7 @@ section('outline column layout')
 section('outline column: resize and hide')
 {
   // Hidden: neither the column nor its divider renders, and the toggle still offers itself.
-  const hidden = makePanelReact({ outlineOpen: false })
+  const hidden = makePanelReact({ outlineOpen: false, selected: 'demo/example.tex' })
   const hiddenMount = mount(hidden)
   const hiddenView = hiddenMount.slots.find(entry => entry.options?.name === 'conversation.view')
   const hiddenNodes = flatten(hiddenView.body({ t: key => hiddenMount.en.get(key) ?? key }))
@@ -692,7 +710,7 @@ section('outline column: resize and hide')
     'dsh.sessions.current': JSON.stringify({ sessionId: 'sess-1' }),
   })
   try {
-    const stored = makePanelReact({})
+    const stored = makePanelReact({ selected: 'demo/example.tex' })
     const storedMount = mount(stored)
     const storedView = storedMount.slots.find(entry => entry.options?.name === 'conversation.view')
     const storedNodes = flatten(storedView.body({ t: key => storedMount.en.get(key) ?? key }))
@@ -720,7 +738,7 @@ section('outline column: resize and hide')
   })
   globalThis.localStorage = storage
   try {
-    const toggle = makePanelReact({})
+    const toggle = makePanelReact({ selected: 'demo/example.tex' })
     const toggleMount = mount(toggle)
     const toggleView = toggleMount.slots.find(entry => entry.options?.name === 'conversation.view')
     const nodes = flatten(toggleView.body({ t: key => toggleMount.en.get(key) ?? key }))
@@ -736,6 +754,82 @@ section('outline column: resize and hide')
   } finally {
     delete globalThis.localStorage
   }
+}
+
+section('outline marks the section the editor is in')
+{
+  const source = {
+    status: 'ready',
+    path: 'demo/example.tex',
+    text: '\\section{Alpha}\nalpha body\n\\section{Beta}\nbeta body',
+    version: '1-1',
+    truncated: false,
+  }
+  const props = { selected: 'demo/example.tex', documentSession: 'sess-1', source }
+
+  // The editor reports its index through the prop; the panel stores it with its document.
+  const reporting = makePanelReact(props)
+  const reportingMount = mount(reporting)
+  const reportingView = reportingMount.slots.find(entry => entry.options?.name === 'conversation.view')
+  // The registered body returns the root element; its type is the panel component.
+  const panelTree = reportingView.body({ t: key => reportingMount.en.get(key) ?? key })
+    .type({ t: key => reportingMount.en.get(key) ?? key })
+  const editorElement = findElement(panelTree, 'SourceEditor')
+  check('the editor reports its active section',
+    typeof editorElement?.props?.onActiveSection === 'function')
+  editorElement.props.onActiveSection(1)
+  check('the panel stores the reported index and document',
+    reporting.__log.activeSection?.at(-1)?.index === 1
+    && reporting.__log.activeSection?.at(-1)?.path === 'demo/example.tex',
+    JSON.stringify(reporting.__log.activeSection))
+
+  // With the reported index stored, only that row is current.
+  const marked = makePanelReact({
+    ...props,
+    activeSection: { path: 'demo/example.tex', index: 1 },
+  })
+  const markedMount = mount(marked)
+  const markedView = markedMount.slots.find(entry => entry.options?.name === 'conversation.view')
+  const rows = flatten(markedView.body({ t: key => markedMount.en.get(key) ?? key }))
+    .filter(node => node.props?.className === 'oprilx-outline-row')
+  check('the outline has one row per section', rows.length === 2, String(rows.length))
+  check('the matching row is current', rows[1]?.props?.['aria-current'] === 'true'
+    && rows[1]?.props?.['data-active'] === 'true',
+  JSON.stringify(rows.map(row => row.props?.['aria-current'])))
+  check('the other row is not current', rows[0]?.props?.['aria-current'] === undefined
+    && rows[0]?.props?.['data-active'] === 'false')
+
+  // A stale index, or an index from another file, never marks a row.
+  for (const [label, activeSection] of [
+    ['a too-large index', { path: 'demo/example.tex', index: 9 }],
+    ['an index from another file', { path: 'demo/other.tex', index: 0 }],
+    ['no index at all', undefined],
+  ]) {
+    const stale = makePanelReact({ ...props, activeSection })
+    const staleMount = mount(stale)
+    const staleView = staleMount.slots.find(entry => entry.options?.name === 'conversation.view')
+    const staleRows = flatten(staleView.body({ t: key => staleMount.en.get(key) ?? key }))
+      .filter(node => node.props?.className === 'oprilx-outline-row')
+    check(`no row is current for ${label}`,
+      staleRows.every(row => row.props?.['aria-current'] === undefined
+        && row.props?.['data-active'] === 'false'),
+    JSON.stringify(staleRows.map(row => row.props?.['data-active'])))
+  }
+
+  // Clicking a row marks it immediately, before the editor's scroll callback.
+  const clicking = makePanelReact(props)
+  const clickingMount = mount(clicking)
+  const clickingView = clickingMount.slots.find(entry => entry.options?.name === 'conversation.view')
+  const clickRows = flatten(clickingView.body({ t: key => clickingMount.en.get(key) ?? key }))
+    .filter(node => node.props?.className === 'oprilx-outline-row')
+  clickRows[1].props.onClick()
+  check('a clicked row becomes current immediately',
+    clicking.__log.activeSection?.at(-1)?.index === 1
+    && clicking.__log.activeSection?.at(-1)?.path === 'demo/example.tex',
+    JSON.stringify(clicking.__log.activeSection))
+  check('the clicked row still jumps the editor',
+    clicking.__log.pendingJump?.at(-1)?.line === 3,
+    JSON.stringify(clicking.__log.pendingJump))
 }
 
 section('entry points')
@@ -852,7 +946,7 @@ section('panel: the shown preview sits beside the editor')
 section('preview column: hidden by default, toggled independently')
 {
   // Default: no preview column in the tree, and the header offers to open it.
-  const hidden = makePanelReact({})
+  const hidden = makePanelReact({ selected: 'demo/example.tex' })
   const hiddenMount = mount(hidden)
   const hiddenView = hiddenMount.slots.find(entry => entry.options?.name === 'conversation.view')
   const hiddenNodes = flatten(hiddenView.body({ t: key => hiddenMount.en.get(key) ?? key }))
@@ -866,7 +960,7 @@ section('preview column: hidden by default, toggled independently')
   })
   globalThis.localStorage = toggleStorage
   try {
-    const toggled = makePanelReact({})
+    const toggled = makePanelReact({ selected: 'demo/example.tex' })
     const toggledMount = mount(toggled)
     const toggledView = toggledMount.slots.find(entry => entry.options?.name === 'conversation.view')
     const nodes = flatten(toggledView.body({ t: key => toggledMount.en.get(key) ?? key }))
@@ -888,7 +982,7 @@ section('preview column: hidden by default, toggled independently')
     'dsh.sessions.current': JSON.stringify({ sessionId: 'sess-1' }),
   })
   try {
-    const stored = makePanelReact({})
+    const stored = makePanelReact({ selected: 'demo/example.tex' })
     const storedMount = mount(stored)
     const storedView = storedMount.slots.find(entry => entry.options?.name === 'conversation.view')
     const nodes = flatten(storedView.body({ t: key => storedMount.en.get(key) ?? key }))
@@ -901,7 +995,7 @@ section('preview column: hidden by default, toggled independently')
   }
 
   // Both toggles are independent.
-  const bothOff = makePanelReact({ outlineOpen: false, preview: false })
+  const bothOff = makePanelReact({ outlineOpen: false, preview: false, selected: 'demo/example.tex' })
   const bothOffMount = mount(bothOff)
   const bothOffView = bothOffMount.slots.find(entry => entry.options?.name === 'conversation.view')
   const bothOffNodes = flatten(bothOffView.body({ t: key => bothOffMount.en.get(key) ?? key }))
@@ -909,20 +1003,93 @@ section('preview column: hidden by default, toggled independently')
     bothOffNodes.some(node => node.props?.className === 'oprilx-editor-pane')
     && !bothOffNodes.some(node => node.props?.className === 'oprilx-outline')
     && !bothOffNodes.some(node => node.props?.className === 'oprilx-panel-doc'))
-  const outlineOnly = makePanelReact({ outlineOpen: true, preview: false })
+  const outlineOnly = makePanelReact({ outlineOpen: true, preview: false, selected: 'demo/example.tex' })
   const outlineOnlyMount = mount(outlineOnly)
   const outlineOnlyView = outlineOnlyMount.slots.find(entry => entry.options?.name === 'conversation.view')
   const outlineOnlyNodes = flatten(outlineOnlyView.body({ t: key => outlineOnlyMount.en.get(key) ?? key }))
   check('the two toggles are independent (outline only)',
     outlineOnlyNodes.some(node => node.props?.className === 'oprilx-outline')
     && !outlineOnlyNodes.some(node => node.props?.className === 'oprilx-panel-doc'))
-  const previewOnly = makePanelReact({ outlineOpen: false, preview: true })
+  const previewOnly = makePanelReact({ outlineOpen: false, preview: true, selected: 'demo/example.tex' })
   const previewOnlyMount = mount(previewOnly)
   const previewOnlyView = previewOnlyMount.slots.find(entry => entry.options?.name === 'conversation.view')
   const previewOnlyNodes = flatten(previewOnlyView.body({ t: key => previewOnlyMount.en.get(key) ?? key }))
   check('the two toggles are independent (preview only)',
     previewOnlyNodes.some(node => node.props?.className === 'oprilx-panel-doc')
     && !previewOnlyNodes.some(node => node.props?.className === 'oprilx-outline'))
+}
+
+section('header status pill')
+{
+  const states = [
+    { renderState: { status: 'idle' }, tone: 'idle', label: 'Idle' },
+    { renderState: { status: 'compiling', path: 'demo/example.tex' }, tone: 'compiling', label: 'Compiling' },
+    { renderState: { status: 'error', error: { code: 'network' }, path: 'demo/example.tex' }, tone: 'error', label: 'Error' },
+    {
+      renderState: {
+        status: 'ready',
+        path: 'demo/example.tex',
+        pages: [{ url: 'blob:pill-1', width: 1191, height: 1684 }],
+        pageCount: 3,
+        durationMs: 400,
+        dpi: 144,
+        pdfUrl: '',
+        truncated: false,
+      },
+      tone: 'ready',
+      label: 'Ready',
+      detail: '3 pages',
+    },
+  ]
+  for (const state of states) {
+    const react = makePanelReact({
+      selected: 'demo/example.tex',
+      documentSession: 'sess-1',
+      renderState: state.renderState,
+    })
+    const { slots, en } = mount(react)
+    const view = slots.find(entry => entry.options?.name === 'conversation.view')
+    const nodes = flatten(view.body({ t: key => en.get(key) ?? key }))
+    const pill = nodes.find(node => node.props?.className === 'oprilx-panel-status')
+    check(`the pill shows the ${state.tone} state`,
+      pill?.props?.['data-tone'] === state.tone
+      && pill?.props?.role === 'status'
+      && String(pill?.props?.['aria-label']).includes(state.label),
+    JSON.stringify({ tone: pill?.props?.['data-tone'], label: pill?.props?.['aria-label'] }))
+    check(`the ${state.tone} pill is a button`, pill?.type === 'button' && typeof pill?.props?.onClick === 'function')
+    if (state.detail !== undefined) {
+      check('the ready pill carries the page count',
+        String(pill?.props?.['aria-label']).includes(state.detail),
+        String(pill?.props?.['aria-label']))
+    }
+  }
+
+  // The pill is the collapsed preview's state; with the preview open it steps aside.
+  const open = makePanelReact({ selected: 'demo/example.tex', preview: true })
+  const openMount = mount(open)
+  const openView = openMount.slots.find(entry => entry.options?.name === 'conversation.view')
+  check('no pill while the preview is open',
+    !flatten(openView.body({ t: key => openMount.en.get(key) ?? key }))
+      .some(node => node.props?.className === 'oprilx-panel-status'))
+
+  // Clicking it opens the preview and remembers the choice.
+  const storage = fakeStorage({ 'dsh.sessions.current': JSON.stringify({ sessionId: 'sess-1' }) })
+  globalThis.localStorage = storage
+  try {
+    const react = makePanelReact({ selected: 'demo/example.tex', renderState: { status: 'idle' } })
+    const mountBundle = mount(react)
+    const view = mountBundle.slots.find(entry => entry.options?.name === 'conversation.view')
+    const pill = flatten(view.body({ t: key => mountBundle.en.get(key) ?? key }))
+      .find(node => node.props?.className === 'oprilx-panel-status')
+    pill.props.onClick()
+    check('clicking the pill shows the preview', react.__log.preview?.at(-1) === true,
+      JSON.stringify(react.__log.preview))
+    check('clicking the pill persists the preview choice', storage.writes.some(entry =>
+      entry[0] === 'dsh-openprism-latex.view-preview' && entry[1] === 'open'),
+    JSON.stringify(storage.writes))
+  } finally {
+    delete globalThis.localStorage
+  }
 }
 
 section('panel: the render request carries the remembered engine')
@@ -1011,7 +1178,10 @@ section('view follows the document the right sidebar publishes')
     }
     return Promise.resolve({ ok: true, status: 200, json: async () => ({ ok: false }) })
   }
-  const react = makeSurfaceReact({ tab: { state: tabReady } })
+  const react = makeSurfaceReact({
+    tab: { state: tabReady },
+    panel: { selected: 'demo/other.tex', documentSession: 'sess-1' },
+  })
   const bundle = mount(react, { fetch })
   react.__effects(true)
 
@@ -1064,7 +1234,7 @@ section('view follows the document the right sidebar publishes')
     && viewNodes.some(node => node.props?.className === 'oprilx-editor-pane'))
 }
 
-section('view without a published document')
+section('empty state with no document')
 {
   globalThis.localStorage = { getItem: () => JSON.stringify({ sessionId: 'sess-1' }) }
   try {
@@ -1072,13 +1242,38 @@ section('view without a published document')
     const view = slots.find(entry => entry.options?.name === 'conversation.view')
     const nodes = flatten(view.body({ t: key => en.get(key) ?? key }))
     const text = nodes.map(node => (typeof node.text === 'string' ? node.text : '')).join(' ')
-    check('the view renders without a document', nodes.length > 0)
-    check('the empty view points at the right sidebar',
-      text.includes('Open a document from the right sidebar.'), text.slice(0, 160))
-    check('the outline column is still offered', nodes.some(node =>
-      node.props?.className === 'oprilx-outline'))
+    const blank = nodes.find(node => node.props?.className === 'oprilx-panel-blank')
+    check('the header survives the empty state',
+      nodes.some(node => node.props?.className === 'oprilx-panel-head'))
+    check('both toggles survive the empty state',
+      nodes.some(node => node.type === 'button' && node.props['aria-label'] === 'Hide the outline')
+      && nodes.some(node => node.type === 'button' && node.props['aria-label'] === 'Show the preview'))
+    check('the columns step aside for one calm note',
+      blank !== undefined
+      && !nodes.some(node => node.props?.className === 'oprilx-workspace'
+        || node.props?.className === 'oprilx-outline'
+        || node.props?.className === 'oprilx-editor-pane'
+        || node.props?.className === 'oprilx-panel-doc'))
+    check('the empty state names the situation',
+      text.includes('Open a document from the right sidebar.'), text.slice(0, 180))
+    check('the empty state says where documents come from',
+      text.includes('Open a .tex file in the right sidebar and it appears here.'), text.slice(0, 220))
+    check('the empty state offers no fake buttons', flatten(blank).every(node => node.type !== 'button'))
     check('no file list is rendered', !nodes.some(node =>
       node.props?.className === 'oprilx-panel-list'))
+
+    // A document that is known but still loading keeps the small note, not the empty state.
+    const loading = makePanelReact({ selected: 'demo/example.tex', documentSession: 'sess-1' })
+    const loadingMount = mount(loading)
+    const loadingView = loadingMount.slots.find(entry => entry.options?.name === 'conversation.view')
+    const loadingNodes = flatten(loadingView.body({ t: key => loadingMount.en.get(key) ?? key }))
+    const loadingText = loadingNodes.map(node => (typeof node.text === 'string' ? node.text : '')).join(' ')
+    check('a known document keeps the workspace while its source loads',
+      loadingNodes.some(node => node.props?.className === 'oprilx-workspace')
+      && loadingNodes.some(node => node.props?.className === 'oprilx-outline')
+      && !loadingNodes.some(node => node.props?.className === 'oprilx-panel-blank'))
+    check('the loading source keeps the small note',
+      loadingText.includes('Loading source'), loadingText.slice(-140))
   } finally {
     delete globalThis.localStorage
   }

@@ -396,9 +396,46 @@ section('view preview toggle')
     source.includes('function rememberViewPreview')
     && source.includes("dsh-openprism-latex.view-preview"))
   check('a hidden preview skips the compile',
-    source.includes('if (preview !== true || sessionId === undefined || selected === undefined)'))
+    source.includes('if (preview !== true) {')
+    && !source.includes('if (preview !== true || sessionId === undefined'))
+  check('a collapsed preview keeps the last finished state of this document',
+    source.includes("previous.status === 'compiling' || previous.path !== selected")
+    && source.includes("? { status: 'idle' }"))
   check('the editor widens when the preview is hidden',
     source.includes('.oprilx-workspace[data-preview="false"] .oprilx-editor-pane'))
+}
+
+section('view chrome: outline marker, status pill, empty state')
+{
+  check('the editor reports its active section',
+    source.includes('onActiveSectionRef.current = onActiveSection')
+    && source.includes("if (typeof callback === 'function') callback(activeSection)"))
+  check('the Outline row marks the current section',
+    source.includes("'aria-current': activeOutlineIndex === index ? 'true' : undefined")
+    && source.includes("'data-active': activeOutlineIndex === index ? 'true' : 'false'"))
+  check('a click marks the row immediately',
+    source.includes('onClick: () => sourceLine(index)')
+    && source.includes('setActiveSection({ path: selected, index: idx })'))
+  check('a stale index is clamped against the document and the outline',
+    source.includes('activeSection.path === selected')
+    && source.includes('activeSection.index < outline.length'))
+  check('the header has a status pill with four tones',
+    source.includes("className: 'oprilx-panel-status'")
+    && source.includes("'data-tone': pill.tone")
+    && source.includes("role: 'status'"))
+  check('the pill opens the preview',
+    source.includes('onClick: showPreview')
+    && source.includes('const showPreview = () =>'))
+  check('the pill labels come from copy, not literals',
+    source.includes("'statusCompiling'") && source.includes("'statusError'")
+    && source.includes("'panelStatusReady'") && source.includes("'panelStatusIdle'"))
+  check('the pill is visible only while the preview is collapsed',
+    source.includes('preview !== true\n            ? h(\'button\', {'))
+  check('no document renders one calm empty state',
+    source.includes('const empty = selected === undefined')
+    && source.includes("className: 'oprilx-panel-blank'")
+    && source.includes("className: 'oprilx-panel-blank-title'"))
+  check('the empty state has no action buttons', !source.includes('oprilx-panel-blank-action'))
 }
 
 section('inverse search only publishes')
