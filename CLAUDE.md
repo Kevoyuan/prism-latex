@@ -4,8 +4,9 @@ DSH bundle: a LaTeX preview for DeepSeek Harness. Host half is a Cordis plugin (
 client half is a single classic script loaded by the DSH module loader (`src/client.js`).
 No build step; the only runtime dependency is the user's own TeX Live.
 
-Read `POSTMORTEM.md` before touching the right sidebar. It lists the six regressions this
-project already paid for, with the exact code that caused each one.
+Read `POSTMORTEM.md` before touching the right sidebar. It lists the eight regressions this
+project already paid for, with the exact code that caused each one. `README.md` and
+`README_CN.md` are the same document in two languages: change both or neither.
 
 ## Facts that decide the design
 
@@ -17,6 +18,8 @@ project already paid for, with the exact code that caused each one.
   right sidebar, which the user relies on. The early "the pane closes when this type wins"
   regressions were a misplaced React cleanup and a refused address, not the claim itself; see
   `POSTMORTEM.md` §1 and §3.
+- **Two READMEs, one document.** `README.md` is English, `README_CN.md` is Chinese; each links to
+  the other and they must describe the same behaviour. Screenshots live in `docs/`.
 - **One entry point: the `conversation.view` named LaTeX.** The left-rail icon and the `main`
   panel were removed. The view is the *editor*: an Outline column on the left (drag-resize
   140–360px, hideable) and the source editor filling the rest; its own preview column is hidden
