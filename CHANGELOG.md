@@ -6,11 +6,13 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
-### Added
+### Changed
 
-- Storefront assets for plugin markets: `assets/icon-180.png`, a 180 px raster of `icon.svg`, and
-  `screenshots.json`, which lists the three screenshots in `docs/`. The npm package and the runtime
-  are unchanged.
+- **The icon is redrawn.** A solid prism with a four-colour refracted fan on the indigo card now
+  replaces the line-art triangle; `icon.svg` is the source, and `assets/icon-180.png` is a 180 px
+  raster of it for plugin-market cards.
+- `screenshots.json` lists the three screenshots in `docs/`, so storefronts show them in that order
+  instead of guessing from the README.
 
 ## [0.2.1] — 2026-11-25
 
