@@ -9,6 +9,8 @@ Built on the idea behind [**Open-Prism**](https://github.com/assistant-ui/open-p
 open-source AI LaTeX workspace with a live preview — brought into DSH. This is an independent
 implementation, not a fork; see [Credits and provenance](#credits-and-provenance).
 
+![Architecture: two surfaces over one host](docs/architecture.svg)
+
 ![The LaTeX view: outline rail, source editor, rendered page](docs/view.png)
 
 <sub>Screenshots from 0.1.0 on macOS (dark theme). The header, outline highlight and status pill
@@ -174,6 +176,8 @@ MIT — see [`LICENSE`](LICENSE). Third-party notices: [`THIRD_PARTY_NOTICES.md`
 ---
 
 ## 中文
+
+![架构：两个界面，一个宿主](docs/architecture.svg)
 
 ![LaTeX 视图：左侧 Outline、中间源码编辑器、右侧渲染页](docs/view.png)
 

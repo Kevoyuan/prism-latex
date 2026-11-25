@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1040" height="460" viewBox="0 0 1040 460" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">
+  <rect width="1040" height="460" fill="#0b0d0e"/>
+  <text x="28" y="40" fill="#e6e8ea" font-size="19" font-weight="600">dsh-openprism-latex</text>
+  <text x="28" y="62" fill="#8b93a0" font-size="12.5">one plugin instance, two surfaces, no build step</text>
+
+  <!-- surfaces -->
+  <rect x="28" y="86" width="330" height="150" rx="9" fill="#16181a" stroke="#2a2f35"/>
+  <text x="46" y="110" fill="#9aa0a6" font-size="11" letter-spacing="1">RIGHT SIDEBAR TAB</text>
+  <text x="46" y="134" fill="#e6e8ea" font-size="13">claims .tex / .latex / .ltx</text>
+  <text x="46" y="156" fill="#b8bfc8" font-size="12">compile · page stack · fit-width</text>
+  <text x="46" y="176" fill="#b8bfc8" font-size="12">engine picker · download PDF</text>
+  <text x="46" y="196" fill="#b8bfc8" font-size="12">Preview / Source / Side by side</text>
+  <text x="46" y="220" fill="#4b8efc" font-size="11.5">double-click a spot → publishes a jump</text>
+
+  <rect x="682" y="86" width="330" height="150" rx="9" fill="#16181a" stroke="#2a2f35"/>
+  <text x="700" y="110" fill="#9aa0a6" font-size="11" letter-spacing="1">CONVERSATION VIEW “LaTeX”</text>
+  <text x="700" y="134" fill="#e6e8ea" font-size="13">outline rail · editor · preview</text>
+  <text x="700" y="156" fill="#b8bfc8" font-size="12">outline: drag-resize, hideable,</text>
+  <text x="700" y="174" fill="#b8bfc8" font-size="12">highlights the section in view</text>
+  <text x="700" y="192" fill="#b8bfc8" font-size="12">editor: black, highlights, ⌘S saves</text>
+  <text x="700" y="222" fill="#4b8efc" font-size="11.5">receives jump → caret on the character</text>
+
+  <!-- channels -->
+  <path d="M358 148 H682" stroke="#3f8efc" stroke-width="1.6" stroke-dasharray="6 5"/>
+  <path d="M682 186 H358" stroke="#3f8efc" stroke-width="1.6" stroke-dasharray="6 5"/>
+  <text x="446" y="140" fill="#7fb0ff" font-size="11.5">publishDocument({path, sessionId})</text>
+  <text x="446" y="203" fill="#7fb0ff" font-size="11.5">publishJump({line, column, path})</text>
+
+  <!-- host -->
+  <rect x="28" y="276" width="984" height="76" rx="9" fill="#121517" stroke="#2a2f35"/>
+  <text x="46" y="299" fill="#9aa0a6" font-size="11" letter-spacing="1">HOST · src/host.js — loopback only, origin-guarded, confined to the workspace</text>
+  <text x="46" y="323" fill="#c6ced8" font-size="12">/render · /pdf · /files · /source · /synctex · POST /write</text>
+  <text x="46" y="342" fill="#6f7885" font-size="11">every path resolves inside the session workspace; anything that escapes is refused</text>
+
+  <!-- toolchain -->
+  <rect x="28" y="382" width="484" height="56" rx="9" fill="#121517" stroke="#2a2f35"/>
+  <text x="46" y="405" fill="#9aa0a6" font-size="11" letter-spacing="1">LOCAL TOOLCHAIN</text>
+  <text x="46" y="425" fill="#c6ced8" font-size="12">latexmk (default) → pdflatex fallback · xelatex · lualatex</text>
+
+  <rect x="528" y="382" width="484" height="56" rx="9" fill="#121517" stroke="#2a2f35"/>
+  <text x="546" y="405" fill="#9aa0a6" font-size="11" letter-spacing="1">RASTER + MAPPING</text>
+  <text x="546" y="425" fill="#c6ced8" font-size="12">Ghostscript → PNG pages · SyncTeX → line + character</text>
+
+  <path d="M520 148 V276" stroke="#2a2f35" stroke-width="1.2"/>
+  <path d="M352 276 V236" stroke="#2a2f35" stroke-width="1.2"/>
+  <path d="M688 276 V236" stroke="#2a2f35" stroke-width="1.2"/>
+</svg>
