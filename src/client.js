@@ -1349,12 +1349,23 @@ window.__ModuleLoader__.load({
   color: #e5c07b;
 }
 .oprilx-gutter {
-  background: #0f1113;
+  background: #000;
   color: #4b545e;
 }
 .oprilx-source {
-  background: #0f1113;
+  background: #000;
   color: #e6e8ea;
+}
+/* The editor is the one surface that goes fully black: the panel and the preview around it
+   keep their own grey so the code area reads as the focus of the view. */
+.oprilx-source .oprilx-editor-body,
+.oprilx-source .oprilx-gutter,
+.oprilx-source .oprilx-code-highlight,
+.oprilx-source .oprilx-code-input {
+  background: #000;
+}
+.oprilx-source .oprilx-code-input[data-ime="true"] {
+  background: #101010;
 }
 /* Token classes follow codemirror-lang-latex, the grammar Open-Prism's editor uses:
    CtrlSeq → command, EnvName → environment, sectioning → section, Comment, Bracket,
