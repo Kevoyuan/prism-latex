@@ -2978,6 +2978,7 @@ window.__ModuleLoader__.load({
               column: body.column,
               path: body.path,
               sessionId: address.sessionId ?? readCurrentSessionId(),
+              debug: body.debug,
             })
           })
           .catch(() => {})
@@ -4172,6 +4173,7 @@ window.__ModuleLoader__.load({
                 column: body.column,
                 path: body.path,
                 sessionId,
+                debug: body.debug,
               })
               return
             }
