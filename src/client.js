@@ -1383,8 +1383,11 @@ window.__ModuleLoader__.load({
   color: var(--opr-muted);
 }
 .oprilx-icon-button:hover {
-  background: var(--opr-surface-2);
-  color: #fff;
+  /* The --opr-* palette only exists on the sidebar roots; the conversation view mounts
+   * .oprilx-panel, where those names are undefined and the declaration would be invalid.
+   * The shell token is the same layer, so the chip still appears there. */
+  background: var(--opr-surface-2, var(--dsw-alias-bg-layer-2, rgba(127, 127, 127, .16)));
+  color: var(--opr-text, var(--dsw-alias-label-primary, #fff));
 }
 /* Pressed is a state, not a hover. The Outline and preview toggles already carry
  * aria-pressed, so the header can show which column is on without a pointer, and the
