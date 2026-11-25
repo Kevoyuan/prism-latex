@@ -1091,10 +1091,15 @@ window.__ModuleLoader__.load({
   min-width: 0;
   flex: 1 1 auto;
 }
+/* The view is an editor, so its own name speaks the editor's voice: the same mono as the code
+ * and the rail labels, not one more app heading in the system face. The subtitle keeps the
+ * UI face, which is where file names and counts belong. */
 .oprilx-panel-title {
-  font-size: 16px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 13px;
   font-weight: 600;
-  line-height: 1.3;
+  letter-spacing: .02em;
+  line-height: 1.4;
 }
 .oprilx-panel-sub {
   display: flex;

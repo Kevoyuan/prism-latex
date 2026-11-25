@@ -16,6 +16,9 @@ All notable changes to this project are documented here. The format follows
   visible.
 - **The header toggles show their state** (design audit F4): the Outline and preview icon buttons
   paint a filled surface while pressed, so which column is open is visible without hovering.
+- **The view title wears the editor's face** (design audit F8): `LaTeX` is set in the editor's
+  monospace at 13/600 with .02em tracking, matching the rail labels; the document subtitle keeps
+  the UI face.
 
 ## [0.1.0] — 2026-11-25
 
