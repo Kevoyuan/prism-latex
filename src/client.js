@@ -4868,7 +4868,15 @@ window.__ModuleLoader__.load({
         if (session !== undefined && jump.sessionId !== undefined && jump.sessionId !== session) return
         traceJump('receive', { line: jump.line, path: jump.path, selected: selectedRef.current })
         if (selectedRef.current !== jump.path) setSelected(jump.path)
-        setPendingJump({ line: jump.line, column: jump.column ?? 0, seq: jump.at ?? Date.now() })
+        // `path` is what lets the editor accept the jump: the prop is only handed over when
+        // the pending jump names the file the editor holds. Dropping it here made every
+        // double-click publish and receive and then do nothing at all.
+        setPendingJump({
+          line: jump.line,
+          column: jump.column ?? 0,
+          seq: jump.at ?? Date.now(),
+          path: jump.path,
+        })
       }), [])
 
       // The view's document is whatever the right sidebar is showing; when nothing has been
