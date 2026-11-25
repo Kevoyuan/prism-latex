@@ -8,9 +8,10 @@ All notable changes to this project are documented here. The format follows
 
 ### Changed
 
-- **The icon is redrawn.** A solid prism with a four-colour refracted fan on the indigo card now
-  replaces the line-art triangle; `icon.svg` is the source, and `assets/icon-180.png` is a 180 px
-  raster of it for plugin-market cards.
+- **The icon is a rendered glass prism** on the indigo card, replacing the line-art triangle.
+  `assets/icon.png` (256 px) is what the bundle exports as `./icon`; `assets/icon-180.png` is the
+  same artwork at the size plugin markets ask for. The vector `icon.svg` is gone: the new mark is a
+  render, and hand-tracing it as SVG would be a worse copy of it.
 - `screenshots.json` lists the three screenshots in `docs/`, so storefronts show them in that order
   instead of guessing from the README.
 
