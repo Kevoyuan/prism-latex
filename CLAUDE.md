@@ -28,8 +28,10 @@ project already paid for, with the exact code that caused each one. `README.md` 
 - **The view's document comes from the right sidebar.** `LatexTab` publishes its address through
   the module-level `publishDocument` channel; the view adopts that path and session. There is no
   file list in the view, by the user's decision: files are opened from the right sidebar tabs.
-- **A page double-click only publishes.** `publishJump({line, column, path, sessionId})` feeds
-  the view's caret; nothing in that path may call `setMode` or `jumpToSourceLine`, so the preview
+- **A page double-click never changes the layout.** It publishes
+  `publishJump({line, column, path, sessionId})` for the view's caret, and when the sidebar already
+  shows the page beside its editor (`mode === 'split'`) it moves that editor's caret too through
+  local `jump` state. Nothing in that path may call `setMode` or `jumpToSourceLine`, so the preview
   pane keeps whatever mode the user chose.
 - Host routes are loopback-only and origin-guarded: `/render`, `/pdf`, `/files`, `/source`,
   `/synctex`, `POST /write`. Anything new repeats those guards.

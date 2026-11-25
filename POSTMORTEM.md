@@ -188,4 +188,5 @@ on the real page, and the suite asserts only structure — never appearance.
   composer underneath. The left-rail icon, the `main` panel and the in-view `.tex` file list are
   gone; the view follows the document the right sidebar is showing.
 - A page double-click publishes a jump through a module-level channel and **never changes the
-  preview pane's mode**; the conversation view's editor column takes the caret.
+  preview pane's mode**; the conversation view's editor column takes the caret, and in split mode
+  the sidebar's own editor takes it as well.

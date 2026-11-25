@@ -4409,8 +4409,7 @@ window.__ModuleLoader__.load({
               return
             }
             if (body.path === target.path) {
-              // Publish only: the conversation view's editor takes the caret. This pane
-              // keeps the mode the user picked — a double-click never changes the layout.
+              // Publish for the conversation view's editor, wherever it is mounted.
               publishJump({
                 line: body.line,
                 column: body.column,
@@ -4418,6 +4417,17 @@ window.__ModuleLoader__.load({
                 sessionId,
                 debug: body.debug,
               })
+              // This pane's own editor takes the caret too, when the page already sits beside
+              // it. The mode is never touched, so a double-click cannot pull the preview into
+              // a layout the user did not pick.
+              if (mode === 'split' && source.status === 'ready') {
+                const within = Number.isFinite(Number(body.column)) ? Math.max(0, Number(body.column)) : 0
+                setJump(previous => ({
+                  line: Number(body.line),
+                  column: within,
+                  seq: (previous?.seq ?? 0) + 1,
+                }))
+              }
               return
             }
             // The spot came from an \input or \include sibling: report where it is.

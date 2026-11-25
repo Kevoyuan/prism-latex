@@ -528,6 +528,8 @@ section('inverse search only publishes')
       block?.includes('jumpToSourceLine(') === false)
   }
   check('the document preview publishes too', source.includes('onPageDoubleClick: previewInverseSearchAt'))
+  check('the sidebar editor takes the caret when the page sits beside it',
+    tabInverse?.includes("mode === 'split' && source.status === 'ready'") === true)
   check('the conversation view subscribes to the channel',
     source.includes('useEffect(() => subscribeJump('))
 }
