@@ -11,7 +11,8 @@ implementation, not a fork; see [Credits and provenance](#credits-and-provenance
 
 ![The LaTeX view: outline rail, source editor, rendered page](docs/view.png)
 
-<sub>Screenshots captured from 0.1.0 on macOS (dark theme).</sub>
+<sub>Screenshots from 0.1.0 on macOS (dark theme). The header, outline highlight and status pill
+have since been refined; replace these images after the next capture.</sub>
 
 ---
 
@@ -52,8 +53,13 @@ Two surfaces, one plugin instance:
   a button that opens the source there.
 
 **Editing** (in the `LaTeX` view)
-- Syntax highlighting for LaTeX (the `codemirror-lang-latex` token grammar), line numbers, black
-  code surface.
+- Syntax highlighting for LaTeX (the `codemirror-lang-latex` token grammar), line numbers, and a
+  pure-black code surface so the code area is the focus of the view.
+- The header shows the document name, an unsaved-changes dot and the section count; the build
+  string lives in its tooltip. A status pill (`Ready · N pages` / `Compiling` / `Error` / `Idle`)
+  is visible while the preview is collapsed and turns the preview on when clicked.
+- The Outline rail highlights the section the editor is in and follows the scroll; with no document
+  open the view shows a one-line empty state instead of empty columns.
 - Find and replace, command completion, bracket and `\begin…\end` pairing, IME-safe input.
 - **⌘S** saves through the host (writing the file and recompiling); a save is refused with a
   *changed on disk* banner instead of overwriting another writer. **⌘= / ⌘− / ⌘0** change the editor
@@ -171,7 +177,7 @@ MIT — see [`LICENSE`](LICENSE). Third-party notices: [`THIRD_PARTY_NOTICES.md`
 
 ![LaTeX 视图：左侧 Outline、中间源码编辑器、右侧渲染页](docs/view.png)
 
-<sub>截图取自 0.1.0，macOS 深色主题。</sub>
+<sub>截图取自 0.1.0，macOS 深色主题。头部、Outline 高亮与状态胶囊之后又做了细化，下次截图时替换。</sub>
 
 ### 这是什么
 
@@ -200,7 +206,10 @@ LaTeX 写作工作台 + 实时预览）。本项目是**为 DSH 插件 API 独�
   `lualatex`，选择会被记住。
 - **按页渲染**：Ghostscript 栅格化，适应宽度、最高 300% 缩放、显示页数与编译耗时、可下载 PDF。
 - **报错可读可跳**：显示错误信息、行号、日志尾部；点行号直接跳到源码对应行。
-- **源码编辑**：LaTeX 语法着色、行号、纯黑代码区；查找替换、命令补全、括号与 `\begin…\end` 配对；
+- **源码编辑**：LaTeX 语法着色、行号、纯黑代码区；头部显示文件名、未保存脏点与章节数（构建号在 tooltip
+  里）；预览收起时头部有状态胶囊（`Ready · N 页` / `Compiling` / `Error` / `Idle`），点它展开预览；
+  没有文档时显示一行空状态而不是空列。
+- **Outline 联动**：滚动时高亮当前章节；查找替换、命令补全、括号与 `\begin…\end` 配对；
   `⌘S` 保存并重编译（文件被他人改动时拒绝覆盖并提示）、`⌘=` / `⌘-` / `⌘0` 调字号、`⌘↩` 编译。
 - **粘性章节条**：滚动时当前 `\section` 吸顶显示，点击可跳转；与左侧 Outline 同源。
 - **SyncTeX 反向跳转**：在渲染页上双击，编辑器光标落到**你点的那个字符**上并闪烁该行。点击位置只在

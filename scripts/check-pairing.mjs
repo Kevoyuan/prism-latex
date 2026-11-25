@@ -226,6 +226,21 @@ section('document outline')
   check('empty documents have no outline', collectSections('').length === 0)
 }
 
+section('styles')
+{
+  const client = readFileSync(new URL('../src/client.js', import.meta.url), 'utf8')
+  // Two shipped commits added markup whose classes had no rule at all (POSTMORTEM §8), which
+  // rendered as an unstyled stack and no test could see it. Every class the UI uses must have
+  // a selector somewhere in the bundle.
+  const used = new Set()
+  for (const match of client.matchAll(/className(?::|\s*=)\s*'([^']+)'/g)) {
+    for (const name of match[1].split(/\s+/)) if (name.startsWith('oprilx-')) used.add(name)
+  }
+  const styles = client.slice(client.indexOf('const CSS ='), client.lastIndexOf('})'))
+  const missing = [...used].filter(name => !new RegExp(`\\.${name}\\b`).test(styles))
+  check('every class has a rule', missing.length === 0, missing.join(', '))
+}
+
 section('host identifiers')
 {
   const host = readFileSync(new URL('../src/host.js', import.meta.url), 'utf8')
