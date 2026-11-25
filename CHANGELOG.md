@@ -6,7 +6,11 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
-Nothing yet.
+### Added
+
+- Storefront assets for plugin markets: `assets/icon-180.png`, a 180 px raster of `icon.svg`, and
+  `screenshots.json`, which lists the three screenshots in `docs/`. The npm package and the runtime
+  are unchanged.
 
 ## [0.2.1] — 2026-11-25
 
