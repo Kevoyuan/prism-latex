@@ -61,8 +61,18 @@ LaTeX 写作工作台 + 实时预览）。本项目是**为 DSH 插件 API 独�
 
 ### 安装
 
-与普通 DSH 插件相同：把本包加入 profile 依赖（本地检可用 `link:`），把包名加入
+`prism-latex` 已发布到 npm。与普通 DSH 插件相同：把本包加入 profile 依赖，把包名加入
 `dsh.profile.bundles`，然后重启 DSH。宿主半（`cordis.patch.yml`）与客户端半（`dsh.client`）由包清单声明。
+
+```jsonc
+// profile package.json（节选）
+{
+  "dependencies": { "prism-latex": "^0.2.0" },
+  "dsh": { "profile": { "bundles": ["prism-latex"] } }
+}
+```
+
+本地开发用 `link:` 指向检出目录效果相同；Release 里的 tarball 用 `file:` 规格安装。
 
 **修改 `src/client.js` 后必须完全退出并重开 DSH**：客户端包每次启动只加载一次，`⌘R` 仍是旧代码。
 

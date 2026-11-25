@@ -86,18 +86,20 @@ Two surfaces, one plugin instance:
 
 ### Install
 
-The bundle is installed into a DSH profile like any other plugin package: add it as a dependency of
-the profile (a `link:` dependency works for a local checkout), add its package name to
-`dsh.profile.bundles`, and restart DSH. The bundle registers its `cordis.patch.yml` (host half) and
-its client half through `dsh.client`.
+`prism-latex` is published on npm. Install it into a DSH profile like any other plugin package: add
+it as a dependency, list its name in `dsh.profile.bundles`, restart DSH. The bundle registers its
+`cordis.patch.yml` (host half) and its client half through `dsh.client`.
 
 ```jsonc
 // profile package.json (excerpt)
 {
-  "dependencies": { "prism-latex": "link:/path/to/prism-latex" },
+  "dependencies": { "prism-latex": "^0.2.0" },
   "dsh": { "profile": { "bundles": ["prism-latex"] } }
 }
 ```
+
+A `link:` dependency on a checkout works the same way for development, and the release tarball
+installs with a `file:` spec.
 
 Client code is served once per launch: **quit and reopen DSH after changing `src/client.js`.**
 `⌘R` keeps the old bytes.
