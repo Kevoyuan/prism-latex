@@ -229,36 +229,31 @@ section('document outline')
 section('column mapping')
 {
   const host = readFileSync(new URL('../src/host.js', import.meta.url), 'utf8')
-  const start = host.indexOf('function typesetOffsets(')
+  const start = host.indexOf('const TYPESET_COMMANDS')
   const endMarker = '\n}\n'
   const end = host.indexOf(endMarker, host.indexOf('function columnFromFraction(')) + endMarker.length
   const modulePath = join(directory, 'column.mjs')
-  writeFileSync(modulePath, `${host.slice(start, end)}\nexport { columnFromFraction, typesetOffsets }\n`)
-  const { columnFromFraction, typesetOffsets } = await import(pathToFileURL(modulePath).href)
+  writeFileSync(modulePath, `${host.slice(start, end)}\nexport { columnFromFraction, typesetUnits }\n`)
+  const { columnFromFraction, typesetUnits } = await import(pathToFileURL(modulePath).href)
+  const width = line => typesetUnits(line).reduce((total, unit) => total + unit.weight, 0)
 
-  // Markup takes source columns and no page width, so it must not move the caret.
-  const bold = '\\textbf{Hello} world'
-  check('markup is not typeset', typesetOffsets(bold).length === 11,
-    String(typesetOffsets(bold).length))
-  check('the start of a bold word lands inside the word',
-    columnFromFraction(bold, 0.02) === 8, String(columnFromFraction(bold, 0.02)))
-  check('the middle of a bold line lands near its middle',
-    Math.abs(columnFromFraction(bold, 0.5) - 14) <= 2,
-    String(columnFromFraction(bold, 0.5)))
-  check('a comment is not typeset', typesetOffsets('text % hidden').length === 5)
+  // Commands that print text of their own must count; wrappers must not.
+  check('\\LaTeX prints five characters', width('\\LaTeX{}') === 5, String(width('\\LaTeX{}')))
+  check('\\texttt{.tex} prints four', width('\\texttt{.tex}') === 4, String(width('\\texttt{.tex')))
+  check('\\emph{Fit} prints three', width('\\emph{Fit}') === 3, String(width('\\emph{Fit}')))
+  check('inline math prints its own text', width('$e^{i\\pi} + 1 = 0$') === 11,
+    String(width('$e^{i\\pi} + 1 = 0$')))
+  check('a sectioning command prints is zero', width('\\section{Intro}') === 5,
+    String(width('\\section{Intro}')))
 
-  const math = 'Because $e^{i\\pi} + 1 = 0$, an identity.'
-  check('math markup shrinks the mapping', typesetOffsets(math).length < math.length)
-  check('a click after inline math stays in the prose',
-    columnFromFraction(math, 0.9) > math.indexOf('identity'),
-    String(columnFromFraction(math, 0.9)))
+  const sample = 'Open-Prism integrates \\LaTeX{} directly'
+  const tex = sample.indexOf('\\LaTeX')
+  // `\\LaTeX` owns roughly 22/35 .. 27/35 of the printed width, so a click there belongs to it.
+  check('a click on \\LaTeX lands on its backslash',
+    columnFromFraction(sample, 0.65) === tex, String(columnFromFraction(sample, 0.65)))
+  check('a click after \\LaTeX stays after it',
+    columnFromFraction(sample, 0.85) > tex + 6, String(columnFromFraction(sample, 0.85)))
 
-  // The command name is markup; its argument is the only text on the line.
-  const argument = '\\usepackage{amsmath}'
-  const inside = columnFromFraction(argument, 0.5)
-  check('a command argument is where the click lands',
-    inside > argument.indexOf('{') && inside <= argument.indexOf('}'),
-    String(inside))
   check('out-of-range fractions clamp', columnFromFraction('abc', -3) === 0
     && columnFromFraction('abc', 9) === 2)
 }

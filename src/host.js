@@ -1197,15 +1197,45 @@ async function runSynctexQuery(shared, context, point) {
  */
 /* pairing: columnFromFraction — kept pure so the mapping can be tested without TeX. */
 /**
- * Source offsets of the characters that actually reach the page.
+ * Commands that print text of their own, with how many characters they print.
  *
- * A PDF box is wide in points, the source line is wide in characters, and LaTeX markup has
- * no glyph: `\textbf{`, `$`, `{}`, `\\`, `\item`, `%` comments and environment names all
- * take source columns but no page width. Mapping the click across the raw line shifted the
- * caret by exactly that markup, so the proportion is taken over this list instead.
+ * `\\LaTeX` and `\\pi` occupy page width, so treating the whole control sequence as
+ * invisible shifted the caret left by exactly their width. Commands that wrap their argument
+ * (`\\textbf`, `\\emph`, `\\texttt`, sectioning, environments) print nothing here: only
+ * the argument does, and it is walked character by character below.
  */
-function typesetOffsets(lineText) {
-  const offsets = []
+const TYPESET_COMMANDS = new Map([
+  ['LaTeX', 5], ['LaTeXe', 7], ['TeX', 3], ['XeTeX', 5], ['LuaTeX', 6], ['pdfTeX', 6],
+  ['pi', 1], ['alpha', 1], ['beta', 1], ['gamma', 1], ['delta', 1], ['epsilon', 1],
+  ['theta', 1], ['lambda', 1], ['mu', 1], ['nu', 1], ['xi', 1], ['rho', 1], ['sigma', 1],
+  ['tau', 1], ['phi', 1], ['chi', 1], ['psi', 1], ['omega', 1], ['Gamma', 1],
+  ['Delta', 1], ['Theta', 1], ['Lambda', 1], ['Xi', 1], ['Pi', 1], ['Sigma', 1],
+  ['Phi', 1], ['Psi', 1], ['Omega', 1], ['infty', 1], ['times', 1], ['cdot', 1],
+  ['pm', 1], ['leq', 1], ['geq', 1], ['neq', 1], ['approx', 1], ['rightarrow', 1],
+  ['leftarrow', 1], ['ldots', 1], ['dots', 1], ['quad', 1], ['qquad', 1],
+  ['LaTeX', 5],
+])
+
+/** Separator commands (`\\`, `\\[2pt]`) print no glyph of their own. */
+const WRAPPER_ONLY = new Set([
+  'textbf', 'textit', 'textsl', 'textsc', 'texttt', 'textrm', 'textsf', 'emph', 'underline',
+  'textit', 'mbox', 'text', 'mathrm', 'mathbf', 'mathit', 'mathcal', 'mathbb', 'mathsf',
+  'operatorname', 'section', 'subsection', 'subsubsection', 'paragraph', 'chapter', 'part',
+  'title', 'author', 'date', 'maketitle', 'item', 'label', 'ref', 'cite', 'caption',
+  'centering', 'noindent', 'indent', 'vspace', 'hspace', 'smallskip', 'medskip', 'bigskip',
+  'begin', 'end', 'documentclass', 'usepackage', 'include', 'input', 'newcommand',
+  'renewcommand', 'setlength', 'includegraphics', 'resizebox', 'hline', 'blindtext',
+])
+
+/**
+ * The units that occupy page width on one source line.
+ *
+ * Each unit is `{ index, weight }`: the source offset the caret should land on and how many
+ * characters of width it prints. Mapping the click over these weights is what keeps a line
+ * with `\\LaTeX{}`, `\\texttt{.tex}`, `$e^{i\\pi} + 1 = 0$` or `\\emph{Fit}` in sync.
+ */
+function typesetUnits(lineText) {
+  const units = []
   let index = 0
   while (index < lineText.length) {
     const char = lineText[index]
@@ -1213,56 +1243,68 @@ function typesetOffsets(lineText) {
     if (char === '\\') {
       const next = lineText[index + 1]
       if (next !== undefined && /[A-Za-z@]/.test(next)) {
-        // Control sequence: the name is markup; optional arguments are still text.
         let scan = index + 1
         while (scan < lineText.length && /[A-Za-z@]/.test(lineText[scan])) scan += 1
-        const rest = /^\s*\[[^\]]*\]/.exec(lineText.slice(scan))
-        index = scan + (rest === null ? 0 : rest[0].length)
+        const name = lineText.slice(index + 1, scan)
+        // Optional `[...]` arguments never print.
+        const optional = /^\s*\[[^\]]*\]/.exec(lineText.slice(scan))
+        if (optional !== null) scan += optional[0].length
+        const weight = TYPESET_COMMANDS.get(name)
+        if (weight !== undefined && name !== 'quad' && name !== 'qquad') {
+          units.push({ index, weight })
+        } else if (weight !== undefined) {
+          units.push({ index, weight })
+        } else if (!WRAPPER_ONLY.has(name)) {
+          // Unknown macros usually wrap or are definitions; assume they print nothing.
+          // Their arguments are still walked below.
+        }
+        index = scan
         continue
       }
-      // `\\` (line break) and escaped symbols: the symbol itself renders.
       if (next === undefined) {
         index += 1
         continue
       }
-      offsets.push(index + 1)
+      // `\%`, `\_`, `\\`-style escapes print the symbol; a line break prints nothing.
+      if (next === '\\') {
+        index += 2
+        continue
+      }
+      units.push({ index: index + 1, weight: 1 })
       index += 2
       continue
     }
-    if (char === '{' || char === '}' || char === '$' || char === '&' || char === '~') {
+    if (char === '{' || char === '}' || char === '$' || char === '&') {
       index += 1
       continue
     }
-    if (char === '_' || char === '^') {
+    if (char === '_' || char === '^' || char === '~') {
       index += 1
       continue
     }
-    offsets.push(index)
+    units.push({ index, weight: 1 })
     index += 1
   }
-  return offsets
+  return units
 }
 
-/** Character column the click belongs to, counting only characters that typeset. */
+/** Character column the click belongs to, over the width the line actually prints. */
 function columnFromFraction(lineText, fraction) {
   if (typeof lineText !== 'string' || lineText === '') return 0
   const clamped = Math.min(1, Math.max(0, Number.isFinite(fraction) ? fraction : 0))
-  const offsets = typesetOffsets(lineText)
-  if (offsets.length === 0) {
-    const plain = Math.round(clamped * lineText.length)
-    return Math.max(0, Math.min(lineText.length, plain))
+  const units = typesetUnits(lineText)
+  if (units.length === 0) {
+    return Math.max(0, Math.min(lineText.length, Math.floor(clamped * lineText.length)))
   }
-  // Each rendered character owns its slice of the box, so the slice under the click wins;
-  // rounding pushed every click half a character to the right.
-  const rendered = Math.min(offsets.length - 1, Math.floor(clamped * offsets.length))
-  const column = offsets[Math.max(0, rendered)]
-  // Inside a `\command` the whole control sequence is one token: keep the backslash.
-  const commandStart = lineText.lastIndexOf('\\', column)
-  if (commandStart >= 0) {
-    const segment = lineText.slice(commandStart, column)
-    if (segment.length < 32 && /^\\[A-Za-z@]*$/.test(segment)) return commandStart
+  let total = 0
+  for (const unit of units) total += unit.weight
+  const target = clamped * total
+  let walked = 0
+  for (const unit of units) {
+    if (target < walked + unit.weight) return unit.index
+    walked += unit.weight
   }
-  return column
+  return units[units.length - 1].index
 }
 
 /**
