@@ -9,6 +9,10 @@ Built on the idea behind [**Open-Prism**](https://github.com/assistant-ui/open-p
 open-source AI LaTeX workspace with a live preview — brought into DSH. This is an independent
 implementation, not a fork; see [Credits and provenance](#credits-and-provenance).
 
+![The LaTeX view: outline rail, source editor, rendered page](docs/view.png)
+
+<sub>Screenshots captured from 0.1.0 on macOS (dark theme).</sub>
+
 ---
 
 ## English
@@ -21,6 +25,11 @@ model writes paper.tex  →  open it in the right sidebar (or follow the model's
                         →  pages render inline, fit-width, with zoom and PDF download
                         →  double-click a spot in the page: the editor's caret lands on that character
 ```
+
+<p>
+  <img src="docs/preview.png" width="420" alt="Right sidebar: compiled page stack with the engine picker" />
+  <img src="docs/editor.png" width="420" alt="Editor: syntax highlighting and the sticky section header" />
+</p>
 
 Two surfaces, one plugin instance:
 
@@ -160,6 +169,10 @@ MIT — see [`LICENSE`](LICENSE). Third-party notices: [`THIRD_PARTY_NOTICES.md`
 
 ## 中文
 
+![LaTeX 视图：左侧 Outline、中间源码编辑器、右侧渲染页](docs/view.png)
+
+<sub>截图取自 0.1.0，macOS 深色主题。</sub>
+
 ### 这是什么
 
 一个 DeepSeek Harness（DSH）插件：用本机 TeX Live 编译 `.tex`，并把编译后的页面直接显示在 DSH
@@ -174,6 +187,11 @@ LaTeX 写作工作台 + 实时预览）。本项目是**为 DSH 插件 API 独�
 |---|---|
 | **右侧边栏标签** | 看文档：接管 `.tex` / `.latex` / `.ltx`，编译后按页显示，支持适应宽度、缩放、下载 PDF、切换引擎，以及「预览 / 源码 / 并排」三种模式。 |
 | **对话视图 `LaTeX`** | 写文档：左侧 Outline（可拖拽调宽、可隐藏），中间源码编辑器，右侧预览列（默认收起，眼睛图标展开），底部是 DSH 原生输入框。该视图会跟随右侧边栏当前打开的 `.tex`。 |
+
+<p>
+  <img src="docs/preview.png" width="420" alt="右侧边栏：编译后的页面栈与引擎选择" />
+  <img src="docs/editor.png" width="420" alt="编辑器：语法着色与粘性章节条" />
+</p>
 
 ### 功能
 
