@@ -229,24 +229,38 @@ section('document outline')
 section('column mapping')
 {
   const host = readFileSync(new URL('../src/host.js', import.meta.url), 'utf8')
-  const start = host.indexOf('function columnFromFraction(')
-  const end = host.indexOf('\n}\n', start) + 3
-  const source = `${host.slice(start, end)}\nexport { columnFromFraction }\n`
+  const start = host.indexOf('function typesetOffsets(')
+  const endMarker = '\n}\n'
+  const end = host.indexOf(endMarker, host.indexOf('function columnFromFraction(')) + endMarker.length
   const modulePath = join(directory, 'column.mjs')
-  writeFileSync(modulePath, source)
-  const { columnFromFraction } = await import(pathToFileURL(modulePath).href)
-  const line = '\\section{Introduction}'
-  check('middle of the line lands on that character',
-    Math.abs(columnFromFraction(line, 0.5) - Math.round(0.5 * line.length)) <= 1,
-    String(columnFromFraction(line, 0.5)))
-  check('a click inside a word stays inside the word',
-    columnFromFraction('hello world', 0.55) > 4,
-    String(columnFromFraction('hello world', 0.55)))
-  check('a click on a command lands on its backslash',
-    columnFromFraction('\\usepackage{amsmath}', 0.2) === 0,
-    String(columnFromFraction('\\usepackage{amsmath}', 0.2)))
+  writeFileSync(modulePath, `${host.slice(start, end)}\nexport { columnFromFraction, typesetOffsets }\n`)
+  const { columnFromFraction, typesetOffsets } = await import(pathToFileURL(modulePath).href)
+
+  // Markup takes source columns and no page width, so it must not move the caret.
+  const bold = '\\textbf{Hello} world'
+  check('markup is not typeset', typesetOffsets(bold).length === 11,
+    String(typesetOffsets(bold).length))
+  check('the start of a bold word lands inside the word',
+    columnFromFraction(bold, 0.02) === 8, String(columnFromFraction(bold, 0.02)))
+  check('the middle of a bold line lands near its middle',
+    Math.abs(columnFromFraction(bold, 0.5) - 14) <= 2,
+    String(columnFromFraction(bold, 0.5)))
+  check('a comment is not typeset', typesetOffsets('text % hidden').length === 5)
+
+  const math = 'Because $e^{i\\pi} + 1 = 0$, an identity.'
+  check('math markup shrinks the mapping', typesetOffsets(math).length < math.length)
+  check('a click after inline math stays in the prose',
+    columnFromFraction(math, 0.9) > math.indexOf('identity'),
+    String(columnFromFraction(math, 0.9)))
+
+  // The command name is markup; its argument is the only text on the line.
+  const argument = '\\usepackage{amsmath}'
+  const inside = columnFromFraction(argument, 0.5)
+  check('a command argument is where the click lands',
+    inside > argument.indexOf('{') && inside <= argument.indexOf('}'),
+    String(inside))
   check('out-of-range fractions clamp', columnFromFraction('abc', -3) === 0
-    && columnFromFraction('abc', 9) === 3)
+    && columnFromFraction('abc', 9) === 2)
 }
 
 section('line offsets')

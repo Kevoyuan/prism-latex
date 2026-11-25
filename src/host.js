@@ -1193,19 +1193,72 @@ async function runSynctexQuery(shared, context, point) {
  * @returns a 0-based column in that line.
  */
 /* pairing: columnFromFraction — kept pure so the mapping can be tested without TeX. */
+/**
+ * Source offsets of the characters that actually reach the page.
+ *
+ * A PDF box is wide in points, the source line is wide in characters, and LaTeX markup has
+ * no glyph: `\textbf{`, `$`, `{}`, `\\`, `\item`, `%` comments and environment names all
+ * take source columns but no page width. Mapping the click across the raw line shifted the
+ * caret by exactly that markup, so the proportion is taken over this list instead.
+ */
+function typesetOffsets(lineText) {
+  const offsets = []
+  let index = 0
+  while (index < lineText.length) {
+    const char = lineText[index]
+    if (char === '%') break
+    if (char === '\\') {
+      const next = lineText[index + 1]
+      if (next !== undefined && /[A-Za-z@]/.test(next)) {
+        // Control sequence: the name is markup; optional arguments are still text.
+        let scan = index + 1
+        while (scan < lineText.length && /[A-Za-z@]/.test(lineText[scan])) scan += 1
+        const rest = /^\s*\[[^\]]*\]/.exec(lineText.slice(scan))
+        index = scan + (rest === null ? 0 : rest[0].length)
+        continue
+      }
+      // `\\` (line break) and escaped symbols: the symbol itself renders.
+      if (next === undefined) {
+        index += 1
+        continue
+      }
+      offsets.push(index + 1)
+      index += 2
+      continue
+    }
+    if (char === '{' || char === '}' || char === '$' || char === '&' || char === '~') {
+      index += 1
+      continue
+    }
+    if (char === '_' || char === '^') {
+      index += 1
+      continue
+    }
+    offsets.push(index)
+    index += 1
+  }
+  return offsets
+}
+
+/** Character column the click belongs to, counting only characters that typeset. */
 function columnFromFraction(lineText, fraction) {
   if (typeof lineText !== 'string' || lineText === '') return 0
   const clamped = Math.min(1, Math.max(0, Number.isFinite(fraction) ? fraction : 0))
-  let column = Math.round(clamped * lineText.length)
-  while (column > 0 && /\s/.test(lineText[column])) column -= 1
-  // Inside a `\command`, snap to its backslash: the whole control sequence is a token.
+  const offsets = typesetOffsets(lineText)
+  if (offsets.length === 0) {
+    const plain = Math.round(clamped * lineText.length)
+    return Math.max(0, Math.min(lineText.length, plain))
+  }
+  // Each rendered character owns its slice of the box, so the slice under the click wins;
+  // rounding pushed every click half a character to the right.
+  const rendered = Math.min(offsets.length - 1, Math.floor(clamped * offsets.length))
+  const column = offsets[Math.max(0, rendered)]
+  // Inside a `\command` the whole control sequence is one token: keep the backslash.
   const commandStart = lineText.lastIndexOf('\\', column)
   if (commandStart >= 0) {
     const segment = lineText.slice(commandStart, column)
     if (segment.length < 32 && /^\\[A-Za-z@]*$/.test(segment)) return commandStart
   }
-  // Do NOT walk back to the start of the word: the user asked for the character they
-  // clicked, and snapping turned "one or two characters off" into a whole word.
   return column
 }
 
