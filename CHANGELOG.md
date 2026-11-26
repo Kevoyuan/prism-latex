@@ -16,8 +16,9 @@ Nothing yet.
   `assets/icon.png` (256 px) is what the bundle exports as `./icon`; `assets/icon-180.png` is the
   same artwork at the size plugin markets ask for. The vector `icon.svg` is gone: the new mark is a
   render, and hand-tracing it as SVG would be a worse copy of it.
-- `screenshots.json` lists the three screenshots in `docs/`, so storefronts show them in that order
-  instead of guessing from the README.
+- **The product screenshot is the new one**, and the README embeds only it: `docs/preview.png` and
+  `docs/editor.png` are gone, and `screenshots.json` names `docs/view.png` so storefronts show that
+  shot instead of guessing from the README.
 - The panel header's build marker reads `0.2.2+latex-tab`. It had stayed at `0.1.1` through the
   rename, so a window could not tell which bundle it had loaded.
 
