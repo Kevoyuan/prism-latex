@@ -6,7 +6,13 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
-Nothing yet.
+### Fixed
+
+- **The Install section now leads with the two supported installers** — **Plugins** → **Add plugin**
+  in the app, and `dsh plugin --profile <name> add prism-latex` for a profile launched from the CLI.
+  The block it replaces pasted a whole `package.json` that listed only this bundle, so copying it
+  over a real profile dropped every other bundle; the text now says to merge into `dependencies` and
+  `dsh.profile.bundles`, and names each place it writes.
 
 ## [0.2.2] — 2026-11-26
 

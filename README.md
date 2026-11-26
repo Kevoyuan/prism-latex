@@ -26,23 +26,27 @@ Nothing to compile? Open `demo/showcase.tex` — title, abstract, sections, math
 You need the DSH desktop app, a local TeX Live (`latexmk` or `pdflatex`; `xelatex` for CJK), and
 Ghostscript for the page images.
 
-Add the bundle to your DSH profile, then restart the app:
+Install it from the app: **Plugins** → **Add plugin**, enter `prism-latex` (or a pinned
+`prism-latex@0.2.2`), choose Install, and restart when it asks. That dialog also picks the registry,
+so a lagging mirror can be swapped for `https://registry.npmjs.org`.
 
-```jsonc
-// ~/.dsh/profiles/<profile>/package.json
-{
-  "dependencies": { "prism-latex": "^0.2.0" },
-  "dsh": { "profile": { "bundles": ["prism-latex"] } }
-}
-```
+A profile you launch with the `dsh` CLI takes the same package — swap `web` for the name you boot:
 
 ```bash
-cd ~/.dsh/profiles/<profile> && pnpm install
+dsh plugin --profile web add prism-latex
 ```
 
-Working on the plugin itself? Point the dependency at your checkout instead —
-`"prism-latex": "link:/path/to/checkout"`. Client code is served once per launch: **quit and reopen
-DSH**, `⌘R` keeps the old bytes.
+`desktop` takes that command too, but only after the app has created the profile (open it once) and
+only while the app is fully quit. With the app open, use **Add plugin**.
+
+Both routes write the profile's `package.json` — a `dependencies` entry and the name in
+`dsh.profile.bundles`. Adding it by hand means merging into those two places; replacing the file
+drops every other bundle in the profile.
+
+Working on the plugin itself? Install the checkout instead of the published package: **Add plugin**
+with this directory (it records `"prism-latex": "link:/path/to/checkout"`), or
+`dsh plugin --profile web add /path/to/checkout`. Client code is served once per launch: **quit and
+reopen DSH**, `⌘R` keeps the old bytes.
 
 ## What you get
 

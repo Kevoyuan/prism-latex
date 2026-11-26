@@ -21,21 +21,19 @@
 
 需要 DSH 桌面版、本机 TeX Live（`latexmk` 或 `pdflatex`；要中文就装 `xelatex`）、以及渲染页面用的 Ghostscript。
 
-把 bundle 加进 DSH profile，然后重启应用：
+在应用里装：**插件** → **Add plugin**，填 `prism-latex`（或固定版本 `prism-latex@0.2.2`），点 Install，应用提示时完全退出再打开。这个对话框也能选 registry，国内镜像还没同步到新版本时换成 `https://registry.npmjs.org`。
 
-```jsonc
-// ~/.dsh/profiles/<profile>/package.json
-{
-  "dependencies": { "prism-latex": "^0.2.0" },
-  "dsh": { "profile": { "bundles": ["prism-latex"] } }
-}
-```
+用 `dsh` CLI 启动的 profile 装同一个包——把 `web` 换成你实际启动的名字：
 
 ```bash
-cd ~/.dsh/profiles/<profile> && pnpm install
+dsh plugin --profile web add prism-latex
 ```
 
-在改这个插件本身？把依赖写成 `"prism-latex": "link:/path/to/checkout"`。客户端代码每次启动只加载一次：**必须完全退出再打开**，`⌘R` 拿不到新字节。
+`desktop` 也能这么装，但得先让应用把这个 profile 建出来（打开一次），并且只在应用**完全退出**时跑；应用开着就用 **Add plugin**。
+
+两条路都会写进 profile 的 `package.json`——`dependencies` 里一条，`dsh.profile.bundles` 里一个名字。要手改这个文件，是往这两处**合并**，不是整体替换：替换掉，profile 里其他 bundle 就都没了。
+
+在改这个插件本身？把本地检出当插件装：**Add plugin** 填这个目录（会记成 `"prism-latex": "link:/path/to/checkout"`），或 `dsh plugin --profile web add /path/to/checkout`。客户端代码每次启动只加载一次：**必须完全退出再打开**，`⌘R` 拿不到新字节。
 
 ## 你会得到
 
