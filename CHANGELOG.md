@@ -6,6 +6,10 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [0.2.2] — 2026-11-26
+
 ### Changed
 
 - **The icon is a rendered glass prism** on the indigo card, replacing the line-art triangle.
@@ -14,6 +18,8 @@ All notable changes to this project are documented here. The format follows
   render, and hand-tracing it as SVG would be a worse copy of it.
 - `screenshots.json` lists the three screenshots in `docs/`, so storefronts show them in that order
   instead of guessing from the README.
+- The panel header's build marker reads `0.2.2+latex-tab`. It had stayed at `0.1.1` through the
+  rename, so a window could not tell which bundle it had loaded.
 
 ## [0.2.1] — 2026-11-25
 
@@ -97,7 +103,8 @@ First public release.
 The regressions that shaped the architecture are documented in `POSTMORTEM.md`; the rules that
 prevent them from returning are in `CLAUDE.md`.
 
-[Unreleased]: https://github.com/Kevoyuan/prism-latex/compare/v0.2.1...HEAD
+[Unreleased]: https://github.com/Kevoyuan/prism-latex/compare/v0.2.2...HEAD
+[0.2.2]: https://github.com/Kevoyuan/prism-latex/releases/tag/v0.2.2
 [0.2.1]: https://github.com/Kevoyuan/prism-latex/releases/tag/v0.2.1
 [0.2.0]: https://github.com/Kevoyuan/prism-latex/releases/tag/v0.2.0
 [0.1.1]: https://github.com/Kevoyuan/prism-latex/releases/tag/v0.1.1

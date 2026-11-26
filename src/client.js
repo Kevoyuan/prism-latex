@@ -6,7 +6,7 @@ window.__ModuleLoader__.load({
     const { useEffect, useMemo, useRef, useState } = React
 
     /** Shown in the panel header: which client bundle the page actually loaded. */
-    const CLIENT_BUILD = '0.1.1+latex-tab'
+    const CLIENT_BUILD = '0.2.2+latex-tab'
     const SESSION_RESOURCE_PREFIX = 'dsh-resource://file/session/'
     const ABSOLUTE_RESOURCE_PREFIX = 'dsh-resource://file/absolute/'
     const FIXED_ZOOM_STEPS = [0.5, 0.75, 1, 1.25, 1.5, 2, 3]
