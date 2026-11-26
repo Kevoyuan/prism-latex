@@ -44,11 +44,6 @@ cd ~/.dsh/profiles/<profile> && pnpm install
 | **右侧栏 tab** | 阅读面。编译你打开的文件；页面栈、适应宽度与最高 300% 缩放、引擎选择、Preview / Source / Side by side、下载 PDF，报错带可点的行号。 |
 | **`LaTeX` 视图** | 写作面。大纲栏（可拖宽、可隐藏）、带 LaTeX 高亮的编辑器、眼睛开关后的可选预览，下面是 shell 原生 composer。 |
 
-<p>
-  <img src="docs/preview.png" width="420" alt="右侧栏：页面栈与引擎选择" />
-  <img src="docs/editor.png" width="420" alt="编辑器：语法高亮与吸顶章节标题" />
-</p>
-
 ## 快捷键
 
 | 按键 | 作用 |

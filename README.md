@@ -51,11 +51,6 @@ DSH**, `⌘R` keeps the old bytes.
 | **Right sidebar tab** | The reader. Compiles the file you opened; page stack with fit-width and zoom to 300 %, engine picker, Preview / Source / Side by side, PDF download, errors with a clickable line. |
 | **`LaTeX` view** | The writer. Outline rail (drag to resize, hideable), editor with LaTeX highlighting, optional preview behind the eye toggle, the shell's composer underneath. |
 
-<p>
-  <img src="docs/preview.png" width="420" alt="Right sidebar: page stack with the engine picker" />
-  <img src="docs/editor.png" width="420" alt="Editor: syntax highlighting and the sticky section header" />
-</p>
-
 ## Shortcuts
 
 | Keys | Does |
